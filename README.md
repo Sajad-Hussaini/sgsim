@@ -1,7 +1,6 @@
 # SGSIM
 <p align="justify">
-<strong>SGSIM</strong> is a Python package for simulating earthquake ground motions based on specific earthquake and site characteristics.
-This package enables users to apply the site-based stochastic simulation model (as detailed in the reference section) to a target ground motion time series and provides tools for visualizing the simulation results. Designed for researchers, engineers, and others working with seismic data, SGSIM offers an efficient and user-friendly approach to generating ground motion time series at specific recording stations. It also allows for the generation of multiple realizations of a target record to account for variability, without relying on the selection and scaling of existing ground motions.
+<strong>SGSIM</strong> is a Python package for simulating a target earthquake ground motion time series. This package enables users to apply the site-based stochastic simulation model (as noted in the reference section) to a target ground motion time series and obtain model parameters that implicitly account for the earthquake and site characteristics. Given the model parameters, the package can simulate multiple realizations of the target motion to account for the aleatoric nature of the ground motion. It also provides tools for visualizing the simulation results.
 </p>
 
 ## Table of Contents
@@ -15,7 +14,7 @@ This package enables users to apply the site-based stochastic simulation model (
 
 ## Features
 - **Site-based Stochastic Modeling**: Configure and fit the stochastic model to ground motion data using customizable parameters.  
-- **Time-Series Simulation**: Simulate acceleration, velocity, and displacement time series without post-processing. Additional properties such as Fourier Amplitude Spectrum (FAS), Spectral Acceleration (SA), Spectral Velocity (SV), Spectral Displacement (SD), and more are available for rapid computation. 
+- **Time-Series Simulation**: Simulate acceleration, velocity, and displacement time series without post-processing. Additional properties such as Fourier Amplitude Spectrum (FAS), Spectral Acceleration (SA), Spectral Velocity (SV), Spectral Displacement (SD), and more are available for rapid computation.
 - **Comprehensive Visualization**: Plot motion data, spectra, and other properties to verify and validate simulations.
 
 ## Installation
@@ -44,14 +43,12 @@ This project is licensed under the Creative Commons Attribution-NonCommercial-Sh
 **S.M. Sajad Hussaini**  
 Email: [hussaini.smsajad@gmail.com](mailto:hussaini.smsajad@gmail.com)
 
-## Support the Project
+## Support This Python Package
 
-If you find this project useful and would like to support my work, you can make a donation via PayPal:
+Your contributions help maintain and improve this package:
 
 - **PayPal Email:** [hussaini.smsajad@gmail.com](mailto:hussaini.smsajad@gmail.com)
 - **Donate Here:** [paypal.me/sajadhussaini](https://www.paypal.com/paypalme/sajadhussaini)
-
-Thank you for your support!
 
 
 ## References
