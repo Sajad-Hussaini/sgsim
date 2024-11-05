@@ -17,8 +17,9 @@ class ModelConfig:
             'linear': self.linear,
             'constant': self.constant,
             'bilinear': self.bilinear,
-            'beta_basic': self.beta_basic,
             'exponential': self.exponential,
+            'beta_basic': self.beta_basic,
+            'beta_single': self.beta_single,
             'beta_multi': self.beta_multi,
             'gamma': self.gamma,
             'housner_pw': self.housner_pw}
@@ -85,6 +86,15 @@ class ModelConfig:
         mdl = ((t ** (c1 * p1) * (tn - t) ** (c1 * (1 - p1))) /
                (beta(1 + c1 * p1, 1 + c1 * (1 - p1)) * tn ** (1 + c1)))
         return np.sqrt(Et * mdl)
+
+    def beta_single(self, t, *params: tuple[float, ...]) -> np.array:
+        p1, c1, Et, tn = params
+        mdl1 = 0.05 * (6 * (t[1:-1] * (tn - t[1:-1])) / (tn ** 3))
+        mdl2 = 0.95 * np.exp(
+            (c1 * p1) * np.log(t[1:-1]) + (c1 * (1 - p1)) * np.log(tn - t[1:-1]) -
+            np.log(beta(1 + c1 * p1, 1 + c1 * (1 - p1))) - (1 + c1) * np.log(tn))
+        multi_mdl = np.concatenate((np.array([0]), (mdl1 + mdl2), np.array([0])))
+        return np.sqrt(Et * multi_mdl)
 
     def exponential(self, t, *params: tuple[float, ...]) -> np.array:
         p0, p1 = params
