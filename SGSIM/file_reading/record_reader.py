@@ -18,7 +18,7 @@ class RecordReader:
         """
         self.file_path = file_path
         self.source = source
-        self.skip_rows = kwargs.get('skiprows', 0)
+        self.skip_rows = kwargs.get('skiprows', 1)
         self.read_file()
 
     def read_file(self):

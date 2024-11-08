@@ -45,12 +45,12 @@ def model_fit(fit_func: str, model, target_motion,
         xdata = np.concatenate((target_motion.t, target_motion.t))
         obj_func = lambda t, *params: obj_damping_pmnm(t, *params, model=model)
         uncertainty = 1 / (np.concatenate((model.mdl, model.mdl))+scale)
-
     else:
         raise ValueError('Unknown Fit Function.')
     curve_fit(obj_func, xdata, ydata, p0=initial_guess,
               bounds=(lower_bounds, upper_bounds),
               sigma = uncertainty, maxfev=10000)
+    return model  # so that updated model can be returned in multi processing
 
 def get_default_bounds(fit_func: str):
     """
@@ -64,20 +64,19 @@ def get_default_bounds(fit_func: str):
 
     elif fit_func == 'freq':
         igwu, igwl = [7.0] * 2, [1.0] * 2
-        lbwu, lbwl = [0.75] * 2, [0.1] * 2
+        lbwu, lbwl = [0.75] * 2, [0.10] * 2
         ubwu, ubwl = [30.0] * 2, [10.0] * 2
         initial_guess = [*igwu, *igwl]
         lower_bounds = [*lbwu, *lbwl]
         upper_bounds = [*ubwu, *ubwl]
 
     elif fit_func == 'damping' or fit_func == 'damping pmnm':
-        igzu, igzl = [0.5] * 2, [0.5] * 2
-        lbzu, lbzl = [0.1] * 2, [0.1] * 2
+        igzu, igzl = [0.6] * 2, [0.5] * 2
+        lbzu, lbzl = [0.5] * 2, [0.5] * 2
         ubzu, ubzl = [10.0] * 2, [10.0] * 2
         initial_guess = [*igzu, *igzl]
         lower_bounds = [*lbzu, *lbzl]
         upper_bounds = [*ubzu, *ubzl]
-
     else:
         raise ValueError('Unknown Fit Function.')
     return initial_guess, lower_bounds, upper_bounds

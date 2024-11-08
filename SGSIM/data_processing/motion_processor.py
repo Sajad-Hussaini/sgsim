@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.signal import butter, filtfilt
+from numba import jit
 
 def find_error(rec: np.array, model: np.array) -> float:
     """
@@ -67,6 +69,50 @@ def get_disp_detrend(dt: float, rec: np.ndarray) -> np.ndarray:
     uvec = get_disp(dt, rec)
     return uvec - np.linspace(0.0, uvec[-1], len(uvec))
 
+def bandpass_filter(rec, dt, lowcut=0.1, highcut=25.0, order=4):
+    """
+    Apply a high-pass Butterworth filter to remove low-frequency drift.
+    """
+    nyquist = 0.5 / dt  # Nyquist frequency
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = butter(order, [low, high], btype='band')
+    filtered_rec = filtfilt(b, a, rec)
+    return filtered_rec
+
+def moving_average(rec, window_size=9):
+    """
+    Perform a moving average smoothing on the input data with the specified window size.
+    """
+    # Ensure the window size is an odd number for symmetry
+    if window_size % 2 == 0:
+        raise ValueError("Window size should be odd.")
+    window = np.ones(window_size) / window_size
+    # Check the number of dimensions and apply the moving average
+    if rec.ndim == 1:
+        # For 1D array, apply moving average directly
+        smoothed_rec = np.convolve(rec, window, mode='same')
+    elif rec.ndim == 2:
+        # For 2D array, apply the moving average to each column (axis=0)
+        smoothed_rec = np.apply_along_axis(lambda x: np.convolve(x, window, mode='same'), axis=0, arr=rec)
+    else:
+        raise ValueError("Input must be a 1D or 2D array.")
+
+    return smoothed_rec
+
+def baseline_correction(rec, degree = 1):
+    n = len(rec)
+    x = np.arange(n)
+
+    # Fit a polynomial of the specified degree to the signal
+    baseline_coefficients = np.polyfit(x, rec, degree)
+    baseline = np.polyval(baseline_coefficients, x)
+
+    # Subtract the baseline from the original signal to correct it
+    corrected_signal = rec - baseline
+    return corrected_signal
+
+@jit(nopython=True)
 def linear_analysis_sdf(dt: float, rec: np.ndarray, period_range: tuple[float, float, float] = (0.05, 4.05, 0.01),
                         zeta: float = 0.05,
                         mass: float = 1.0,
@@ -78,9 +124,11 @@ def linear_analysis_sdf(dt: float, rec: np.ndarray, period_range: tuple[float, f
     uVec, vVec, aVec are relative to the ground
     the total velocity and acceleration are computed as atVec=aVec+ac(grd)
     """
-    if np.ndim(rec) == 1:
-        rec = rec[np.newaxis, :]  # Convert to 2D array with one row for consistency
-    p = -mass * rec if excitation == 'GM' else rec
+    if rec.ndim == 1:
+        rec_2d = rec[None, :]
+    else:
+        rec_2d = rec
+    p = -mass * rec_2d if excitation == 'GM' else rec_2d
     # properties of the SDF systems for each period
     T = np.arange(*period_range)
     wn = 2 * np.pi / T
@@ -102,7 +150,7 @@ def linear_analysis_sdf(dt: float, rec: np.ndarray, period_range: tuple[float, f
 
     # system at rest disp[:, 0] = 0.0 and vel[:, 0] = 0.0
     ac[:, 0] = (p[:, 0, np.newaxis] - c * vel[:, 0] - k * disp[:, 0]) / mass
-    ac_total[:, 0] = ac[:, 0] + rec[:, 0, np.newaxis]
+    ac_total[:, 0] = ac[:, 0] + rec_2d[:, 0, np.newaxis]
     for i in range(n_exc - 1):
         dp = p[:, i + 1, np.newaxis] + a1 * disp[:, i] + a2 * vel[:, i] + a3 * ac[:, i]
         disp[:, i + 1] = dp / k_hat
@@ -111,7 +159,7 @@ def linear_analysis_sdf(dt: float, rec: np.ndarray, period_range: tuple[float, f
                          (1 - gamma / (2 * beta)))
         ac[:, i + 1] = ((disp[:, i + 1] - disp[:, i]) / (beta * dt ** 2) -
                         vel[:, i] / (beta * dt) - ac[:, i] * (1 / (2 * beta) - 1))
-        ac_total[:, i + 1] = ac[:, i + 1] + rec[:, i + 1, np.newaxis]
+        ac_total[:, i + 1] = ac[:, i + 1] + rec_2d[:, i + 1, np.newaxis]
     return disp, vel, ac, ac_total
 
 def get_spectra(dt: float, rec: np.ndarray, period_range: tuple[float, float, float] = (0.05, 4.05, 0.01),

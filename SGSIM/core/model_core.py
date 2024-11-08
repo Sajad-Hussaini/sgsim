@@ -24,22 +24,14 @@ class ModelCore(ModelConfig):
         self.variance_bar:  variance 1st integral      using -2
         self.variance_2bar: variance 2nd integral      using -4
         """
-        self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = np.zeros((5, self.npts))
-        for i in range(self.npts):
-            stats_i = ff.get_stats(self.wu[i], self.zu[i], self.wl[i], self.zl[i], self.freq,
-                                   statistics=(0, 2, 4, -2, -4))
-            self.variance[i], self.variance_dot[i], self.variance_2dot[i], self.variance_bar[i], self.variance_2bar[i] = stats_i[:5]
+        self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = ff.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq, statistics=(0, 2, 4, -2, -4))
         return self
 
     def get_fas(self):
         """
         The FAS of the stochastic model using frequency domain.
         """
-        psd = np.zeros(len(self.freq))
-        for i, mdl_i in enumerate(self.mdl):
-            psd_i = ff.get_psd(self.wu[i], self.zu[i], self.wl[i], self.zl[i], self.freq)
-            psd += (psd_i / np.sum(psd_i)) * mdl_i ** 2
-        self.fas = np.sqrt(psd)
+        self.fas = ff.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq)
         return self.fas
 
     def get_ce(self):
@@ -153,3 +145,4 @@ class ModelCore(ModelConfig):
         self.get_pmnm_ac()
         self.get_pmnm_vel()
         self.get_pmnm_disp()
+        return self

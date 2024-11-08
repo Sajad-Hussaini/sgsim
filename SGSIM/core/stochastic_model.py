@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.fft import irfft
+from numba import jit, prange
 from SGSIM.core import filter_freq as ff
 from SGSIM.core.model_core import ModelCore
 
@@ -23,6 +24,23 @@ class StochasticModel(ModelCore):
         self.seed = number
         return self
 
+    @staticmethod
+    @jit(nopython=True, parallel=True)
+    def _simulate_loop(npts, t, freq_sim, mdl, wu, zu, wl, zl, variance, white_noise):
+        """
+        The loop part of the simulation, which performs the frequency domain simulation.
+        """
+        sim_Fourier = np.zeros((npts, len(freq_sim)), dtype='complex')
+
+        for i in prange(npts):  # prange is used for parallel loops in Numba
+            frf = ff.get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim)
+            exp_term = np.exp(-1j * freq_sim * t[i])
+            white_noise_term = white_noise[i] * mdl[i] / np.sqrt(variance[i] * 2 / npts)
+            sim_Fourier[i, :] = frf * exp_term * white_noise_term
+
+        return np.sum(sim_Fourier, axis=0)
+
+
     def simulate(self) -> tuple[np.array, np.array, np.array]:
         """
         Simulate ground-motions using fitted moddel parameters
@@ -30,13 +48,10 @@ class StochasticModel(ModelCore):
         returns: ac, vel, disp
         """
         white_noise = np.random.default_rng(seed=self.seed).standard_normal(self.npts)
-        sim_Fourier = np.zeros(len(self.freq_sim), dtype='complex')
-        for i in range(self.npts):
-            # irfft and np.sum cancel out dt/dt
-            # npts used in varx
-            sim_Fourier += ((ff.get_frf(self.wu[i], self.zu[i], self.wl[i], self.zl[i], self.freq_sim) *
-                             np.exp(-1j * self.freq_sim * self.t[i])) *
-                            (white_noise[i] * self.mdl[i] / np.sqrt(self.variance[i] * 2 / self.npts)))
+        sim_Fourier = self._simulate_loop(self.npts, self.t, self.freq_sim,
+                                          self.mdl, self.wu, self.zu, self.wl, self.zl,
+                                          self.variance, white_noise)
+
 
         sim_ac = irfft(sim_Fourier)[0:self.npts]  # to avoid aliasing
         sim_vel = np.zeros_like(sim_Fourier)

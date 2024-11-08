@@ -113,7 +113,7 @@ def plot_motion(t: np.array, rec: np.array, sim1: np.array, sim2: np.array, ylab
     axes[0].minorticks_on()
     # axes.flatten()[0].set_ylim([-1.05 * max(abs(target)), 1.05 * max(abs(target))])
     for idx, sim_data in enumerate([sim1, sim2], start=1):
-        sim_data = sim_data - np.linspace(0.0, sim_data[-1], len(sim_data))
+        # sim_data = sim_data - np.linspace(0.0, sim_data[-1], len(sim_data))
         axes[idx].plot(t, sim_data, label='Simulation', color='tab:red')
     for ax in axes:
         ax.axhline(y=0, color='k', linestyle='--', alpha=0.25)
