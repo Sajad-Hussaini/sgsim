@@ -21,7 +21,7 @@ def model_fit(fit_func: str, model, target_motion,
         lower_bounds = lower_bounds if lower_bounds is not None else default_lower
         upper_bounds = upper_bounds if upper_bounds is not None else default_upper
 
-    scale = 1
+    scale = np.max(model.mdl)*0.1 if fit_func != 'modulating' else None
     if fit_func == 'modulating':
         ydata = target_motion.ce
         xdata = target_motion.t
@@ -45,6 +45,12 @@ def model_fit(fit_func: str, model, target_motion,
         xdata = np.concatenate((target_motion.t, target_motion.t))
         obj_func = lambda t, *params: obj_damping_pmnm(t, *params, model=model)
         uncertainty = 1 / (np.concatenate((model.mdl, model.mdl))+scale)
+
+    elif fit_func == 'all':
+        ydata = np.concatenate((target_motion.mzc_ac, target_motion.mzc_vel, target_motion.mzc_disp, target_motion.fas[target_motion.slicer_freq]))
+        xdata = np.concatenate((target_motion.t, target_motion.t, target_motion.t, target_motion.freq[target_motion.slicer_freq]))
+        obj_func = lambda t, *params: obj_all(t, *params, target_motion=target_motion, model=model)
+        uncertainty = None
     else:
         raise ValueError('Unknown Fit Function.')
     curve_fit(obj_func, xdata, ydata, p0=initial_guess,
@@ -58,13 +64,13 @@ def get_default_bounds(fit_func: str):
     based on the fitting function.
     """
     if fit_func == 'modulating':
-        initial_guess = [0.1, 10.0, 0.1, 10.0, 0.3]
+        initial_guess = [0.1, 10.0, 0.2, 10.0, 0.3]
         lower_bounds = [0.01, 0.0, 0.0, 0.0, 0.0]
-        upper_bounds = [0.75, 200.0, 0.75, 200.0, 0.475]
+        upper_bounds = [0.75, 200.0, 0.75, 200.0, 0.95]
 
     elif fit_func == 'freq':
         igwu, igwl = [7.0] * 2, [1.0] * 2
-        lbwu, lbwl = [0.75] * 2, [0.10] * 2
+        lbwu, lbwl = [0.75] * 2, [0.08] * 2
         ubwu, ubwl = [30.0] * 2, [10.0] * 2
         initial_guess = [*igwu, *igwl]
         lower_bounds = [*lbwu, *lbwl]
@@ -72,11 +78,22 @@ def get_default_bounds(fit_func: str):
 
     elif fit_func == 'damping' or fit_func == 'damping pmnm':
         igzu, igzl = [0.6] * 2, [0.5] * 2
-        lbzu, lbzl = [0.5] * 2, [0.5] * 2
+        lbzu, lbzl = [0.1] * 2, [0.1] * 2
         ubzu, ubzl = [10.0] * 2, [10.0] * 2
         initial_guess = [*igzu, *igzl]
         lower_bounds = [*lbzu, *lbzl]
         upper_bounds = [*ubzu, *ubzl]
+
+    elif fit_func == 'all':
+        igwu, igwl = [5.0] * 2, [1.0] * 2
+        lbwu, lbwl = [0.0] * 2, [0.1] * 2
+        ubwu, ubwl = [30.0] * 2, [5.0] * 2
+        igzu, igzl = [0.6] * 2, [0.5] * 2
+        lbzu, lbzl = [0.1] * 2, [0.1] * 2
+        ubzu, ubzl = [10.0] * 2, [10.0] * 2
+        initial_guess = [*igwu, *igwl, *igzu, *igzl]
+        lower_bounds = [*lbwu, *lbwl, *lbzu, *lbzl]
+        upper_bounds = [*ubwu, *ubwl, *ubzu, *ubzl]
     else:
         raise ValueError('Unknown Fit Function.')
     return initial_guess, lower_bounds, upper_bounds
@@ -84,11 +101,13 @@ def get_default_bounds(fit_func: str):
 def obj_mdl(t: np.array, *params: tuple[float, ...], target_motion, model) -> np.array:
     """
     The modulating objective function
+    Unique solution constraint 1: p1 < p2 -> p2 = p1+dp2 for beta_multi
     """
     Et = target_motion.ce[-1]
     tn = target_motion.t[-1]
-    all_params = (*params, Et, tn)
-
+    p1, c1, dp2, c2, a1 = params
+    p2 = p1 + dp2
+    all_params = (p1, c1, p2, c2, a1, Et, tn)
     model.get_mdl(*all_params)
     return model.get_ce()
 
@@ -122,3 +141,27 @@ def obj_damping_pmnm(t: np.array, *params: tuple[float, ...], model) -> np.array
     model.get_zl(*params[half_param:])
     model.get_stats()
     return np.concatenate((model.get_pmnm_vel(), model.get_pmnm_disp()))
+
+def obj_all(t: np.array, *params: tuple[float, ...], target_motion, model) -> np.array:
+    """
+    The damping objective function using all mzc.
+    """
+    half_param = len(params) // 4
+    # wu = wl + dwu
+    dwu = params[:half_param]
+    wl = params[half_param:2*half_param]
+    wu = [a + b for a, b in zip(wl, dwu)]
+    model.get_wu(*wu)
+    model.get_wl(*wl)
+    zu = params[2*half_param:3*half_param]
+    zl = params[3*half_param:]
+    model.get_zu(*zu)
+    model.get_zl(*zl)
+
+    penalty = 0
+    for i in range(len(wu)):
+        if abs(wu[i] - wl[i]) < 0.5:
+            penalty += (zu[i] - zl[i]) ** 2 * 100
+
+    model.get_stats()
+    return np.concatenate((model.get_mzc_ac(), model.get_mzc_vel(), model.get_mzc_disp(), model.get_fas()[target_motion.slicer_freq])) + penalty

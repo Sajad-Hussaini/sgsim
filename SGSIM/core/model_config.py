@@ -101,24 +101,26 @@ class ModelConfig:
         return p0 * np.exp(np.log(p1 / p0) * (t / t[-1]))
 
     def beta_multi(self, t, *params: tuple[float, ...]) -> np.array:
-        p1, c1, dp2, c2, da1, Et, tn = params
+        p1, c1, p2, c2, a1, Et, tn = params
         # Unique solution constraint 1: p1 < p2 -> p2 = p1+dp2
         # Unique solution constraint 2: a1 > a2 -> a1 = 0.475+da1
         # Log-space computation to avoid overflow over t[1:-1] with zeros at ends
         mdl1 = 0.05 * (6 * (t[1:-1] * (tn - t[1:-1])) / (tn ** 3))
-        mdl2 = (0.475 + da1) * np.exp(
+        mdl2 = a1 * np.exp(
             (c1 * p1) * np.log(t[1:-1]) + (c1 * (1 - p1)) * np.log(tn - t[1:-1]) -
             np.log(beta(1 + c1 * p1, 1 + c1 * (1 - p1))) - (1 + c1) * np.log(tn))
-        mdl3 = (0.475 - da1) * np.exp(
-            (c2 * (p1 + dp2)) * np.log(t[1:-1]) + (c2 * (1 - (p1 + dp2))) * np.log(tn - t[1:-1]) -
-            np.log(beta(1 + c2 * (p1 + dp2), 1 + c2 * (1 - (p1 + dp2)))) - (1 + c2) * np.log(tn))
+        mdl3 = (0.95 - a1) * np.exp(
+            (c2 * p2) * np.log(t[1:-1]) + (c2 * (1 - p2)) * np.log(tn - t[1:-1]) -
+            np.log(beta(1 + c2 * p2, 1 + c2 * (1 - p2))) - (1 + c2) * np.log(tn))
         multi_mdl = np.concatenate((np.array([0]), (mdl1 + mdl2 + mdl3), np.array([0])))
+
         # Original formula
         # mdl1 = 0.05 * (6 * (t * (tn - t)) / (tn ** 3))
         # mdl2 = a1 * ((t ** (c1 * p1) * (tn - t) ** (c1 * (1 - p1))) /
-        #              (beta(1 + c1 * p1, 1 + c1 * (1 - p1)) * tn ** (1 + c1)))
+        #               (beta(1 + c1 * p1, 1 + c1 * (1 - p1)) * tn ** (1 + c1)))
         # mdl3 = (1 - 0.05 - a1) * ((t ** (c2 * p2) * (tn - t) ** (c2 * (1 - p2))) /
         #                           (beta(1 + c2 * p2, 1 + c2 * (1 - p2)) * tn ** (1 + c2)))
+        # multi_mdl = mdl1 + mdl2 + mdl3
         return np.sqrt(Et * multi_mdl)
 
     def gamma(self, t, *params: tuple[float, ...]) -> np.array:

@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, sosfilt
 from numba import jit
 
 def find_error(rec: np.array, model: np.array) -> float:
@@ -69,16 +69,33 @@ def get_disp_detrend(dt: float, rec: np.ndarray) -> np.ndarray:
     uvec = get_disp(dt, rec)
     return uvec - np.linspace(0.0, uvec[-1], len(uvec))
 
-def bandpass_filter(rec, dt, lowcut=0.1, highcut=25.0, order=4):
+def bandpass_filter(dt, rec, lowcut=0.1, highcut=25.0, order=4):
     """
     Apply a high-pass Butterworth filter to remove low-frequency drift.
     """
     nyquist = 0.5 / dt  # Nyquist frequency
     low = lowcut / nyquist
     high = highcut / nyquist
-    b, a = butter(order, [low, high], btype='band')
-    filtered_rec = filtfilt(b, a, rec)
+    sos = butter(order, [low, high], btype='band', output='sos')
+    n = len(rec)
+    next_pow2 = 2**np.ceil(np.log2(n*2)).astype(int)  # Find next power of 2
+    pad_width = next_pow2 - n  # Calculate padding size
+    signal_padded = np.pad(rec, (pad_width // 2, pad_width - pad_width // 2), mode='constant')
+    filtered_rec = sosfilt(sos, signal_padded)
+    filtered_rec = filtered_rec[pad_width // 2: -pad_width // 2]
     return filtered_rec
+
+def baseline_correction(rec, degree = 1):
+    n = len(rec)
+    x = np.arange(n)
+
+    # Fit a polynomial of the specified degree to the signal
+    baseline_coefficients = np.polyfit(x, rec, degree)
+    baseline = np.polyval(baseline_coefficients, x)
+
+    # Subtract the baseline from the original signal to correct it
+    corrected_signal = rec - baseline
+    return corrected_signal
 
 def moving_average(rec, window_size=9):
     """
@@ -97,20 +114,7 @@ def moving_average(rec, window_size=9):
         smoothed_rec = np.apply_along_axis(lambda x: np.convolve(x, window, mode='same'), axis=0, arr=rec)
     else:
         raise ValueError("Input must be a 1D or 2D array.")
-
     return smoothed_rec
-
-def baseline_correction(rec, degree = 1):
-    n = len(rec)
-    x = np.arange(n)
-
-    # Fit a polynomial of the specified degree to the signal
-    baseline_coefficients = np.polyfit(x, rec, degree)
-    baseline = np.polyval(baseline_coefficients, x)
-
-    # Subtract the baseline from the original signal to correct it
-    corrected_signal = rec - baseline
-    return corrected_signal
 
 @jit(nopython=True)
 def linear_analysis_sdf(dt: float, rec: np.ndarray, period_range: tuple[float, float, float] = (0.05, 4.05, 0.01),

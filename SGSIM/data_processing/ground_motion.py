@@ -48,20 +48,36 @@ class TargetMotion(RecordReader, MotionCore):
         RecordReader.__init__(self, file_path, source, **kwargs)  # init RecordReader
         MotionCore.__init__(self, self.npts, self.dt, self.t, self.ac)
 
+    # def set_target_range(self, target_range: tuple[float, float]):
+    #     """
+    #     Define the target range of the motion
+    #     based on a range of total energy percentages i.e., (0.001, 0.999)
+    #     """
+    #     self.slicer = mps.find_slice(self.dt, self.t, self.ac, target_range)
+    #     self.t = np.round(self.t[self.slicer] - self.t[self.slicer][0], 3)
+    #     self.npts = len(self.t)
+
+    #     self.disp = mps.get_disp(self.dt, self.ac)[self.slicer]
+    #     self.vel = mps.get_vel(self.dt, self.ac)[self.slicer]
+
+    #     # update ac after obtaining vel and disp for the target range
+    #     self.ac = self.ac[self.slicer]
+
+    #     self.get_properties()
+    #     return self
     def set_target_range(self, target_range: tuple[float, float]):
         """
         Define the target range of the motion
         based on a range of total energy percentages i.e., (0.001, 0.999)
         """
-        slicer = mps.find_slice(self.dt, self.t, self.ac, target_range)
-        self.t = np.round(self.t[slicer] - self.t[slicer][0], 3)
+        self.slicer = mps.find_slice(self.dt, self.t, self.ac, target_range)
+        self.t = np.round(self.t[self.slicer] - self.t[self.slicer][0], 3)
         self.npts = len(self.t)
 
-        self.disp = mps.get_disp(self.dt, self.ac)[slicer]
-        self.vel = mps.get_vel(self.dt, self.ac)[slicer]
-
-        # update ac after obtaining vel and disp for the target range
-        self.ac = self.ac[slicer]
+        self.ac = self.ac[self.slicer]
+        self.ac = mps.bandpass_filter(self.dt, self.ac)
+        self.disp = mps.get_disp(self.dt, self.ac)
+        self.vel = mps.get_vel(self.dt, self.ac)
 
         self.get_properties()
         return self

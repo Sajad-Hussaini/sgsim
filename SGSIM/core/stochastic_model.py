@@ -26,49 +26,32 @@ class StochasticModel(ModelCore):
 
     @staticmethod
     @jit(nopython=True, parallel=True)
-    def _simulate_loop(npts, t, freq_sim, mdl, wu, zu, wl, zl, variance, white_noise):
+    def _simulate_fourier(nsim, npts, t, freq_sim, mdl, wu, zu, wl, zl, variance, white_noise):
         """
-        The loop part of the simulation, which performs the frequency domain simulation.
+        The simulated Fourier of nsim number of simulation.
         """
-        sim_Fourier = np.zeros((npts, len(freq_sim)), dtype='complex')
+        sim_fourier = np.zeros((nsim, len(freq_sim)), dtype='complex')
+        for sim in prange(nsim):
+            for i in range(npts):
+                sim_fourier[sim, :] += (ff.get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim)
+                                          * np.exp(-1j * freq_sim * t[i])
+                                          * white_noise[sim][i] * mdl[i] / np.sqrt(variance[i] * 2 / npts))
+        return sim_fourier
 
-        for i in prange(npts):  # prange is used for parallel loops in Numba
-            frf = ff.get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim)
-            exp_term = np.exp(-1j * freq_sim * t[i])
-            white_noise_term = white_noise[i] * mdl[i] / np.sqrt(variance[i] * 2 / npts)
-            sim_Fourier[i, :] = frf * exp_term * white_noise_term
-
-        return np.sum(sim_Fourier, axis=0)
-
-
-    def simulate(self) -> tuple[np.array, np.array, np.array]:
+    def simulate(self, nsim) -> tuple[np.array, np.array, np.array]:
         """
         Simulate ground-motions using fitted moddel parameters
-        Based on the frequency representation
-        returns: ac, vel, disp
+        Based on the frequency representation for nsim number of simulations
+        update: ac, vel, disp of simulations
         """
-        white_noise = np.random.default_rng(seed=self.seed).standard_normal(self.npts)
-        sim_Fourier = self._simulate_loop(self.npts, self.t, self.freq_sim,
-                                          self.mdl, self.wu, self.zu, self.wl, self.zl,
-                                          self.variance, white_noise)
+        self.ac = self.vel = self.disp = None
+        white_noise = np.random.default_rng(seed=self.seed).standard_normal((nsim, self.npts))
+        sim_fourier = self._simulate_fourier(nsim, self.npts, self.t, self.freq_sim,
+                                              self.mdl, self.wu, self.zu, self.wl, self.zl,
+                                              self.variance, white_noise)
 
-
-        sim_ac = irfft(sim_Fourier)[0:self.npts]  # to avoid aliasing
-        sim_vel = np.zeros_like(sim_Fourier)
-        sim_disp = np.zeros_like(sim_Fourier)
-
+        self.ac = irfft(sim_fourier)[..., :self.npts]  # to avoid aliasing
         # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
-        sim_vel[1:] = sim_Fourier[1:] / (1j * self.freq_sim[1:])
-        sim_vel = irfft(sim_vel)[0:self.npts]
-
-        sim_disp[1:] = -sim_Fourier[1:] / (self.freq_sim[1:] ** 2)
-        sim_disp = irfft(sim_disp)[0:self.npts]
-        return sim_ac, sim_vel, sim_disp
-
-    def multi_simulate(self, nsim):
-        """
-        Multiple simulation of ground-motions
-        """
-        sim_motions = np.array([self.simulate() for _ in range(nsim)])
-        self.ac, self.vel, self.disp = sim_motions[:, 0], sim_motions[:, 1], sim_motions[:, 2]
+        self.vel = irfft(sim_fourier[..., 1:] / (1j * self.freq_sim[1:]))[..., :self.npts]
+        self.disp = irfft(-sim_fourier[..., 1:] / (self.freq_sim[1:] ** 2))[..., :self.npts]
         return self

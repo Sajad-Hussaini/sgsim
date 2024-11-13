@@ -17,8 +17,7 @@ def get_psd(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.ar
     psdu = 1 / ((wu ** 2 - freq ** 2) ** 2 + (2 * zu * wu * freq) ** 2)
     # Acceleration - high pass
     psdl = freq ** 4 / ((wl ** 2 - freq ** 2) ** 2 + (2 * zl * wl * freq) ** 2)
-    psdb = psdu * psdl
-    return psdb
+    return psdu * psdl
 
 @jit(nopython=True)
 def get_variances(wu: float, zu: float, wl: float, zl: float, freq: np.array,
@@ -76,15 +75,14 @@ def get_stats(wu: np.array, zu: np.array, wl: np.array, zl: np.array, freq: np.a
         variance[i], variance_dot[i], variance_2dot[i], variance_bar[i], variance_2bar[i] = stats_i[:5]
     return variance, variance_dot, variance_2dot, variance_bar, variance_2bar
 
-@jit(nopython=True, parallel=True)
+@jit(nopython=True)
 def get_fas(mdl: np.array, wu: np.array, zu: np.array, wl: np.array, zl: np.array, freq: np.array):
     """
     The FAS of the stochastic model using frequency domain.
     """
     npts = len(wu)
-    psd = np.zeros((npts, len(freq)))
-    for i in prange(npts):
+    psd = np.zeros(len(freq))
+    for i in range(npts):
         psd_i = get_psd(wu[i], zu[i], wl[i], zl[i], freq)
-        psd[i] = (psd_i / np.sum(psd_i)) * mdl[i] ** 2
-    psd = np.sum(psd, axis=0)
+        psd += (psd_i / np.sum(psd_i)) * mdl[i] ** 2
     return np.sqrt(psd)
