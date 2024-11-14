@@ -102,8 +102,6 @@ class ModelConfig:
 
     def beta_multi(self, t, *params: tuple[float, ...]) -> np.array:
         p1, c1, p2, c2, a1, Et, tn = params
-        # Unique solution constraint 1: p1 < p2 -> p2 = p1+dp2
-        # Unique solution constraint 2: a1 > a2 -> a1 = 0.475+da1
         # Log-space computation to avoid overflow over t[1:-1] with zeros at ends
         mdl1 = 0.05 * (6 * (t[1:-1] * (tn - t[1:-1])) / (tn ** 3))
         mdl2 = a1 * np.exp(

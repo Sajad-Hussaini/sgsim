@@ -19,7 +19,7 @@ class MotionCore:
         """ Calculate characteristics of the motion """
         self.tp = np.arange(*period_range)
         self.fas = np.abs(rfft(self.ac)) / np.sqrt(self.npts / 2)
-        self.sd, self.sv, self.sa = mps.get_spectra(self.dt, self.ac, period_range=period_range)
+        self.sd, self.sv, self.sa = mps.get_spectra(self.dt, self.ac if self.ac.ndim==2 else self.ac[None, :], period=self.tp, zeta=0.05)
         self.ce = mps.get_ce(self.dt, self.ac)
 
         self.mzc_ac = mps.find_mzc(self.ac)

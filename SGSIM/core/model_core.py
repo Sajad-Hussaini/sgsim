@@ -24,7 +24,7 @@ class ModelCore(ModelConfig):
         self.variance_bar:  variance 1st integral      using -2
         self.variance_2bar: variance 2nd integral      using -4
         """
-        self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = ff.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq, statistics=(0, 2, 4, -2, -4))
+        self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = ff.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq)
         return self
 
     def get_fas(self):
@@ -104,7 +104,7 @@ class ModelCore(ModelConfig):
         of the acceleration model without considering the modulation function.
         """
         pmnm_rate_ac = (np.sqrt(self.variance_2dot / self.variance_dot) -
-                       np.sqrt(self.variance_dot / self.variance)) / (4 * np.pi)
+                        np.sqrt(self.variance_dot / self.variance)) / (4 * np.pi)
         self.pmnm_ac = np.cumsum(pmnm_rate_ac) * self.dt
         return self.pmnm_ac
 
@@ -124,7 +124,7 @@ class ModelCore(ModelConfig):
         of the displacement model without considering the modulation function.
         """
         pmnm_rate_disp = (np.sqrt(self.variance / self.variance_bar) -
-                         np.sqrt(self.variance_bar / self.variance_2bar)) / (4 * np.pi)
+                          np.sqrt(self.variance_bar / self.variance_2bar)) / (4 * np.pi)
         self.pmnm_disp = np.cumsum(pmnm_rate_disp) * self.dt
         return self.pmnm_disp
 

@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.fft import irfft
-from numba import jit, prange
+from numba import jit, prange, float64, complex128, int64
 from SGSIM.core import filter_freq as ff
 from SGSIM.core.model_core import ModelCore
 
@@ -25,12 +25,14 @@ class StochasticModel(ModelCore):
         return self
 
     @staticmethod
-    @jit(nopython=True, parallel=True)
+    @jit(complex128[:, :](int64, float64, float64[:], float64[:], float64[:],
+                       float64[:], float64[:], float64[:], float64[:], float64[:],
+                       float64[:, :]), nopython=True, parallel=True)
     def _simulate_fourier(nsim, npts, t, freq_sim, mdl, wu, zu, wl, zl, variance, white_noise):
         """
         The simulated Fourier of nsim number of simulation.
         """
-        sim_fourier = np.zeros((nsim, len(freq_sim)), dtype='complex')
+        sim_fourier = np.zeros((nsim, len(freq_sim)), dtype=np.complex128)
         for sim in prange(nsim):
             for i in range(npts):
                 sim_fourier[sim, :] += (ff.get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim)
@@ -45,6 +47,7 @@ class StochasticModel(ModelCore):
         update: ac, vel, disp of simulations
         """
         self.ac = self.vel = self.disp = None
+        nsim = int(nsim)
         white_noise = np.random.default_rng(seed=self.seed).standard_normal((nsim, self.npts))
         sim_fourier = self._simulate_fourier(nsim, self.npts, self.t, self.freq_sim,
                                               self.mdl, self.wu, self.zu, self.wl, self.zl,

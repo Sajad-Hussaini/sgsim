@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.signal import butter, sosfilt
-from numba import jit
+from numba import jit, float64
 
 def find_error(rec: np.array, model: np.array) -> float:
     """
@@ -116,62 +116,59 @@ def moving_average(rec, window_size=9):
         raise ValueError("Input must be a 1D or 2D array.")
     return smoothed_rec
 
-@jit(nopython=True)
-def linear_analysis_sdf(dt: float, rec: np.ndarray, period_range: tuple[float, float, float] = (0.05, 4.05, 0.01),
-                        zeta: float = 0.05,
-                        mass: float = 1.0,
-                        excitation: str = 'GM') -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+@jit(float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64), nopython=True)
+def linear_analysis_sdf(dt: float, rec: np.ndarray, period: np.array, zeta: float = 0.05,
+                        mass: float = 1.0) -> np.ndarray:
     """
     linear analysis of a single degree of freedom system using newmark method
     For excitation as ground acceleration (GM) and not an arbitraty force
-    use: p = -m * ac
+    use: p = -m * ac (often this is the case)
     uVec, vVec, aVec are relative to the ground
     the total velocity and acceleration are computed as atVec=aVec+ac(grd)
     """
-    if rec.ndim == 1:
-        rec_2d = rec[None, :]
-    else:
-        rec_2d = rec
-    p = -mass * rec_2d if excitation == 'GM' else rec_2d
+    rec_3d = rec[:, :, None]  # compatible with 4dim array
+    # p = -mass * rec if excitation == 'GM' else rec
+    p = -mass * rec_3d
     # properties of the SDF systems for each period
-    T = np.arange(*period_range)
-    wn = 2 * np.pi / T
+    wn = 2 * np.pi / period
     k = mass * wn ** 2
     c = 2 * mass * wn * zeta
 
-    n_records, n_exc = p.shape  # Number of records and excitation points
-    n_sdf = len(T)  # number of sdf corresponding to each period
-    disp, vel, ac, ac_total = np.zeros((4, n_records, n_exc, n_sdf))
+    n_records, npts, _ = p.shape  # Number of records and excitation points
+    n_sdf = len(period)  # number of sdf corresponding to each period
+    # arrays of sdf responses 0 disp, 1 vel, 2 ac, 3 ac_total
+    sdf_responses = np.empty((4, n_records, npts, n_sdf))
 
     # coefficients of numerical solution
     gamma = np.full(n_sdf, 0.5)
-    beta = np.full(n_sdf, 1.0 / 6.0)  # The linear acceleration method
-    beta[dt / T > 0.551] = 0.25  # The constant average acceleration
+    beta = np.full(n_sdf, 1.0 / 6.0)  # The linear sdf_responses[2]celeration method
+    beta[dt / period > 0.551] = 0.25  # The constant average sdf_responses[2]celeration
     a1 = mass / (beta * dt ** 2) + c * gamma / (beta * dt)
     a2 = mass / (beta * dt) + c * (gamma / beta - 1)
     a3 = mass * (1 / (2 * beta) - 1) + c * dt * (gamma / (2 * beta) - 1)
     k_hat = k + a1
 
-    # system at rest disp[:, 0] = 0.0 and vel[:, 0] = 0.0
-    ac[:, 0] = (p[:, 0, np.newaxis] - c * vel[:, 0] - k * disp[:, 0]) / mass
-    ac_total[:, 0] = ac[:, 0] + rec_2d[:, 0, np.newaxis]
-    for i in range(n_exc - 1):
-        dp = p[:, i + 1, np.newaxis] + a1 * disp[:, i] + a2 * vel[:, i] + a3 * ac[:, i]
-        disp[:, i + 1] = dp / k_hat
-        vel[:, i + 1] = ((gamma / (beta * dt)) * (disp[:, i + 1] - disp[:, i]) +
-                         (1 - gamma / beta) * vel[:, i] + dt * ac[:, i] *
+    # system at rest
+    sdf_responses[0, :, 0] = 0.0
+    sdf_responses[1, :, 0] = 0.0
+    sdf_responses[2, :, 0] = (p[:, 0] - c * sdf_responses[1, :, 0] - k * sdf_responses[0, :, 0]) / mass
+    sdf_responses[3, :, 0] = sdf_responses[2, :, 0] + rec_3d[:, 0]
+    for i in range(npts - 1):
+        dp = p[:, i + 1] + a1 * sdf_responses[0, :, i] + a2 * sdf_responses[1, :, i] + a3 * sdf_responses[2, :, i]
+        sdf_responses[0, :, i + 1] = dp / k_hat
+        sdf_responses[1, :, i + 1] = ((gamma / (beta * dt)) * (sdf_responses[0, :, i + 1] - sdf_responses[0, :, i]) +
+                         (1 - gamma / beta) * sdf_responses[1, :, i] + dt * sdf_responses[2, :, i] *
                          (1 - gamma / (2 * beta)))
-        ac[:, i + 1] = ((disp[:, i + 1] - disp[:, i]) / (beta * dt ** 2) -
-                        vel[:, i] / (beta * dt) - ac[:, i] * (1 / (2 * beta) - 1))
-        ac_total[:, i + 1] = ac[:, i + 1] + rec_2d[:, i + 1, np.newaxis]
-    return disp, vel, ac, ac_total
+        sdf_responses[2, :, i + 1] = ((sdf_responses[0, :, i + 1] - sdf_responses[0, :, i]) / (beta * dt ** 2) -
+                        sdf_responses[1, :, i] / (beta * dt) - sdf_responses[2, :, i] * (1 / (2 * beta) - 1))
+        sdf_responses[3, :, i + 1] = sdf_responses[2, :, i + 1] + rec_3d[:, i + 1]
+    return sdf_responses  # disp, vel, ac, ac_tot
 
-def get_spectra(dt: float, rec: np.ndarray, period_range: tuple[float, float, float] = (0.05, 4.05, 0.01),
-           zeta: float = 0.05):
+def get_spectra(dt: float, rec: np.ndarray, period: np.array, zeta: float = 0.05):
     """
     Displacement, Velocity, and Acceleratin Spectra
     """
-    disp_sdf, vel_sdf, _, act_sdf = linear_analysis_sdf(dt=dt, rec=rec, period_range=period_range, zeta=zeta)
+    disp_sdf, vel_sdf, _, act_sdf = linear_analysis_sdf(dt=dt, rec=rec, period=period, zeta=zeta, mass=1.0)
     sd = np.max(np.abs(disp_sdf), axis=1)  # max over each sdf period
     sv = np.max(np.abs(vel_sdf), axis=1)
     sa = np.max(np.abs(act_sdf), axis=1)

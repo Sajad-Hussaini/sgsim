@@ -70,7 +70,7 @@ def get_default_bounds(fit_func: str):
 
     elif fit_func == 'freq':
         igwu, igwl = [7.0] * 2, [1.0] * 2
-        lbwu, lbwl = [0.75] * 2, [0.08] * 2
+        lbwu, lbwl = [0.75] * 2, [0.1] * 2
         ubwu, ubwl = [30.0] * 2, [10.0] * 2
         initial_guess = [*igwu, *igwl]
         lower_bounds = [*lbwu, *lbwl]
