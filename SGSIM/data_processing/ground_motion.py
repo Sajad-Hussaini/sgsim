@@ -4,19 +4,33 @@ import SGSIM.data_processing.motion_processor as mps
 from SGSIM.file_reading.record_reader import RecordReader
 
 class MotionCore:
-    """
-    A class to provide functionality and description of ground motions
-    """
-    def __init__(self, npts: float, dt: float, t, ac):
+    def __init__(self, npts: int, dt: float, t, ac):
+        """
+        A class to provide functionality and description of ground motions.
+
+        Parameters
+        ----------
+        npts : int
+            length of time series.
+        dt : float
+            time step.
+        t : TYPE
+            time array.
+        ac : TYPE
+            acceleration array.
+
+        Returns
+        -------
+        None.
+
+        """
         self.npts = npts
         self.dt = dt
         self.t = t
         self.ac = ac
-        self.vel = None
-        self.disp = None
 
     def get_properties(self, period_range: tuple[float, float, float] = (0.04, 10.01, 0.01)):
-        """ Calculate characteristics of the motion """
+        """ Calculate characteristics of the ground motion """
         self.tp = np.arange(*period_range)
         self.fas = np.abs(rfft(self.ac)) / np.sqrt(self.npts / 2)
         self.sd, self.sv, self.sa = mps.get_spectra(self.dt, self.ac if self.ac.ndim==2 else self.ac[None, :], period=self.tp, zeta=0.05)
@@ -43,9 +57,8 @@ class TargetMotion(RecordReader, MotionCore):
     """
     A class to describe a target ground motion
     """
-    def __init__(self, file_path: str or tuple[str, str],
-                 source: str, **kwargs):
-        RecordReader.__init__(self, file_path, source, **kwargs)  # init RecordReader
+    def __init__(self, file_path: str | tuple[str, str], source: str, **kwargs):
+        RecordReader.__init__(self, file_path, source, **kwargs)
         MotionCore.__init__(self, self.npts, self.dt, self.t, self.ac)
 
     # def set_target_range(self, target_range: tuple[float, float]):
@@ -67,7 +80,7 @@ class TargetMotion(RecordReader, MotionCore):
     #     return self
     def set_target_range(self, target_range: tuple[float, float]):
         """
-        Define the target range of the motion
+        Define the target range of the ground motion
         based on a range of total energy percentages i.e., (0.001, 0.999)
         """
         self.slicer = mps.find_slice(self.dt, self.t, self.ac, target_range)
@@ -84,7 +97,7 @@ class TargetMotion(RecordReader, MotionCore):
 
 class SimMotion(MotionCore):
     """
-    A class to describe the simulated ground motion/s
+    A class to describe the simulated ground motions
     """
     def __init__(self, model):
         super().__init__(model.npts, model.dt, model.t, model.ac)

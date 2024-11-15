@@ -21,20 +21,25 @@ def find_pmnm(rec: np.ndarray) -> np.ndarray:
     """
     The mean cumulative number of positive-minima and negative-maxima.
     """
-    pmnm_vec = np.where((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) &
-                        (rec[..., 1:-1] < 0) |
-                        (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]) &
-                        (rec[..., 1:-1] > 0), 0.5, 0)
-    pmnm_vec = np.concatenate((pmnm_vec[..., :1], pmnm_vec, pmnm_vec[..., -1:]), axis=-1)
+    pmnm_vec = np.where(
+        (rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) &
+        (rec[..., 1:-1] < 0) |
+        (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]) &
+        (rec[..., 1:-1] > 0), 0.5, 0)
+    pmnm_vec = np.concatenate((pmnm_vec[..., :1],
+                               pmnm_vec, pmnm_vec[..., -1:]), axis=-1)
     return np.cumsum(pmnm_vec, axis=-1)
 
 def find_mle(rec: np.ndarray) -> np.ndarray:
     """
     The mean cumulative number of local extrema (all peaks and valleys).
     """
-    mle_vec = np.where((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) |
-                        (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]), 0.5, 0)
-    mle_vec = np.concatenate((mle_vec[..., :1], mle_vec, mle_vec[..., -1:]), axis=-1)
+    mle_vec = np.where(
+        (rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) |
+        (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]),
+        0.5, 0)
+    mle_vec = np.concatenate((mle_vec[..., :1],
+                              mle_vec, mle_vec[..., -1:]), axis=-1)
     return np.cumsum(mle_vec, axis=-1)
 
 def find_slice(dt: float, t: np.array, rec: np.array, target_range: tuple[float, float] = (0.001, 0.999)):
@@ -42,7 +47,8 @@ def find_slice(dt: float, t: np.array, rec: np.array, target_range: tuple[float,
     A slice of the input motion based on a range of total energy percentages i.e. (0.001, 0.999)
     """
     cumulative_energy = get_ce(dt, rec)
-    return (cumulative_energy >= target_range[0] * cumulative_energy[-1]) & (cumulative_energy <= target_range[1] * cumulative_energy[-1])
+    return ((cumulative_energy >= target_range[0] * cumulative_energy[-1]) &
+            (cumulative_energy <= target_range[1] * cumulative_energy[-1]))
 
 def get_ce(dt: float, rec: np.ndarray) -> np.ndarray:
     """
@@ -78,22 +84,19 @@ def bandpass_filter(dt, rec, lowcut=0.1, highcut=25.0, order=4):
     high = highcut / nyquist
     sos = butter(order, [low, high], btype='band', output='sos')
     n = len(rec)
-    next_pow2 = 2**np.ceil(np.log2(n*2)).astype(int)  # Find next power of 2
-    pad_width = next_pow2 - n  # Calculate padding size
+    next_pow2 = int(2 ** np.ceil(np.log2(2 * n)))
+    pad_width = next_pow2 - n
     signal_padded = np.pad(rec, (pad_width // 2, pad_width - pad_width // 2), mode='constant')
     filtered_rec = sosfilt(sos, signal_padded)
     filtered_rec = filtered_rec[pad_width // 2: -pad_width // 2]
     return filtered_rec
 
-def baseline_correction(rec, degree = 1):
+def baseline_correction(rec, degree=1):
+    " Baseline correction using polynomial fit "
     n = len(rec)
     x = np.arange(n)
-
-    # Fit a polynomial of the specified degree to the signal
     baseline_coefficients = np.polyfit(x, rec, degree)
     baseline = np.polyval(baseline_coefficients, x)
-
-    # Subtract the baseline from the original signal to correct it
     corrected_signal = rec - baseline
     return corrected_signal
 
@@ -101,75 +104,116 @@ def moving_average(rec, window_size=9):
     """
     Perform a moving average smoothing on the input data with the specified window size.
     """
-    # Ensure the window size is an odd number for symmetry
     if window_size % 2 == 0:
         raise ValueError("Window size should be odd.")
     window = np.ones(window_size) / window_size
-    # Check the number of dimensions and apply the moving average
     if rec.ndim == 1:
-        # For 1D array, apply moving average directly
         smoothed_rec = np.convolve(rec, window, mode='same')
     elif rec.ndim == 2:
-        # For 2D array, apply the moving average to each column (axis=0)
         smoothed_rec = np.apply_along_axis(lambda x: np.convolve(x, window, mode='same'), axis=0, arr=rec)
     else:
         raise ValueError("Input must be a 1D or 2D array.")
     return smoothed_rec
 
 @jit(float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64), nopython=True)
-def linear_analysis_sdf(dt: float, rec: np.ndarray, period: np.array, zeta: float = 0.05,
-                        mass: float = 1.0) -> np.ndarray:
+def linear_analysis_sdf(dt: float, rec: np.ndarray, period: np.array, zeta: float, mass: float) -> np.ndarray:
     """
-    linear analysis of a single degree of freedom system using newmark method
-    For excitation as ground acceleration (GM) and not an arbitraty force
-    use: p = -m * ac (often this is the case)
-    uVec, vVec, aVec are relative to the ground
-    the total velocity and acceleration are computed as atVec=aVec+ac(grd)
+    linear analysis of a SDOF using newmark method
+
+    For ground motion excitation and not an arbitraty force
+        we use: p = -m * rec
+
+    The total acceleration are computed as ac_tot = ac + rec
+    disp, vel, ac are relative to the ground
+
+    Parameters
+    ----------
+    dt : float
+        time step.
+    rec : np.ndarray
+        input ground motions 2d-array.
+    period : np.array
+        period array.
+    zeta : float, optional
+        damping ration of SDOF. The default is 0.05.
+    mass : float, optional
+        mass of SDOF. The default is 1.0.
+
+    Returns
+    -------
+    sdf_responses : 4d-array (response, n_rec, npts, n_period)
+        first dimension correspond to disp, vel, ac, ac_tot responses of SDOF.
+
     """
-    rec_3d = rec[:, :, None]  # compatible with 4dim array
+    rec_3d = rec[:, :, None]
     # p = -mass * rec if excitation == 'GM' else rec
     p = -mass * rec_3d
-    # properties of the SDF systems for each period
+    # SDOF properties
     wn = 2 * np.pi / period
     k = mass * wn ** 2
     c = 2 * mass * wn * zeta
 
     n_records, npts, _ = p.shape  # Number of records and excitation points
-    n_sdf = len(period)  # number of sdf corresponding to each period
-    # arrays of sdf responses 0 disp, 1 vel, 2 ac, 3 ac_total
+    n_sdf = len(period)           # number of sdf periods
+
     sdf_responses = np.empty((4, n_records, npts, n_sdf))
 
     # coefficients of numerical solution
     gamma = np.full(n_sdf, 0.5)
-    beta = np.full(n_sdf, 1.0 / 6.0)  # The linear sdf_responses[2]celeration method
-    beta[dt / period > 0.551] = 0.25  # The constant average sdf_responses[2]celeration
+    beta = np.full(n_sdf, 1.0 / 6.0)  # The linear acceleration method
+    beta[dt / period > 0.551] = 0.25  # The constant average acceleration
     a1 = mass / (beta * dt ** 2) + c * gamma / (beta * dt)
     a2 = mass / (beta * dt) + c * (gamma / beta - 1)
     a3 = mass * (1 / (2 * beta) - 1) + c * dt * (gamma / (2 * beta) - 1)
     k_hat = k + a1
 
     # system at rest
-    sdf_responses[0, :, 0] = 0.0
-    sdf_responses[1, :, 0] = 0.0
-    sdf_responses[2, :, 0] = (p[:, 0] - c * sdf_responses[1, :, 0] - k * sdf_responses[0, :, 0]) / mass
-    sdf_responses[3, :, 0] = sdf_responses[2, :, 0] + rec_3d[:, 0]
+    sdf_responses[0, :, 0] = 0.0  # disp
+    sdf_responses[1, :, 0] = 0.0  # vel
+    sdf_responses[2, :, 0] = (p[:, 0] - c * sdf_responses[1, :, 0]
+                              - k * sdf_responses[0, :, 0]) / mass  # ac
+    sdf_responses[3, :, 0] = sdf_responses[2, :, 0] + rec_3d[:, 0]  # ac_tot
     for i in range(npts - 1):
-        dp = p[:, i + 1] + a1 * sdf_responses[0, :, i] + a2 * sdf_responses[1, :, i] + a3 * sdf_responses[2, :, i]
+        dp = (p[:, i + 1] + a1 * sdf_responses[0, :, i] +
+              a2 * sdf_responses[1, :, i] + a3 * sdf_responses[2, :, i])
         sdf_responses[0, :, i + 1] = dp / k_hat
-        sdf_responses[1, :, i + 1] = ((gamma / (beta * dt)) * (sdf_responses[0, :, i + 1] - sdf_responses[0, :, i]) +
-                         (1 - gamma / beta) * sdf_responses[1, :, i] + dt * sdf_responses[2, :, i] *
-                         (1 - gamma / (2 * beta)))
-        sdf_responses[2, :, i + 1] = ((sdf_responses[0, :, i + 1] - sdf_responses[0, :, i]) / (beta * dt ** 2) -
-                        sdf_responses[1, :, i] / (beta * dt) - sdf_responses[2, :, i] * (1 / (2 * beta) - 1))
-        sdf_responses[3, :, i + 1] = sdf_responses[2, :, i + 1] + rec_3d[:, i + 1]
-    return sdf_responses  # disp, vel, ac, ac_tot
 
-def get_spectra(dt: float, rec: np.ndarray, period: np.array, zeta: float = 0.05):
+        sdf_responses[1, :, i + 1] =(
+            (gamma / (beta * dt)) *
+            (sdf_responses[0, :, i + 1] - sdf_responses[0, :, i]) +
+            (1 - gamma / beta) *
+            sdf_responses[1, :, i] + dt * sdf_responses[2, :, i] *
+            (1 - gamma / (2 * beta)))
+
+        sdf_responses[2, :, i + 1] = (
+            (sdf_responses[0, :, i + 1] -
+             sdf_responses[0, :, i]) / (beta * dt ** 2) -
+            sdf_responses[1, :, i] / (beta * dt) -
+            sdf_responses[2, :, i] * (1 / (2 * beta) - 1))
+
+        sdf_responses[3, :, i + 1] = sdf_responses[2, :, i + 1] + rec_3d[:, i + 1]
+    return sdf_responses
+
+def get_spectra(dt: float, rec: np.ndarray, period: np.array, zeta: float=0.05):
     """
-    Displacement, Velocity, and Acceleratin Spectra
+    displacement, velocity, and total acceleration spectra
     """
-    disp_sdf, vel_sdf, _, act_sdf = linear_analysis_sdf(dt=dt, rec=rec, period=period, zeta=zeta, mass=1.0)
-    sd = np.max(np.abs(disp_sdf), axis=1)  # max over each sdf period
-    sv = np.max(np.abs(vel_sdf), axis=1)
-    sa = np.max(np.abs(act_sdf), axis=1)
+    n_rec = rec.shape[0]
+    n_period = len(period)
+    sd = np.empty((n_rec, n_period))
+    sv = np.empty((n_rec, n_period))
+    sa = np.empty((n_rec, n_period))
+
+    chunk_size = 5  # 5 record per loop to avoid memory issue
+    for i in range(0, n_rec, chunk_size):
+        rec_chunk = rec[i:i + chunk_size]
+        disp_sdf, vel_sdf, _, act_sdf = linear_analysis_sdf(dt=dt, rec=rec_chunk, period=period, zeta=zeta, mass=1.0)
+
+        sd_chunk = np.max(np.abs(disp_sdf), axis=1)
+        sv_chunk = np.max(np.abs(vel_sdf), axis=1)
+        sa_chunk = np.max(np.abs(act_sdf), axis=1)
+
+        sd[i:i + chunk_size] = sd_chunk
+        sv[i:i + chunk_size] = sv_chunk
+        sa[i:i + chunk_size] = sa_chunk
     return sd, sv, sa

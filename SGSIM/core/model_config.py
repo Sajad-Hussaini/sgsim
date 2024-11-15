@@ -23,6 +23,7 @@ class ModelConfig:
             'beta_multi': self.beta_multi,
             'gamma': self.gamma,
             'housner_pw': self.housner_pw}
+
         self.get_time_freq(npts, dt)
         self.mdl_func = self.available_func.get(mdl_type)
         self.wu_func = self.available_func.get(wu_type)

@@ -3,18 +3,28 @@ import zipfile
 import io
 
 class RecordReader:
-    def __init__(self, file_path: str or tuple[str, str],
-                 source: str, **kwargs):
+    def __init__(self, file_path: str | tuple[str, str], source: str, **kwargs):
         """
         Read records from different ground motion databases.
 
-        file_path: a signle file path or a tuple as (filename, zip path)
-        fileSource: 'nga' for PEER NGA format
-                    'col' for two-column format [t, ac]
-                    'raw' for RAW format
-                    'cor' for COR format
-                    'esm' for ESM format
-        kwargs: skiprows (default 0) for col format
+
+        Parameters
+        ----------
+        file_path : str | tuple[str, str]
+            a signle file path or a tuple as (filename, zip path)
+        source : str
+            'nga' for PEER NGA format
+            'esm' for ESM format
+            'col' for two-column format [t, ac]
+            'raw' for RAW format
+            'cor' for COR format
+        **kwargs : str
+            'skiprows' (default 0) for col format
+
+        Returns
+        -------
+        None.
+
         """
         self.file_path = file_path
         self.source = source
@@ -26,22 +36,20 @@ class RecordReader:
         Read file content and determine the format to parse.
         """
         if isinstance(self.file_path, tuple) and len(self.file_path) == 2:
-            filename, zip_path = self.file_path
-            self.read_zip_file(filename, zip_path)
+            self.read_zip_file(*self.file_path)
         else:
             self.read_content()
         reading_methods = {
             'nga': self.read_nga,
+            'esm': self.read_esm,
             'col': self.read_col,
             'raw': self.read_raw,
-            'cor': self.read_cor,
-            'esm': self.read_esm}
+            'cor': self.read_cor}
         reading_method = reading_methods.get(self.source)
-        if reading_method:
-            reading_method()
-            return self
-        else:
+        if not reading_method:
             raise ValueError(f'Unsupported source: {self.source}')
+        reading_method()
+        return self
 
     def read_zip_file(self, filename, zip_path):
         """
@@ -77,11 +85,10 @@ class RecordReader:
         recData = self.file_content[4:-1]
 
         dt_key = 'dt=' if 'dt=' in recInfo else 'DT='
-        dt = round(float(recInfo[recInfo.index(dt_key) + 1].rstrip('SEC,')), 3)
+        self.dt = round(float(recInfo[recInfo.index(dt_key) + 1].rstrip('SEC,')), 3)
         self.ac = np.loadtxt(recData).flatten()
-        self.t = np.arange(len(self.ac)) * dt
-        self.dt = dt
-        self.npts = len(self.t)
+        self.npts = len(self.ac)
+        self.t = np.arange(self.npts) * self.dt
         return self
 
     def read_col(self):
@@ -92,48 +99,42 @@ class RecordReader:
         self.ac = col_data[:, 1]
         self.t = np.round(col_data[:, 0], 3)
         self.dt = round(self.t[3] - self.t[2], 3)
-        self.npts = len(self.t)
+        self.npts = len(self.ac)
         return self
 
     def read_raw(self):
         """
         Reading the RAW files (.RAW)
-        European database!
         """
         recInfo = self.file_content[16].split()
         recData = self.file_content[25:-2]
-        dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
+        self.dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
         self.ac = np.loadtxt(recData).flatten()
-        self.t = np.arange(len(self.ac)) * dt
-        self.dt = dt
-        self.npts = len(self.t)
+        self.npts = len(self.ac)
+        self.t = np.arange(self.npts) * self.dt
         return self
 
     def read_cor(self):
         """
         Reading the COR files (.COR)
-        European database!
         """
         recInfo = self.file_content[16].split()
         recData = self.file_content[29:-1]
         endline = recData.index('-> corrected velocity time histories\n') - 2
         recData = recData[0:endline]
-        dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
+        self.dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
         self.ac = np.loadtxt(recData).flatten()
-        self.t = np.arange(len(self.ac)) * dt
-        self.dt = dt
-        self.npts = len(self.t)
+        self.npts = len(self.ac)
+        self.t = np.arange(self.npts) * self.dt
         return self
 
     def read_esm(self):
         """
         Reading the ESM records (.ASC)
-        European database!
         """
-        dt = round(float(self.file_content[28].split()[1]), 3)
         recData = self.file_content[64:-1]
+        self.dt = round(float(self.file_content[28].split()[1]), 3)
         self.ac = np.loadtxt(recData).flatten()
-        self.t = np.arange(len(self.ac)) * dt
-        self.dt = dt
-        self.npts = len(self.t)
+        self.npts = len(self.ac)
+        self.t = np.arange(self.npts) * self.dt
         return self

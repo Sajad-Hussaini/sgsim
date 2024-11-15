@@ -25,7 +25,7 @@ class StochasticModel(ModelCore):
         return self
 
     @staticmethod
-    @jit(complex128[:, :](int64, float64, float64[:], float64[:], float64[:],
+    @jit(complex128[:, :](int64, int64, float64[:], float64[:], float64[:],
                        float64[:], float64[:], float64[:], float64[:], float64[:],
                        float64[:, :]), nopython=True, parallel=True)
     def _simulate_fourier(nsim, npts, t, freq_sim, mdl, wu, zu, wl, zl, variance, white_noise):
