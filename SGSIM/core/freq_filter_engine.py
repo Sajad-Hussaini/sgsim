@@ -23,6 +23,7 @@ def get_psd(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.ar
 def get_variances(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.array:
     """
     Calculate statistical measures based on the Power Spectral Density (PSD)
+    for a time point
 
     psdb: Power Spectral Density
     freq: Angular frequency array
@@ -63,7 +64,7 @@ def get_frf(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.ar
 @jit(float64[:, :](float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, parallel=True)
 def get_stats(wu: np.array, zu: np.array, wl: np.array, zl: np.array, freq: np.array):
     """
-    The statistics of the stochastic model using frequency domain
+    The statistics of the stochastic model using frequency domain over time array
     ignoring the modulating function and the variance of White noise (i.e., 1)
     variance :     variance                   using 0
     variance_dot:  variance 1st derivative    using 2

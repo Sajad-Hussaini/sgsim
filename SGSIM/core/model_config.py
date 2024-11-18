@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.fft import rfftfreq
 from scipy.special import beta
+from ..motion import signal_props as sps
 
 class ModelConfig:
     """
@@ -37,10 +37,10 @@ class ModelConfig:
         self.t = np.linspace(0, (npts - 1) * dt, npts)
         npts_sim = int(2 ** np.ceil(np.log2(2 * npts)))
         # Nyq freq to avoid aliasing in simulations
-        self.freq_sim = rfftfreq(npts_sim, dt) * 2 * np.pi
+        self.freq_sim = sps.get_freq(dt, npts_sim)
         # Nyq freq for fitting
-        self.freq = rfftfreq(npts, dt) * 2 * np.pi
-        self.slicer_freq = (self.freq >= 0.1 * 2 * np.pi) & (self.freq <= 25 * 2 * np.pi)
+        self.freq = sps.get_freq(dt, npts)
+        self.slicer_freq = sps.get_freq_slice(self.freq)
         return self
 
     def get_mdl(self, *params):
@@ -82,6 +82,10 @@ class ModelConfig:
                             [lambda t_val: p0 - (p0 - p1) * t_val / tmid,
                              lambda t_val: p1 - (p1 - p2) * (t_val - tmid) / (t[-1] - tmid)])
 
+    def exponential(self, t, *params: tuple[float, ...]) -> np.array:
+        p0, p1 = params
+        return p0 * np.exp(np.log(p1 / p0) * (t / t[-1]))
+
     def beta_basic(self, t, *params: tuple[float, ...]) -> np.array:
         p1, c1, Et, tn = params
         mdl = ((t ** (c1 * p1) * (tn - t) ** (c1 * (1 - p1))) /
@@ -96,10 +100,6 @@ class ModelConfig:
             np.log(beta(1 + c1 * p1, 1 + c1 * (1 - p1))) - (1 + c1) * np.log(tn))
         multi_mdl = np.concatenate((np.array([0]), (mdl1 + mdl2), np.array([0])))
         return np.sqrt(Et * multi_mdl)
-
-    def exponential(self, t, *params: tuple[float, ...]) -> np.array:
-        p0, p1 = params
-        return p0 * np.exp(np.log(p1 / p0) * (t / t[-1]))
 
     def beta_multi(self, t, *params: tuple[float, ...]) -> np.array:
         p1, c1, p2, c2, a1, Et, tn = params

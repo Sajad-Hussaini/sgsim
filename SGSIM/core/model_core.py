@@ -1,7 +1,7 @@
 import numpy as np
-from SGSIM.core import filter_freq as ff
-from SGSIM.core.model_config import ModelConfig
-import SGSIM.data_processing.motion_processor as mps
+from . import freq_filter_engine as ffe
+from .model_config import ModelConfig
+from ..motion import signal_props as sps
 
 class ModelCore(ModelConfig):
     """
@@ -24,21 +24,21 @@ class ModelCore(ModelConfig):
         self.variance_bar:  variance 1st integral      using -2
         self.variance_2bar: variance 2nd integral      using -4
         """
-        self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = ff.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq)
+        self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = ffe.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq)
         return self
 
     def get_fas(self):
         """
         The FAS of the stochastic model using frequency domain.
         """
-        self.fas = ff.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq)
+        self.fas = ffe.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq)
         return self.fas
 
     def get_ce(self):
         """
         The Cumulative energy of the stochastic model.
         """
-        self.ce = mps.get_ce(self.dt, self.mdl)
+        self.ce = sps.get_ce(self.dt, self.mdl)
         return self.ce
 
     def get_mle_ac(self) -> np.array:

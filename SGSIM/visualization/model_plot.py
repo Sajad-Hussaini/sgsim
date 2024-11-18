@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import SGSIM.visualization.plot_tool as pt
-import SGSIM.data_processing.motion_processor as mps
+from . import plot_tool as pts
+from ..optimization import fit_metric
 
 class ModelPlot:
     """
@@ -30,7 +30,7 @@ class ModelPlot:
         rec = getattr(self.tm, attr)
         sim1 = getattr(self.sim, attr)[id1]
         sim2 = getattr(self.sim, attr)[id2]
-        pt.plot_motion(self.sim.t, rec, sim1, sim2, ylabel=motion_type)
+        pts.plot_motion(self.sim.t, rec, sim1, sim2, ylabel=motion_type)
         return self
 
     def plot_ce(self):
@@ -39,7 +39,7 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'ce'):
             raise ValueError("""No simulations available.""")
-        pt.plot_mean_std(self.sim.t, self.tm.ce, self.sim.ce)
+        pts.plot_mean_std(self.sim.t, self.tm.ce, self.sim.ce)
         plt.legend(loc='lower right', frameon=False)
         plt.xlabel('Time (s)')
         plt.ylabel(r'Cumulative energy $\mathregular{(g^2.s)}$')
@@ -53,7 +53,7 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'fas'):
             raise ValueError("""No simulations available.""")
-        pt.plot_mean_std(self.tm.freq / (2 * np.pi), self.tm.fas, self.sim.fas)
+        pts.plot_mean_std(self.tm.freq / (2 * np.pi), self.tm.fas, self.sim.fas)
         plt.ylim(np.min(self.tm.fas[self.sim.slicer_freq]), 2 * np.max(self.tm.fas[self.sim.slicer_freq]))
         plt.xlim([0.1, 25])
         plt.xscale('log')
@@ -77,7 +77,7 @@ class ModelPlot:
                'sd': 'displacement (cm)'}
         if not hasattr(self.sim, spectrum):
             raise ValueError("""No simulations available.""")
-        pt.plot_mean_std(self.sim.tp, getattr(self.tm, spectrum), getattr(self.sim, spectrum))
+        pts.plot_mean_std(self.sim.tp, getattr(self.tm, spectrum), getattr(self.sim, spectrum))
         plt.xscale('log')
         if log_scale:
             plt.yscale('log')
@@ -95,8 +95,8 @@ class ModelPlot:
         Comparing the cumulative energy and energy distribution
         of the record, model, and simulations
         """
-        pt.plot_ac_ce(self.tm, self.model)
-        model_error = mps.find_error(self.tm.ce, self.model.ce)
+        pts.plot_ac_ce(self.tm, self.model)
+        model_error = fit_metric.find_error(self.tm.ce, self.model.ce)
         print("{}".format(f"CE error: {model_error:.3f}"))
         return self
 
@@ -117,15 +117,15 @@ class ModelPlot:
         temp_disp = getattr(self.sim, f"{feature}_disp")
         mean_disp = np.mean(temp_disp, axis=0)
 
-        sim_error_ac = mps.find_error(getattr(self.tm, f"{feature}_ac"), mean_ac)
-        sim_error_vel = mps.find_error(getattr(self.tm, f"{feature}_vel"), mean_vel)
-        sim_error_disp = mps.find_error(getattr(self.tm, f"{feature}_disp"), mean_disp)
+        sim_error_ac = fit_metric.find_error(getattr(self.tm, f"{feature}_ac"), mean_ac)
+        sim_error_vel = fit_metric.find_error(getattr(self.tm, f"{feature}_vel"), mean_vel)
+        sim_error_disp = fit_metric.find_error(getattr(self.tm, f"{feature}_disp"), mean_disp)
 
-        model_error_ac = mps.find_error(getattr(self.tm, f"{feature}_ac"), getattr(self.model, f"{feature}_ac"))
-        model_error_vel = mps.find_error(getattr(self.tm, f"{feature}_vel"), getattr(self.model, f"{feature}_vel"))
-        model_error_disp = mps.find_error(getattr(self.tm, f"{feature}_disp"), getattr(self.model, f"{feature}_disp"))
+        model_error_ac = fit_metric.find_error(getattr(self.tm, f"{feature}_ac"), getattr(self.model, f"{feature}_ac"))
+        model_error_vel = fit_metric.find_error(getattr(self.tm, f"{feature}_vel"), getattr(self.model, f"{feature}_vel"))
+        model_error_disp = fit_metric.find_error(getattr(self.tm, f"{feature}_disp"), getattr(self.model, f"{feature}_disp"))
 
-        pt.plot_feature(self.tm, self.model, None, feature) if no_sim else pt.plot_feature(self.tm, self.model, self.sim, feature)
+        pts.plot_feature(self.tm, self.model, None, feature) if no_sim else pts.plot_feature(self.tm, self.model, self.sim, feature)
         print('\n')
         print(f"{feature} model error:  ac: {model_error_ac:<10.2f}  vel: {model_error_vel:<10.2f}  disp: {model_error_disp:<10.2f}")
         print(f"{feature} sim error:    ac: {sim_error_ac:<10.2f}  vel: {sim_error_vel:<10.2f}  disp: {sim_error_disp:<10.2f}")
