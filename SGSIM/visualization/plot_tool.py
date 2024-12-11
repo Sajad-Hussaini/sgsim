@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_config(dpi=600, font='Times New Roman', lw=1, fontsize=9,
-                ax_lbsize=9, legend_fsize=11, axlw = 0.25, tight=True):
+def plot_config(dpi=900, font='Times New Roman', lw=0.5, fontsize=9,
+                ax_lbsize=9, legend_fsize=10, axlw = 0.2, tight=True):
     plt.rcParams.update({
         'figure.dpi': dpi,
         'lines.linewidth': lw,
@@ -24,13 +24,13 @@ def plot_ac_ce(target, model):
     Comparing the cumulative energy and energy distribution
     of the record, model, and simulations
     """
-    cm = plot_config(lw =0.5)
+    cm = plot_config()
     fig, axes = plt.subplots(1, 2, figsize=(12*cm, 5*cm), sharex=True, sharey=False,
                              layout="constrained")
     axes[0].plot(target.t, target.ac, c='tab:blue')
     axes[0].plot(model.t, model.mdl, c='tab:red', ls='--')
     axes[0].plot(model.t, -model.mdl, c='tab:red', ls='--')
-    axes[0].axhline(y=0, color='k', ls='--', alpha=0.25)
+    axes[0].axhline(y=0, color='k', ls='--', lw=0.15)
     axes[0].set_ylabel('Acceleration (g)')
     axes[0].set_xlabel('Time (s)')
     axes[0].set_ylim([-1.05 * max(abs(target.ac)), 1.05 * max(abs(target.ac))])
@@ -52,7 +52,7 @@ def plot_feature(target, model, sim, feature='mzc'):
     Comparing the indicated error of the record, model, and simulations
     mzc, mle, pmnm
     """
-    cm = plot_config(lw =0.5)
+    cm = plot_config()
     plt.figure(figsize=(10*cm, 7*cm), layout="constrained")
 
     plt.plot(target.t, getattr(target, f"{feature}_ac"), label="Target acceleration",
@@ -83,9 +83,9 @@ def plot_feature(target, model, sim, feature='mzc'):
         temp_disp = getattr(sim, f"{feature}_disp")
         mean_disp = np.mean(temp_disp, axis=0)
 
-        plt.plot(sim.t, temp_ac.T, color='tab:gray', alpha=0.5) if feature == 'mzc' else None
-        plt.plot(sim.t, temp_vel[:-1].T, model.t, temp_disp.T, color='tab:gray', alpha=0.5)
-        plt.plot(sim.t, temp_vel[-1], color='tab:gray', alpha=0.5, label="Simulations")
+        plt.plot(sim.t, temp_ac.T, color='tab:gray', lw=0.15) if feature == 'mzc' else None
+        plt.plot(sim.t, temp_vel[:-1].T, model.t, temp_disp.T, color='tab:gray', lw=0.15)
+        plt.plot(sim.t, temp_vel[-1], color='tab:gray', lw=0.15, label="Simulations")
 
         plt.plot(sim.t, mean_ac, c='tab:cyan', linestyle='dotted',
                 label="Mean acceleration", zorder=-1)  if feature == 'mzc' else None
@@ -105,8 +105,8 @@ def plot_motion(t: np.array, rec: np.array, sim1: np.array, sim2: np.array, ylab
     """
     3 time series multiple plot
     """
-    cm = plot_config(lw =0.5)
-    fig, axes = plt.subplots(1, 3, sharex=True, sharey=True, figsize=[14*cm, 4*cm], layout="constrained")
+    cm = plot_config()
+    fig, axes = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(14*cm, 4*cm), layout="constrained")
     axes[0].plot(t, rec, label='Target', color='tab:blue')
     axes[0].set_ylabel(f'{ylabel}')
     axes[0].yaxis.set_major_locator(plt.MaxNLocator(5, symmetric=True))
@@ -116,7 +116,7 @@ def plot_motion(t: np.array, rec: np.array, sim1: np.array, sim2: np.array, ylab
         # sim_data = sim_data - np.linspace(0.0, sim_data[-1], len(sim_data))
         axes[idx].plot(t, sim_data, label='Simulation', color='tab:red')
     for ax in axes:
-        ax.axhline(y=0, color='k', linestyle='--', alpha=0.25)
+        ax.axhline(y=0, color='k', linestyle='--', lw=0.15)
         ax.set_xlabel('Time (s)')
         ax.legend(loc='lower right', frameon=False, handlelength=0)
     plt.show()
@@ -125,7 +125,7 @@ def plot_mean_std(t: np.array, rec: np.array, sims: np.ndarray):
     """
     Plot the common part of ce_plot and fas_plot
     """
-    cm = plot_config(lw =0.5)
+    cm = plot_config()
     mean_all = np.mean(sims, axis=0)
     std_all = np.std(sims, axis=0)
     plt.figure(figsize=(7*cm, 5.5*cm), layout="constrained")

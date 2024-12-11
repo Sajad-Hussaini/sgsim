@@ -1,8 +1,8 @@
 import numpy as np
-import zipfile
-import io
+from .read_tool import read_file, read_file_from_zip
 
 class RecordReader:
+    " A class to read records from different ground motion databases "
     def __init__(self, file_path: str | tuple[str, str], source: str, **kwargs):
         """
         Read records from different ground motion databases.
@@ -11,7 +11,7 @@ class RecordReader:
         Parameters
         ----------
         file_path : str | tuple[str, str]
-            a signle file path or a tuple as (filename, zip path)
+            a signle file-path or a tuple as (filename, zip-path)
         source : str
             'nga' for PEER NGA format
             'esm' for ESM format
@@ -27,57 +27,26 @@ class RecordReader:
 
         """
         self.file_path = file_path
-        self.source = source
+        self.source = source.lower()
         self.skip_rows = kwargs.get('skiprows', 1)
-        self.read_file()
+        self._read_file()
 
-    def read_file(self):
+    def _read_file(self):
         """
-        Read file content and determine the format to parse.
+        Read file content line by line and use the right parser to read data.
         """
         if isinstance(self.file_path, tuple) and len(self.file_path) == 2:
-            self.read_zip_file(*self.file_path)
+            self.file_content = read_file_from_zip(*self.file_path)
         else:
-            self.read_content()
-        reading_methods = {
-            'nga': self.read_nga,
-            'esm': self.read_esm,
-            'col': self.read_col,
-            'raw': self.read_raw,
-            'cor': self.read_cor}
-        reading_method = reading_methods.get(self.source)
-        if not reading_method:
-            raise ValueError(f'Unsupported source: {self.source}')
-        reading_method()
+            self.file_content = read_file(self.file_path)
+
+        parser_method = getattr(self, f"parser_{self.source}", None)
+        if not callable(parser_method):
+            raise ValueError(f"Unsupported source: {self.source}")
+        parser_method()
         return self
 
-    def read_zip_file(self, filename, zip_path):
-        """
-        Read the content of a file within a zip file.
-        """
-        try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_file:
-                if filename not in zip_file.namelist():
-                    raise FileNotFoundError(f'{filename} is not in the zip file.')
-                with zip_file.open(filename, 'r') as file:
-                    with io.TextIOWrapper(file, encoding='utf-8') as text_file:
-                        self.file_content = text_file.readlines()
-            return self
-        except Exception as e:
-            raise IOError(f'Error reading zip file: {str(e)}')
-
-    def read_content(self):
-        """
-        Read the lines of a file.
-        """
-        try:
-            with open(self.file_path, 'r') as inputfile:
-                self.file_content = inputfile.readlines()
-            return self
-        except Exception as e:
-            raise IOError(f'Error reading the record file: {str(e)}')
-
-    def read_nga(self):
+    def parser_nga(self):
         """
         Reading the NGA record file (.AT2)
         """
@@ -91,7 +60,18 @@ class RecordReader:
         self.t = np.arange(self.npts) * self.dt
         return self
 
-    def read_col(self):
+    def parser_esm(self):
+        """
+        Reading the ESM records (.ASC)
+        """
+        recData = self.file_content[64:-1]
+        self.dt = round(float(self.file_content[28].split()[1]), 3)
+        self.ac = np.loadtxt(recData).flatten()
+        self.npts = len(self.ac)
+        self.t = np.arange(self.npts) * self.dt
+        return self
+
+    def parser_col(self):
         """
         Reading the double-column record file [t, ac]
         """
@@ -102,7 +82,7 @@ class RecordReader:
         self.npts = len(self.ac)
         return self
 
-    def read_raw(self):
+    def parser_raw(self):
         """
         Reading the RAW files (.RAW)
         """
@@ -114,7 +94,7 @@ class RecordReader:
         self.t = np.arange(self.npts) * self.dt
         return self
 
-    def read_cor(self):
+    def parser_cor(self):
         """
         Reading the COR files (.COR)
         """
@@ -123,17 +103,6 @@ class RecordReader:
         endline = recData.index('-> corrected velocity time histories\n') - 2
         recData = recData[0:endline]
         self.dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
-        self.ac = np.loadtxt(recData).flatten()
-        self.npts = len(self.ac)
-        self.t = np.arange(self.npts) * self.dt
-        return self
-
-    def read_esm(self):
-        """
-        Reading the ESM records (.ASC)
-        """
-        recData = self.file_content[64:-1]
-        self.dt = round(float(self.file_content[28].split()[1]), 3)
         self.ac = np.loadtxt(recData).flatten()
         self.npts = len(self.ac)
         self.t = np.arange(self.npts) * self.dt

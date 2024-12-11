@@ -1,7 +1,7 @@
 import numpy as np
-from . import freq_filter_engine as ffe
+from . import freq_filter_engine
 from .model_config import ModelConfig
-from ..motion import signal_props as sps
+from ..motion import signal_props
 
 class ModelCore(ModelConfig):
     """
@@ -18,27 +18,27 @@ class ModelCore(ModelConfig):
         """
         The statistics of the stochastic model using frequency domain.
         ignoring the modulating function and the variance of White noise (i.e., 1)
-        self.variance :     variance                   using 0
-        self.variance_dot:  variance 1st derivative    using 2
-        self.variance_2dot: variance 2nd derivative    using 4
-        self.variance_bar:  variance 1st integral      using -2
-        self.variance_2bar: variance 2nd integral      using -4
+        self.variance :     variance
+        self.variance_dot:  variance 1st derivative
+        self.variance_2dot: variance 2nd derivative
+        self.variance_bar:  variance 1st integral
+        self.variance_2bar: variance 2nd integral
         """
-        self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = ffe.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq)
+        self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = freq_filter_engine.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq)
         return self
 
     def get_fas(self):
         """
         The FAS of the stochastic model using frequency domain.
         """
-        self.fas = ffe.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq)
+        self.fas = freq_filter_engine.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq)
         return self.fas
 
     def get_ce(self):
         """
         The Cumulative energy of the stochastic model.
         """
-        self.ce = sps.get_ce(self.dt, self.mdl)
+        self.ce = signal_props.get_ce(self.dt, self.mdl)
         return self.ce
 
     def get_mle_ac(self) -> np.array:

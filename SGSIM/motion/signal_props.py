@@ -67,6 +67,7 @@ def sdof_lin_model(dt: float, rec: np.ndarray, period: np.array, zeta: float, ma
     rec_3d = rec[:, :, None]
     # p = -mass * rec if excitation == 'GM' else rec
     p = -mass * rec_3d
+
     # SDOF properties
     wn = 2 * np.pi / period
     k = mass * wn ** 2
@@ -75,7 +76,7 @@ def sdof_lin_model(dt: float, rec: np.ndarray, period: np.array, zeta: float, ma
     n_records, npts, _ = p.shape  # Number of records and excitation points
     n_sdf = len(period)           # number of sdf periods
 
-    sdf_responses = np.empty((4, n_records, npts, n_sdf))
+    sdf_responses = np.empty((4, n_records, npts, n_sdf))  # disp, vel, ac, ac_tot
 
     # coefficients of numerical solution
     gamma = np.full(n_sdf, 0.5)
@@ -95,6 +96,7 @@ def sdof_lin_model(dt: float, rec: np.ndarray, period: np.array, zeta: float, ma
     for i in range(npts - 1):
         dp = (p[:, i + 1] + a1 * sdf_responses[0, :, i] +
               a2 * sdf_responses[1, :, i] + a3 * sdf_responses[2, :, i])
+
         sdf_responses[0, :, i + 1] = dp / k_hat
 
         sdf_responses[1, :, i + 1] =(
@@ -124,17 +126,18 @@ def get_spectra(dt: float, rec: np.ndarray, period: np.array, zeta: float=0.05):
     sa = np.empty((n_rec, n_period))
 
     chunk_size = 5  # 5 record per loop to avoid memory issue
-    for i in range(0, n_rec, chunk_size):
-        rec_chunk = rec[i:i + chunk_size]
+    for start in range(0, n_rec, chunk_size):
+        end = min(start + chunk_size, n_rec)
+        rec_chunk = rec[start:end]
         disp_sdf, vel_sdf, _, act_sdf = sdof_lin_model(dt=dt, rec=rec_chunk, period=period, zeta=zeta, mass=1.0)
 
         sd_chunk = np.max(np.abs(disp_sdf), axis=1)
         sv_chunk = np.max(np.abs(vel_sdf), axis=1)
         sa_chunk = np.max(np.abs(act_sdf), axis=1)
 
-        sd[i:i + chunk_size] = sd_chunk
-        sv[i:i + chunk_size] = sv_chunk
-        sa[i:i + chunk_size] = sa_chunk
+        sd[start:end] = sd_chunk
+        sv[start:end] = sv_chunk
+        sa[start:end] = sa_chunk
     return sd, sv, sa
 
 def get_energy_slice(dt: float, rec: np.array, target_range: tuple[float, float]=(0.001, 0.999)):
@@ -145,6 +148,13 @@ def get_energy_slice(dt: float, rec: np.array, target_range: tuple[float, float]
     cumulative_energy = get_ce(dt, rec)
     return ((cumulative_energy >= target_range[0] * cumulative_energy[-1]) &
             (cumulative_energy <= target_range[1] * cumulative_energy[-1]))
+
+def get_amplitude_slice(rec: np.array, threshold: float):
+    " A slice of the input motion based on passing a threshold of amplitude"
+    indices = np.where(np.abs(rec) > threshold)[0]
+    if len(indices) == 0:
+        return slice(0, 0)
+    return slice(indices[0], indices[-1] + 1)
 
 def get_freq_slice(freq: np.array, target_range: tuple[float, float]=(0.1, 25.0)):
     " A slice of angular frequency array between input frequnecies in Hz"
@@ -197,6 +207,10 @@ def get_fas(npts, rec):
     " Fourier amplitude spectrum "
     return np.abs(rfft(rec)) / np.sqrt(npts / 2)
 
-def get_freq(dt, npts):
+def get_freq(npts, dt):
     " Angular frequency upto Nyq "
     return rfftfreq(npts, dt) * 2 * np.pi
+
+def get_time(npts, dt):
+    " time array "
+    return np.linspace(0, (npts - 1) * dt, npts)

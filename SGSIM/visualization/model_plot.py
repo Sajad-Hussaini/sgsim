@@ -8,10 +8,10 @@ class ModelPlot:
     This class allows to
         plot various simulation results and comparison with a target motion
     """
-    def __init__(self, simulated_motion, target_motion, model):
+    def __init__(self, simulated_motion, target_motion):
         self.sim = simulated_motion
         self.tm = target_motion
-        self.model = model
+        self.model = simulated_motion.model
 
     def plot_motion(self, motion_type, id1, id2):
         """
@@ -127,7 +127,11 @@ class ModelPlot:
 
         pts.plot_feature(self.tm, self.model, None, feature) if no_sim else pts.plot_feature(self.tm, self.model, self.sim, feature)
         print('\n')
-        print(f"{feature} model error:  ac: {model_error_ac:<10.2f}  vel: {model_error_vel:<10.2f}  disp: {model_error_disp:<10.2f}")
-        print(f"{feature} sim error:    ac: {sim_error_ac:<10.2f}  vel: {sim_error_vel:<10.2f}  disp: {sim_error_disp:<10.2f}")
+        if feature in ['pmnm', 'mle']:
+            print(f"{feature} model error:   vel: {model_error_vel:<10.2f}     disp: {model_error_disp:<10.2f}")
+            print(f"{feature} sim error:     vel: {sim_error_vel:<10.2f}     disp: {sim_error_disp:<10.2f}")
+        else:
+            print(f"{feature} model error:  ac: {model_error_ac:<10.2f}     vel: {model_error_vel:<10.2f}     disp: {model_error_disp:<10.2f}")
+            print(f"{feature} sim error:    ac: {sim_error_ac:<10.2f}     vel: {sim_error_vel:<10.2f}     disp: {sim_error_disp:<10.2f}")
         return self
 

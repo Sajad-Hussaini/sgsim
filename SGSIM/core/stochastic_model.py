@@ -1,14 +1,13 @@
 import numpy as np
 from scipy.fft import irfft
 from numba import jit, prange, float64, complex128, int64
-from . import freq_filter_engine as ffe
+from . import freq_filter_engine
 from .model_core import ModelCore
 
 class StochasticModel(ModelCore):
     """
     This class allows to
         Simulate ground motion time series (acceleration, velocity, displacement)
-        a single or multi simulation
     """
     def __init__(self, npts: int, dt: float, mdl_type: str = 'beta_multi',
                  wu_type: str = 'linear', zu_type: str = 'linear',
@@ -35,31 +34,12 @@ class StochasticModel(ModelCore):
         sim_fourier = np.zeros((nsim, len(freq_sim)), dtype=np.complex128)
         for sim in prange(nsim):
             for i in range(npts):
-                sim_fourier[sim, :] += (ffe.get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim)
-                                          * np.exp(-1j * freq_sim * t[i])
-                                          * white_noise[sim][i] * mdl[i] / np.sqrt(variance[i] * 2 / npts))
+                sim_fourier[sim, :] += (freq_filter_engine.get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim)
+                                        * np.exp(-1j * freq_sim * t[i])
+                                        * white_noise[sim][i] * mdl[i] / np.sqrt(variance[i] * 2 / npts))
         return sim_fourier
 
     def simulate(self, nsim) -> tuple[np.array, np.array, np.array]:
-        """
-        Simulate ground-motions using fitted moddel parameters
-        Based on the frequency representation for nsim number of simulations
-        update: ac, vel, disp of simulations
-        """
-        self.ac = self.vel = self.disp = None
-        nsim = int(nsim)
-        white_noise = np.random.default_rng(seed=self.seed).standard_normal((nsim, self.npts))
-        sim_fourier = self._simulate_fourier(nsim, self.npts, self.t, self.freq_sim,
-                                              self.mdl, self.wu, self.zu, self.wl, self.zl,
-                                              self.variance, white_noise)
-
-        self.ac = irfft(sim_fourier)[..., :self.npts]  # to avoid aliasing
-        # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
-        self.vel = irfft(sim_fourier[..., 1:] / (1j * self.freq_sim[1:]))[..., :self.npts]
-        self.disp = irfft(-sim_fourier[..., 1:] / (self.freq_sim[1:] ** 2))[..., :self.npts]
-        return self
-
-    def simulate2(self, nsim) -> tuple[np.array, np.array, np.array]:
         """
         Simulate ground-motions using fitted model parameters
         Based on the frequency representation for `nsim` number of simulations.

@@ -37,7 +37,7 @@ def moving_average(rec, window_size=9):
     if rec.ndim == 1:
         smoothed_rec = np.convolve(rec, window, mode='same')
     elif rec.ndim == 2:
-        smoothed_rec = np.apply_along_axis(lambda x: np.convolve(x, window, mode='same'), axis=0, arr=rec)
+        smoothed_rec = np.apply_along_axis(lambda x: np.convolve(x, window, mode='same'), axis=1, arr=rec)
     else:
         raise ValueError("Input must be a 1D or 2D array.")
     return smoothed_rec
