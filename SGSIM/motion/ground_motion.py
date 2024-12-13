@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from .signal_processing import bandpass_filter
 from . import signal_props
 from . import signal_processing
@@ -56,6 +57,121 @@ class CoreMotion:
         self.freq = signal_props.get_freq(self.npts, self.dt)
         self.slicer_freq = signal_props.get_freq_slice(self.freq, (0.1, 25.0))
         self.fas_star = signal_processing.moving_average(self.fas, 9)[..., self.slicer_freq]
+        return self
+
+    def save_to_csv(self, row_data, col_data, filename, label="SA", index_col="Tp"):
+        """
+        # TODO :A general method to save any array-like data to a CSV file.
+
+        Parameters
+        ----------
+        row_data : array-like
+            The data to be saved in rows of csv.
+        col_data : None or array-like
+            The first row (columns) of csv.
+        filename : str
+            The path and name of the file to save the data.
+        label : str
+            A label to prepend the rows.
+        index_col : str
+            The label for the index column in the CSV file.
+
+        Returns
+        -------
+        None
+        """
+        rows = []
+        for i, d in enumerate(row_data):
+            row_label = f"{label}_{i + 1}"
+            rows.append([row_label] + list(d))
+        columns = [index_col] + list[col_data]
+        df = pd.DataFrame(rows, columns=columns)
+        df.to_csv(filename, index=False)
+        return self
+
+    def save_spectra(self, filename: str):
+        " To save response spectra and the periods to a csv file"
+
+        data_arrays = [self.sa, self.sv, self.sd]
+        property_labels = ["SA", "SV", "SD"]
+
+        rows = []
+        for label, data_array in zip(property_labels, data_arrays):
+            for i, data in enumerate(data_array):
+                row_label = f"{label}_{i + 1}"
+                rows.append([row_label] + list(data))
+
+        columns = ["Tp"] + list(self.tp)
+        spectra_df = pd.DataFrame(rows, columns=columns)
+        spectra_df.to_csv(filename, index=False)
+        return self
+
+    def save_fas(self, filename: str):
+        " To save FAS and the frequencies to a csv file"
+
+        data_arrays = [self.fas]
+        property_labels = ["FAS"]
+
+        rows = []
+        for label, data_array in zip(property_labels, data_arrays):
+            for i, data in enumerate(data_array):
+                row_label = f"{label}_{i + 1}"
+                rows.append([row_label] + list(data))
+
+        columns = ["freq"] + list(self.freq)
+        motion_df = pd.DataFrame(rows, columns=columns)
+        motion_df.to_csv(filename, index=False)
+        return self
+
+    def save_motions(self, filename: str):
+        " To save ground motion time series and the time to a csv file"
+
+        data_arrays = [self.ac, self.vel, self.disp]
+        property_labels = ["AC", "Vel", "Disp"]
+
+        rows = []
+        for label, data_array in zip(property_labels, data_arrays):
+            for i, data in enumerate(data_array):
+                row_label = f"{label}_{i + 1}"
+                rows.append([row_label] + list(data))
+
+        columns = ["t"] + list(self.t)
+        motion_df = pd.DataFrame(rows, columns=columns)
+        motion_df.to_csv(filename, index=False)
+        return self
+
+    def save_peak_motions(self, filename: str):
+        " To save peak ground motion parameters to a csv file"
+
+        data_arrays = [self.pga, self.pgv, self.pgd]
+        property_labels = ["PGA", "PGV", "PGD"]
+
+        rows = []
+        for label, data_array in zip(property_labels, data_arrays):
+            for i, data in enumerate(data_array):
+                row_label = f"{label}_{i + 1}"
+                rows.append([row_label, data])
+
+        columns = ["Index", "Value"]
+        motion_df = pd.DataFrame(rows, columns=columns)
+        motion_df.to_csv(filename, index=False)
+        return self
+
+    def save_characteristics(self, filename: str):
+        " To save ground motion characteristics (e.g., CE, MZC) and the time to a csv file"
+
+        data_arrays = [self.ce, self.mzc_ac, self.mzc_vel, self.mzc_disp]
+        property_labels = ["CE", "MZC_AC", "MZC_Vel", "MZC_Disp"]
+
+        rows = []
+        for label, data_array in zip(property_labels, data_arrays):
+            for i, data in enumerate(data_array):
+                row_label = f"{label}_{i + 1}"
+                rows.append([row_label] + list(data))
+
+        columns = ["t"] + list(self.t)
+        characteristics_df = pd.DataFrame(rows, columns=columns)
+        characteristics_df.to_csv(filename, index=False)
         return self
 
 class TargetMotion(RecordReader, CoreMotion):
