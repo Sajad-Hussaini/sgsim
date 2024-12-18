@@ -1,6 +1,6 @@
 # SGSIM
 <p align="justify">
-<strong>SGSIM</strong> is a Python package for simulating a target earthquake ground motion time series. This package enables users to apply the site-based stochastic simulation model (as noted in the reference section) to a target ground motion time series and obtain model parameters that implicitly account for the earthquake and site characteristics. Given the model parameters, the package can simulate multiple realizations of the target motion to account for the aleatoric nature of the ground motion. It also provides tools for visualizing the simulation results.
+<strong>SGSIM</strong> is a Python package for simulating target earthquake ground motions using a site-based stochastic model [1]. It derives model parameters that implicitly account for the earthquake and site characteristics of the target ground motion. Using these parameters, the package simulates ground motions for the specific earthquake scenario, accounting for their aleatoric variability. It also provides tools for visualizing the simulation results..
 </p>
 
 ## Table of Contents
@@ -13,9 +13,9 @@
 - [References](#references)
 
 ## Features
-- **Site-based Stochastic Modeling**: Configure and fit the stochastic model to ground motion data using customizable parameters.  
-- **Time-Series Simulation**: Simulate acceleration, velocity, and displacement time series without post-processing. Additional properties such as Fourier Amplitude Spectrum (FAS), Spectral Acceleration (SA), Spectral Velocity (SV), Spectral Displacement (SD), and more are available for rapid computation.
-- **Comprehensive Visualization**: Plot motion data, spectra, and other properties to verify and validate simulations.
+- **Site-based Stochastic Modeling**: Configure and fit the stochastic model to ground motion data with customizable parameters.  
+- **Simulation**: Simulate acceleration, velocity, and displacement time series without post-processing. Additional properties such as Fourier Amplitude Spectrum (FAS), Spectral Acceleration (SA), Spectral Velocity (SV), Spectral Displacement (SD), and more are available for rapid computation. The results can be saved in csv files.
+- **Visualization**: Plot ground motion data, response and Fourier spectra, and other properties to verify and validate simulations.
 
 ## Installation
 To install SGSIM via `pip`, run:
@@ -32,7 +32,7 @@ pip install .
 
 ## Usage
 For a detailed guide on using SGSIM, refer to the `how_to_run_model_with_example.py` file. This example provides a step-by-step walkthrough for simulating a recorded accelerogram with SGSIM.  
-To run the example, import the script as shown below (Use go to the definition to see the script). You can specify an accelerogram file path and format ('nga' for NGA or 'esm' for ESM source formats).  
+To run the example, import the script as shown below (to view the module, go to its definition).  
 `from SGSIM.examples import how_to_run_model_with_example`  
 More examples and instructions will be available soon.  
 
