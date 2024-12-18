@@ -1,4 +1,4 @@
-# SGSIM User Guide - Example Code
+# SGSIM User Guide
 
 This is a quick tutorial to help you get started with SGSIM.
 
@@ -23,7 +23,7 @@ bandpass = (0.1, 25.0) # if a bandpass filtering is required (in Hz)
 target_motion = TargetMotion(file_path, source).set_target_range(target_range, bandpass)
 ```
 ### Step 2: Initialize the Stochastic Model
-```
+```python
 # Define the number of data points (npts), time step (dt) (can use the target motion as below)
 # Also define parameters functional forms
 # mdl, wu, zu, wl, zl are respectively modulating function, upper dominant frequency, upper bandwidth parameter, lower dominant frequency, lower bandwidth parameter
@@ -37,7 +37,7 @@ model = StochasticModel(npts = target_motion.npts, dt = target_motion.dt,
                         wl_type = 'linear', zl_type = 'linear')
 ```
 ### Step 3: Fit the Stochastic Model to the Target Motion
-```
+```python
 # initial guess and bounds can be provided for the parameters otherwise it uses the defaults
 
 start = time.perf_counter()
@@ -54,7 +54,7 @@ end = time.perf_counter()
 print(f'Model calibration done in {end - start:.1f}s.')
 ```
 ### Step 4: Simulate Time Series Using the Stochastic Model
-```
+```python
 # nsim number of direct simulation of ac, vel, disp
 model.simulate(nsim=18)
 
@@ -68,7 +68,7 @@ model.get_properties()
 model.print_parameters()
 ```
 ### Step 5: Initialize Simulated Motions and Save Results
-```
+```python
 # it provides a 2D array [nsim, arrays] for each parameter
 sim_motion = SimMotion(model).get_properties()
 
@@ -82,7 +82,7 @@ sim_motion.save_peak_motions(filename=r"Desktop\simulated_PG_parameters.csv")
 sim_motion.save_characteristics(filename=r"Desktop\simulated_characteristics.csv")
 ```
 ### Step 6: Plot Results Using ModelPlot
-```
+```python
 mp = ModelPlot(sim_motion, target_motion)
 
 # indices to plot first 0 and last -1 simulated motion

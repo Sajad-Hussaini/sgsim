@@ -6,7 +6,7 @@
 ## Table of Contents
 - [Features](#features)
 - [Installation](#installation)
-- [User Guide](#UserGuide)
+- [User Guide](#User-Guide)
 - [License](#license)
 - [Contact](#contact)
 - [Support the Project](#support-the-project)
@@ -44,5 +44,5 @@ S.M. Sajad Hussaini
 If you find this package useful, contributions to help maintain and improve it are always appreciated. You can donate via [PayPal](https://www.paypal.com/paypalme/sajadhussaini)
 
 ## References
-*Broadband stochastic simulation of earthquake ground motions with multiple strong phases*  
+*[1] Broadband stochastic simulation of earthquake ground motions with multiple strong phases*  
 *DOI: To be assigned upon publication*
