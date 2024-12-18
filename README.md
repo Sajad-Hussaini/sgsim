@@ -9,7 +9,6 @@
 - [User Guide](#User-Guide)
 - [License](#license)
 - [Contact](#contact)
-- [Support the Project](#support-the-project)
 - [References](#references)
 
 ## Features

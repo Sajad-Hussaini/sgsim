@@ -53,7 +53,7 @@ for fit_type in ['modulating', 'freq', 'damping']:
 end = time.perf_counter()
 print(f'Model calibration done in {end - start:.1f}s.')
 ```
-### Step 4: Simulate Time Series Using the Stochastic Model
+### Step 4: Simulate Ground Motions Using the Stochastic Model
 ```python
 # nsim number of direct simulation of ac, vel, disp
 model.simulate(nsim=18)
