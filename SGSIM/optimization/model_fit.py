@@ -14,6 +14,7 @@ def model_fit(fit_func: str, model, target_motion,
         freq: optimizing upper and lower dominant frequencies
         damping : optimizing upper and lower damping ratios using all mzc
         damping pmnm: optimizing upper and lower damping ratios using pmnm (vel, disp)
+        all : optimizing freqs and damping ratios together at once
     Return:
         Fitted stocahstic model
     """
@@ -56,9 +57,7 @@ def model_fit(fit_func: str, model, target_motion,
         uncertainty = None
     else:
         raise ValueError('Unknown Fit Function.')
-    curve_fit(obj_func, xdata, ydata, p0=initial_guess,
-              bounds=(lower_bounds, upper_bounds),
-              sigma = uncertainty, maxfev=10000)
+    curve_fit(obj_func, xdata, ydata, p0=initial_guess, bounds=(lower_bounds, upper_bounds), sigma = uncertainty, maxfev=10000)
     return model
 
 def get_default_bounds(fit_func: str, model):

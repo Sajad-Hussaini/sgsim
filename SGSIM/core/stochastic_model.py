@@ -26,7 +26,7 @@ class StochasticModel(ModelCore):
     @staticmethod
     @jit(complex128[:, :](int64, int64, float64[:], float64[:], float64[:],
                        float64[:], float64[:], float64[:], float64[:], float64[:],
-                       float64[:, :]), nopython=True, parallel=True)
+                       float64[:, :]), nopython=True, parallel=True, cache=True)
     def _simulate_fourier(nsim, npts, t, freq_sim, mdl, wu, zu, wl, zl, variance, white_noise):
         """
         The simulated Fourier of nsim number of simulation.
@@ -39,7 +39,7 @@ class StochasticModel(ModelCore):
                                         * white_noise[sim][i] * mdl[i] / np.sqrt(variance[i] * 2 / npts))
         return sim_fourier
 
-    def simulate(self, nsim) -> tuple[np.array, np.array, np.array]:
+    def simulate(self, nsim: int) -> tuple[np.array, np.array, np.array]:
         """
         Simulate ground-motions using fitted model parameters
         Based on the frequency representation for `nsim` number of simulations.

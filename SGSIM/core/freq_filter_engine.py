@@ -1,7 +1,7 @@
 import numpy as np
 from numba import jit, prange, float64, complex128
 
-@jit(complex128[:](float64, float64, float64, float64, float64[:]), nopython=True)
+@jit(complex128[:](float64, float64, float64, float64, float64[:]), nopython=True, cache=True)
 def get_frf(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.array:
     """
     FRF of the stocahstic model
@@ -17,7 +17,7 @@ def get_frf(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.ar
     frfl = -1 * freq ** 2 / ((wl ** 2 - freq ** 2) + (2j * zl * wl * freq))
     return frfu * frfl
 
-@jit(float64[:](float64, float64, float64, float64, float64[:]), nopython=True)
+@jit(float64[:](float64, float64, float64, float64, float64[:]), nopython=True, cache=True)
 def get_psd(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.array:
     """
     Calculate the non-normalized Power Spectral Density (PSD) of the stochastic model
@@ -35,7 +35,7 @@ def get_psd(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.ar
     psdl = freq ** 4 / ((wl ** 2 - freq ** 2) ** 2 + (2 * zl * wl * freq) ** 2)
     return psdu * psdl
 
-@jit(float64[:](float64, float64, float64, float64, float64[:]), nopython=True)
+@jit(float64[:](float64, float64, float64, float64, float64[:]), nopython=True, cache=True)
 def get_variances(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.array:
     """
     Calculate statistical measures based on the Power Spectral Density (PSD)
@@ -61,7 +61,7 @@ def get_variances(wu: float, zu: float, wl: float, zl: float, freq: np.array) ->
     variances[4] = np.sum(freq[1:] ** -4 * psdb[1:])
     return variances
 
-@jit(float64[:, :](float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, parallel=True)
+@jit(float64[:, :](float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, parallel=True, cache=True)
 def get_stats(wu: np.array, zu: np.array, wl: np.array, zl: np.array, freq: np.array):
     """
     The statistics of the stochastic model using frequency domain for a time array
@@ -78,7 +78,7 @@ def get_stats(wu: np.array, zu: np.array, wl: np.array, zl: np.array, freq: np.a
         variances[..., i] = get_variances(wu[i], zu[i], wl[i], zl[i], freq)[:5]
     return variances
 
-@jit(float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True)
+@jit(float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, cache=True)
 def get_fas(mdl: np.array, wu: np.array, zu: np.array, wl: np.array, zl: np.array, freq: np.array):
     """
     The FAS of the stochastic model using frequency domain

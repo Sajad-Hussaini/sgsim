@@ -34,7 +34,7 @@ def get_mle(rec: np.ndarray) -> np.ndarray:
                               mle_vec, mle_vec[..., -1:]), axis=-1)
     return np.cumsum(mle_vec, axis=-1)
 
-@jit(float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64), nopython=True)
+@jit(float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64), nopython=True, cache=True)
 def sdof_lin_model(dt: float, rec: np.ndarray, period: np.array, zeta: float, mass: float) -> np.ndarray:
     """
     linear analysis of a SDOF model using newmark method

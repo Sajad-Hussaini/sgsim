@@ -14,11 +14,11 @@ class ModelConfig:
                  wl_type: str = 'linear', zl_type: str = 'linear'):
 
         self.get_time_freq(npts, dt)
-        self.mdl_func = getattr(parametric_functions, mdl_type)
-        self.wu_func = getattr(parametric_functions, wu_type)
-        self.zu_func = getattr(parametric_functions, zu_type)
-        self.wl_func = getattr(parametric_functions, wl_type)
-        self.zl_func = getattr(parametric_functions, zl_type)
+        self.mdl_func = getattr(parametric_functions, mdl_type.lower())
+        self.wu_func = getattr(parametric_functions, wu_type.lower())
+        self.zu_func = getattr(parametric_functions, zu_type.lower())
+        self.wl_func = getattr(parametric_functions, wl_type.lower())
+        self.zl_func = getattr(parametric_functions, zl_type.lower())
 
     def get_time_freq(self, npts, dt):
         self.dt = dt

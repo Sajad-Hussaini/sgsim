@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from .signal_processing import bandpass_filter
 from . import signal_props
 from . import signal_processing
 from ..file_reading.record_reader import RecordReader
@@ -174,6 +173,7 @@ class CoreMotion:
         characteristics_df.to_csv(filename, index=False)
         return self
 
+
 class TargetMotion(RecordReader, CoreMotion):
     """
     A class to describe a target ground motion from a file
@@ -194,7 +194,7 @@ class TargetMotion(RecordReader, CoreMotion):
         self.npts = len(self.t)
         if bandpass_freqs is not None:
             self.ac = self.ac[self.slicer]
-            self.ac = bandpass_filter(self.dt, self.ac, bandpass_freqs[0], bandpass_freqs[1])
+            self.ac = signal_processing.bandpass_filter(self.dt, self.ac, bandpass_freqs[0], bandpass_freqs[1])
             self.disp = signal_props.get_disp(self.dt, self.ac)
             self.vel = signal_props.get_vel(self.dt, self.ac)
         else:

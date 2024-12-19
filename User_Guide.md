@@ -75,11 +75,11 @@ sim_motion = SimMotion(model).get_properties()
 # Similarly, to access simulations access like sim_motion.ac , sim_motion.fas, sim_motion.sa, sim_motion.sv, etc.
 
 # In case of necessity to save properties use below by specifying filename and path
-sim_motion.save_spectra(filename=r"Desktop\simulated_spectra.csv")
-sim_motion.save_motions(filename=r"Desktop\simulated_motions.csv")
-sim_motion.save_fas(filename=r"Desktop\simulated_fas.csv")
-sim_motion.save_peak_motions(filename=r"Desktop\simulated_PG_parameters.csv")
-sim_motion.save_characteristics(filename=r"Desktop\simulated_characteristics.csv")
+sim_motion.save_spectra(filename="simulated_spectra.csv")
+sim_motion.save_motions(filename="simulated_motions.csv")
+sim_motion.save_fas(filename="simulated_fas.csv")
+sim_motion.save_peak_motions(filename="simulated_PG_parameters.csv")
+sim_motion.save_characteristics(filename="simulated_characteristics.csv")
 ```
 ### Step 6: Plot Results Using ModelPlot
 ```python

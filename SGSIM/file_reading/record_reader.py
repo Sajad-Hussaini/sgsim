@@ -1,5 +1,5 @@
 import numpy as np
-from .read_tool import read_file, read_file_from_zip
+from . import read_tool
 
 class RecordReader:
     " A class to read records from different ground motion databases "
@@ -36,9 +36,9 @@ class RecordReader:
         Read file content line by line and use the right parser to read data.
         """
         if isinstance(self.file_path, tuple) and len(self.file_path) == 2:
-            self.file_content = read_file_from_zip(*self.file_path)
+            self.file_content = read_tool.read_file_from_zip(*self.file_path)
         else:
-            self.file_content = read_file(self.file_path)
+            self.file_content = read_tool.read_file(self.file_path)
 
         parser_method = getattr(self, f"parser_{self.source}", None)
         if not callable(parser_method):

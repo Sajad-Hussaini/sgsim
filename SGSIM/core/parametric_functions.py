@@ -31,7 +31,8 @@ def beta_single(t, *params: tuple[float, ...]) -> np.array:
     mdl2 = 0.95 * np.exp(
         (c1 * p1) * np.log(t[1:-1]) + (c1 * (1 - p1)) * np.log(tn - t[1:-1]) -
         np.log(beta(1 + c1 * p1, 1 + c1 * (1 - p1))) - (1 + c1) * np.log(tn))
-    multi_mdl = np.concatenate((np.array([0]), (mdl1 + mdl2), np.array([0])))
+    multi_mdl = np.zeros_like(t)
+    multi_mdl[1:-1] = mdl1 + mdl2
     return np.sqrt(Et * multi_mdl)
 
 def beta_multi(t, *params: tuple[float, ...]) -> np.array:
@@ -44,7 +45,8 @@ def beta_multi(t, *params: tuple[float, ...]) -> np.array:
     mdl3 = (0.95 - a1) * np.exp(
         (c2 * p2) * np.log(t[1:-1]) + (c2 * (1 - p2)) * np.log(tn - t[1:-1]) -
         np.log(beta(1 + c2 * p2, 1 + c2 * (1 - p2))) - (1 + c2) * np.log(tn))
-    multi_mdl = np.concatenate((np.array([0]), (mdl1 + mdl2 + mdl3), np.array([0])))
+    multi_mdl = np.zeros_like(t)
+    multi_mdl[1:-1] = mdl1 + mdl2 + mdl3
     # Original formula
     # mdl1 = 0.05 * (6 * (t * (tn - t)) / (tn ** 3))
     # mdl2 = a1 * ((t ** (c1 * p1) * (tn - t) ** (c1 * (1 - p1))) /
