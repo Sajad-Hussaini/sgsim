@@ -1,10 +1,11 @@
 import numpy as np
 from numba import jit, prange, float64, complex128
 
+
 @jit(complex128[:](float64, float64, float64, float64, float64[:]), nopython=True, cache=True)
-def get_frf(wu: float, zu: float, wl: float, zl: float, freq: np.array) -> np.array:
+def get_frf(wu: float, zu: float, wl: float, zl: float, freq: np.ndarray) -> np.ndarray:
     """
-    FRF of the stocahstic model
+    FRF of the stochastic model
     wu, zu: upper angular frequency and damping ratio
     wl, zl: lower angular frequency and damping ratio
     freq: angular frequency upto Nyq.

@@ -39,7 +39,7 @@ class StochasticModel(ModelCore):
                                         * white_noise[sim][i] * mdl[i] / np.sqrt(variance[i] * 2 / npts))
         return sim_fourier
 
-    def simulate(self, nsim: int) -> tuple[np.array, np.array, np.array]:
+    def simulate(self, nsim: int):
         """
         Simulate ground-motions using fitted model parameters
         Based on the frequency representation for `nsim` number of simulations.
