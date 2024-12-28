@@ -12,6 +12,7 @@ def get_mzc(rec: np.ndarray) -> np.ndarray:
 def get_pmnm(rec: np.ndarray) -> np.ndarray:
     """
     The mean cumulative number of positive-minima and negative-maxima.
+    # TODO : It is mean velue check if zu or zl can directly fit to none-average
     """
     pmnm_vec = np.where(
         (rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) &

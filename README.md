@@ -43,5 +43,5 @@ S.M. Sajad Hussaini
 If you find this package useful, contributions to help maintain and improve it are always appreciated. You can donate via [PayPal](https://www.paypal.com/paypalme/sajadhussaini)
 
 ## References
-*[1] Broadband stochastic simulation of earthquake ground motions with multiple strong phases*  
+*[1] BROADBAND STOCHASTIC SIMULATION OF EARTHQUAKE GROUND MOTIONS WITH MULTIPLE STRONG PHASES WITH AN APPLICATION TO THE 2023 KAHRAMANMARAŞ TÜRKIYE EARTHQUAKE*  
 *DOI: To be assigned upon publication*
