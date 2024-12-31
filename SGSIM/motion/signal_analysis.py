@@ -2,17 +2,16 @@ import numpy as np
 from scipy.fft import rfft, rfftfreq
 from numba import jit, float64
 
-def get_mzc(rec: np.ndarray) -> np.ndarray:
+def get_mzc(rec):
     """
-    The mean cumulative number of zero up/ down crossings.
+    The mean cumulative number of zero up and down crossings
     """
     cross_vec = np.where(np.diff(np.sign(rec), append=0), 0.5, 0)
     return np.cumsum(cross_vec, axis=-1)
 
-def get_pmnm(rec: np.ndarray) -> np.ndarray:
+def get_pmnm(rec):
     """
-    The mean cumulative number of positive-minima and negative-maxima.
-    # TODO : It is mean velue check if zu or zl can directly fit to none-average
+    The mean cumulative number of positive-minima and negative-maxima
     """
     pmnm_vec = np.where(
         (rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) &
@@ -23,9 +22,9 @@ def get_pmnm(rec: np.ndarray) -> np.ndarray:
                                pmnm_vec, pmnm_vec[..., -1:]), axis=-1)
     return np.cumsum(pmnm_vec, axis=-1)
 
-def get_mle(rec: np.ndarray) -> np.ndarray:
+def get_mle(rec):
     """
-    The mean cumulative number of local extrema (all peaks and valleys).
+    The mean cumulative number of local extrema (peaks and valleys)
     """
     mle_vec = np.where(
         (rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) |
@@ -36,7 +35,7 @@ def get_mle(rec: np.ndarray) -> np.ndarray:
     return np.cumsum(mle_vec, axis=-1)
 
 @jit(float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64), nopython=True, cache=True)
-def sdof_lin_model(dt: float, rec: np.ndarray, period: np.array, zeta: float, mass: float) -> np.ndarray:
+def sdof_lin_model(dt, rec, period, zeta, mass):
     """
     linear analysis of a SDOF model using newmark method
 
@@ -50,7 +49,7 @@ def sdof_lin_model(dt: float, rec: np.ndarray, period: np.array, zeta: float, ma
     ----------
     dt : float
         time step.
-    rec : np.ndarray
+    rec
         input ground motions 2d-array.
     period : np.array
         period array.
@@ -61,9 +60,8 @@ def sdof_lin_model(dt: float, rec: np.ndarray, period: np.array, zeta: float, ma
 
     Returns
     -------
-    sdf_responses : 4d-array (response, n_rec, npts, n_period)
-        first dimension correspond to disp, vel, ac, ac_tot responses of SDOF.
-
+    sdf_responses : 4d-array (response_type, n_rec, npts, n_period)
+        response_type corresponds to disp, vel, ac, ac_tot
     """
     rec_3d = rec[:, :, None]
     # p = -mass * rec if excitation == 'GM' else rec
@@ -116,9 +114,9 @@ def sdof_lin_model(dt: float, rec: np.ndarray, period: np.array, zeta: float, ma
         sdf_responses[3, :, i + 1] = sdf_responses[2, :, i + 1] + rec_3d[:, i + 1]
     return sdf_responses
 
-def get_spectra(dt: float, rec: np.ndarray, period: np.array, zeta: float=0.05):
+def get_spectra(dt: float, rec, period, zeta: float=0.05):
     """
-    displacement, velocity, and total acceleration spectra (SD, SV, SA)
+    displacement, velocity, and total acceleration response spectra (SD, SV, SA)
     """
     n_rec = rec.shape[0]
     n_period = len(period)
@@ -126,7 +124,7 @@ def get_spectra(dt: float, rec: np.ndarray, period: np.array, zeta: float=0.05):
     sv = np.empty((n_rec, n_period))
     sa = np.empty((n_rec, n_period))
 
-    chunk_size = 5  # 5 record per loop to avoid memory issue
+    chunk_size = 5
     for start in range(0, n_rec, chunk_size):
         end = min(start + chunk_size, n_rec)
         rec_chunk = rec[start:end]
@@ -141,66 +139,63 @@ def get_spectra(dt: float, rec: np.ndarray, period: np.array, zeta: float=0.05):
         sa[start:end] = sa_chunk
     return sd, sv, sa
 
-def get_energy_slice(dt: float, rec: np.array, target_range: tuple[float, float]=(0.001, 0.999)):
-    """
-    A slice of the input motion based on a range of total energy percentages
-    i.e. (0.001, 0.999)
-    """
+def get_energy_mask(dt: float, rec, target_range: tuple[float, float]=(0.001, 0.999)):
+    " A boolean mask for slicing the input motion using total energy percentages"
     cumulative_energy = get_ce(dt, rec)
     return ((cumulative_energy >= target_range[0] * cumulative_energy[-1]) &
             (cumulative_energy <= target_range[1] * cumulative_energy[-1]))
 
-def get_amplitude_slice(rec: np.array, threshold: float):
-    " A slice of the input motion based on passing a threshold of amplitude"
+def get_amplitude_mask(rec, threshold: float):
+    " A boolean mask for slicing the input motion using a threshold of amplitude"
     indices = np.where(np.abs(rec) > threshold)[0]
     if len(indices) == 0:
         return slice(0, 0)
     return slice(indices[0], indices[-1] + 1)
 
-def get_freq_slice(freq: np.array, target_range: tuple[float, float]=(0.1, 25.0)):
-    " A slice of angular frequency array between input frequnecies in Hz"
+def get_freq_mask(freq: np.array, target_range: tuple[float, float]=(0.1, 25.0)):
+    " A boolean mask for slicing the frequency array using input freqs in Hz"
     return (freq >= target_range[0] * 2 * np.pi) & (freq <= target_range[1] * 2 * np.pi)
 
-def get_ce(dt: float, rec: np.ndarray) -> np.ndarray:
+def get_ce(dt: float, rec):
     """
-    Compute cumulative energy of an input
+    Compute the cumulative energy
     """
     return np.cumsum(rec ** 2, axis=-1) * dt
 
-def get_vel(dt: float, rec: np.ndarray) -> np.ndarray:
+def get_vel(dt: float, rec):
     """
     Compute the velocity of an acceleration input
     """
     return np.cumsum(rec, axis=-1) * dt
 
-def get_disp(dt: float, rec: np.ndarray) -> np.ndarray:
+def get_disp(dt: float, rec):
     """
     Compute the displacement of an acceleration input
     """
     return np.cumsum(np.cumsum(rec, axis=-1), axis=-1) * dt ** 2
 
-def get_disp_detrend(dt: float, rec: np.ndarray) -> np.ndarray:
+def get_disp_detrend(dt: float, rec):
     """
-    Compute the displacement of an acceleration input with detrending
+    Compute the displacement of an acceleration input with linear detrending
     """
     uvec = get_disp(dt, rec)
     return uvec - np.linspace(0.0, uvec[-1], len(uvec))
 
-def get_pga(rec: np.ndarray):
+def get_pga(rec):
     " Peak ground acceleration"
     return np.max(np.abs(rec), axis=-1)
 
-def get_pgv(dt: float, rec: np.ndarray):
+def get_pgv(dt: float, rec):
     " Peak ground velocity"
     vel = get_vel(dt, rec)
     return np.max(np.abs(vel), axis=-1)
 
-def get_pgd(dt: float, rec: np.ndarray):
+def get_pgd(dt: float, rec):
     " Peak ground displacement"
     disp = get_disp(dt, rec)
     return np.max(np.abs(disp), axis=-1)
 
-def get_cav(dt: float, rec: np.ndarray):
+def get_cav(dt: float, rec):
     " Cumulative absolute velocity"
     return np.sum(np.abs(rec), axis=-1) * dt
 

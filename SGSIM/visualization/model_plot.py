@@ -1,17 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from . import plot_tool as pts
-from ..optimization import fit_metric
+from ..optimization.fit_eval import find_error
 
 class ModelPlot:
     """
     This class allows to
         plot various simulation results and comparison with a target motion
     """
-    def __init__(self, simulated_motion, target_motion):
+    def __init__(self, model, simulated_motion, real_motion):
+        self.model = model
         self.sim = simulated_motion
-        self.tm = target_motion
-        self.model = simulated_motion.model
+        self.real = real_motion
 
     def plot_motion(self, motion_type, id1, id2):
         """
@@ -27,10 +27,10 @@ class ModelPlot:
             attr = 'disp'
         else:
             raise ValueError("Invalid motion type")
-        rec = getattr(self.tm, attr)
+        rec = getattr(self.real, attr)
         sim1 = getattr(self.sim, attr)[id1]
         sim2 = getattr(self.sim, attr)[id2]
-        pts.plot_motion(self.sim.t, rec, sim1, sim2, ylabel=motion_type)
+        pts.plot_motion(self.real.t, sim1, sim2, rec, ylabel=motion_type)
         return self
 
     def plot_ce(self):
@@ -39,7 +39,7 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'ce'):
             raise ValueError("""No simulations available.""")
-        pts.plot_mean_std(self.sim.t, self.tm.ce, self.sim.ce)
+        pts.plot_mean_std(self.real.t, self.sim.ce, self.real.ce)
         plt.legend(loc='lower right', frameon=False)
         plt.xlabel('Time (s)')
         plt.ylabel(r'Cumulative energy $\mathregular{(g^2.s)}$')
@@ -53,9 +53,9 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'fas'):
             raise ValueError("""No simulations available.""")
-        pts.plot_mean_std(self.tm.freq / (2 * np.pi), self.tm.fas, self.sim.fas)
-        plt.ylim(np.min(self.tm.fas[self.sim.slicer_freq]), 2 * np.max(self.tm.fas[self.sim.slicer_freq]))
-        plt.xlim([0.1, 25])
+        pts.plot_mean_std(self.real.freq / (2 * np.pi), self.sim.fas, self.real.fas)
+        plt.ylim(np.min(self.real.fas[self.real.freq_mask]), 2 * np.max(self.real.fas[self.real.freq_mask]))
+        plt.xlim([0.1, 25.0])
         plt.xscale('log')
         if log_scale:
             plt.yscale('log')
@@ -77,7 +77,7 @@ class ModelPlot:
                'sd': 'displacement (cm)'}
         if not hasattr(self.sim, spectrum):
             raise ValueError("""No simulations available.""")
-        pts.plot_mean_std(self.sim.tp, getattr(self.tm, spectrum), getattr(self.sim, spectrum))
+        pts.plot_mean_std(self.real.tp, getattr(self.sim, spectrum), getattr(self.real, spectrum))
         plt.xscale('log')
         if log_scale:
             plt.yscale('log')
@@ -95,12 +95,12 @@ class ModelPlot:
         Comparing the cumulative energy and energy distribution
         of the record, model, and simulations
         """
-        pts.plot_ac_ce(self.tm, self.model)
-        model_error = fit_metric.find_error(self.tm.ce, self.model.ce)
+        pts.plot_ac_ce(self.model, self.real)
+        model_error = find_error(self.real.ce, self.model.ce)
         print("{}".format(f"CE error: {model_error:.3f}"))
         return self
 
-    def error_feature(self, feature='mzc', no_sim = True):
+    def error_feature(self, feature='mzc', sim_plot = False):
         """
         Comparing the indicated error of the record, model, and simulations
         mzc, mle, pmnm
@@ -117,21 +117,22 @@ class ModelPlot:
         temp_disp = getattr(self.sim, f"{feature}_disp")
         mean_disp = np.mean(temp_disp, axis=0)
 
-        sim_error_ac = fit_metric.find_error(getattr(self.tm, f"{feature}_ac"), mean_ac)
-        sim_error_vel = fit_metric.find_error(getattr(self.tm, f"{feature}_vel"), mean_vel)
-        sim_error_disp = fit_metric.find_error(getattr(self.tm, f"{feature}_disp"), mean_disp)
+        sim_error_ac = find_error(getattr(self.real, f"{feature}_ac"), mean_ac)
+        sim_error_vel = find_error(getattr(self.real, f"{feature}_vel"), mean_vel)
+        sim_error_disp = find_error(getattr(self.real, f"{feature}_disp"), mean_disp)
 
-        model_error_ac = fit_metric.find_error(getattr(self.tm, f"{feature}_ac"), getattr(self.model, f"{feature}_ac"))
-        model_error_vel = fit_metric.find_error(getattr(self.tm, f"{feature}_vel"), getattr(self.model, f"{feature}_vel"))
-        model_error_disp = fit_metric.find_error(getattr(self.tm, f"{feature}_disp"), getattr(self.model, f"{feature}_disp"))
+        model_error_ac = find_error(getattr(self.real, f"{feature}_ac"), getattr(self.model, f"{feature}_ac"))
+        model_error_vel = find_error(getattr(self.real, f"{feature}_vel"), getattr(self.model, f"{feature}_vel"))
+        model_error_disp = find_error(getattr(self.real, f"{feature}_disp"), getattr(self.model, f"{feature}_disp"))
 
-        pts.plot_feature(self.tm, self.model, None, feature) if no_sim else pts.plot_feature(self.tm, self.model, self.sim, feature)
+        pts.plot_feature(self.model, None, self.real, feature) if not sim_plot else pts.plot_feature(self.model, self.sim, self.real, feature)
         print('\n')
         if feature in ['pmnm', 'mle']:
             print(f"{feature} model error:   vel: {model_error_vel:<10.2f}     disp: {model_error_disp:<10.2f}")
-            print(f"{feature} sim error:     vel: {sim_error_vel:<10.2f}     disp: {sim_error_disp:<10.2f}")
+            if sim_plot:
+                print(f"{feature} sim error:     vel: {sim_error_vel:<10.2f}     disp: {sim_error_disp:<10.2f}")
         else:
             print(f"{feature} model error:  ac: {model_error_ac:<10.2f}     vel: {model_error_vel:<10.2f}     disp: {model_error_disp:<10.2f}")
-            print(f"{feature} sim error:    ac: {sim_error_ac:<10.2f}     vel: {sim_error_vel:<10.2f}     disp: {sim_error_disp:<10.2f}")
+            if sim_plot:
+                print(f"{feature} sim error:    ac: {sim_error_ac:<10.2f}     vel: {sim_error_vel:<10.2f}     disp: {sim_error_disp:<10.2f}")
         return self
-

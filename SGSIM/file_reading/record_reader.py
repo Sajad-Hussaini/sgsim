@@ -5,11 +5,6 @@ class RecordReader:
     " A class to read records from different ground motion databases "
     def __init__(self, file_path: str | tuple[str, str], source: str, **kwargs):
         """
-        Read records from different ground motion databases.
-
-
-        Parameters
-        ----------
         file_path : str | tuple[str, str]
             a signle file-path or a tuple as (filename, zip-path)
         source : str
@@ -20,11 +15,6 @@ class RecordReader:
             'cor' for COR format
         **kwargs : str
             'skiprows' (default 0) for col format
-
-        Returns
-        -------
-        None.
-
         """
         self.file_path = file_path
         self.source = source.lower()
@@ -33,7 +23,7 @@ class RecordReader:
 
     def _read_file(self):
         """
-        Read file content line by line and use the right parser to read data.
+        Read file content line by line and use the right parser to read data
         """
         if isinstance(self.file_path, tuple) and len(self.file_path) == 2:
             self.file_content = read_tool.read_file_from_zip(*self.file_path)

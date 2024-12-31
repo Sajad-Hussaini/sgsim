@@ -15,7 +15,7 @@ def bandpass_filter(dt, rec, lowcut=0.1, highcut=25.0, order=4):
     pad_width = next_pow2 - n
     signal_padded = np.pad(rec, (pad_width // 2, pad_width - pad_width // 2), mode='constant')
     filtered_rec = sosfilt(sos, signal_padded)
-    filtered_rec = filtered_rec[pad_width // 2: -pad_width // 2]
+    filtered_rec = filtered_rec[pad_width // 2: -(pad_width - pad_width // 2)]
     return filtered_rec
 
 def baseline_correction(rec, degree=1):

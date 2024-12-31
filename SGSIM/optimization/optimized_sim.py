@@ -1,20 +1,9 @@
-from . import fit_metric
-
-def get_gof(target_motion, sim_motion, metrics: list):
-    gof = {}
-    for metric in metrics:
-        target_metric = getattr(target_motion, metric, None)
-        sim_metric = getattr(sim_motion, metric, None)
-
-        if target_metric is None or sim_metric is None:
-            raise AttributeError(f"Metric '{metric}' not found in target_motion or sim_motion.")
-
-        gof[metric] = fit_metric.goodness_of_fit(target_metric, sim_metric)
-    return gof
+from .fit_eval import get_gof
 
 def gof_based_simulator(target_motion, sim_motion, metrics: list,
                         individual_score: float, mean_score: float = 65,
                         max_iterations: int = 100):
+    """ Simulate ground motions based on a level of GOF"""
     iteration = 0
     while iteration < max_iterations:
         iteration += 1

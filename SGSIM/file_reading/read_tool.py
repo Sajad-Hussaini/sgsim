@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 import zipfile
 import io
 import tkinter as tk
@@ -43,8 +42,3 @@ def open_folder():
     folder_path = tk.filedialog.askdirectory(initialdir=os.getcwd(), title='Select a Folder', parent=root)
     root.destroy()
     return folder_path
-
-def csv_reader():
-    files = open_files()
-    dfs = [pd.read_csv(file) for file in files]
-    return dfs

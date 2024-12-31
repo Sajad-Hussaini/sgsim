@@ -10,12 +10,14 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Sajad-Hussaini/SGSIM",
     packages=find_packages(),
+    python_requires=">=3.8",
     install_requires=['numpy', 'scipy', 'numba', 'pandas', 'matplotlib'],
-    keywords=['python', 'SGSIM', 'stochastic', 'ground motion', 'simulation', 'site-based', 'stochastic ground motion'],
-    include_package_data=True,
-    package_data={'SGSIM': ['examples/real_records/*']},
-    classifiers=["Programming Language :: Python :: 3",
-                 "License :: CC BY-NC-SA 4.0",
-                 "Operating System :: OS Independent",
-                 "Intended Audience :: Science/Engineering/Research"]
+    keywords=['Python', 'SGSIM', 'stochastic', 'ground motion', 'simulation model',
+              'site-based', 'stochastic ground motion', 'near-fault', 'multiple strong phase'
+              'directivity pulse', 'basin effect'],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: GNU AGPL v3",
+        "Operating System :: OS Independent",
+        "Intended Audience :: Science/Engineering/Research"]
     )

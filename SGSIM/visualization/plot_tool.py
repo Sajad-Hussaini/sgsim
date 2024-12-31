@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def plot_config(dpi=900, font='Times New Roman', lw=0.5, fontsize=9,
-                ax_lbsize=9, legend_fsize=10, axlw = 0.2, tight=True):
+                ax_lbsize=9, legend_fsize=9, axlw=0.2, tight=True):
     plt.rcParams.update({
         'figure.dpi': dpi,
         'lines.linewidth': lw,
@@ -16,10 +16,10 @@ def plot_config(dpi=900, font='Times New Roman', lw=0.5, fontsize=9,
         'ytick.major.width': axlw,
         'ytick.minor.width': axlw,
         'figure.constrained_layout.use': tight})
-    cm = 1/2.54  # centimeters in inches
+    cm = 1/2.54  # inch to centimeters conversion
     return cm
 
-def plot_ac_ce(target, model):
+def plot_ac_ce(model, target):
     """
     Comparing the cumulative energy and energy distribution
     of the record, model, and simulations
@@ -40,14 +40,13 @@ def plot_ac_ce(target, model):
     axes[1].plot(target.t, target.ce, label= 'Target', c='tab:blue')
     axes[1].plot(model.t, model.ce, label= 'Model', c='tab:red', ls='--')
     axes[1].set_ylabel(r'Cumulative energy $\mathregular{(g^2.s)}$')
-    # axes[1].text(0.02, 0.95, '(b)', transform=axes[1].transAxes, va='top')
     axes[1].set_xlabel('Time (s)')
     axes[1].legend(loc='lower right', frameon=False)
     # axes[1].ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
     axes[1].minorticks_on()
     plt.show()
 
-def plot_feature(target, model, sim, feature='mzc'):
+def plot_feature(model, sim, target, feature='mzc'):
     """
     Comparing the indicated error of the record, model, and simulations
     mzc, mle, pmnm
@@ -74,34 +73,23 @@ def plot_feature(target, model, sim, feature='mzc'):
                  linestyle=(0,(4,2,1,1,1,2)), zorder=3)
 
     if sim is not None:
-        temp_ac = getattr(sim, f"{feature}_ac")
-        mean_ac = np.mean(temp_ac, axis=0)
-
-        temp_vel = getattr(sim, f"{feature}_vel")
-        mean_vel = np.mean(temp_vel, axis=0)
-
-        temp_disp = getattr(sim, f"{feature}_disp")
-        mean_disp = np.mean(temp_disp, axis=0)
-
-        plt.plot(sim.t, temp_ac.T, color='tab:gray', lw=0.15) if feature == 'mzc' else None
-        plt.plot(sim.t, temp_vel[:-1].T, model.t, temp_disp.T, color='tab:gray', lw=0.15)
-        plt.plot(sim.t, temp_vel[-1], color='tab:gray', lw=0.15, label="Simulations")
-
-        plt.plot(sim.t, mean_ac, c='tab:cyan', linestyle='dotted',
-                label="Mean acceleration", zorder=-1)  if feature == 'mzc' else None
-        plt.plot(sim.t, mean_vel, c='tab:olive', linestyle='dotted',
-                label="Mean velocity", zorder=-1)
-        plt.plot(sim.t, mean_disp, c='tab:purple', linestyle='dotted',
-                label="Mean displacement", zorder=-1)
+        plt.plot(sim.t, getattr(sim, f"{feature}_ac").T,
+                 color='tab:gray', lw=0.15)  if feature == 'mzc' else None
+        plt.plot(sim.t, getattr(sim, f"{feature}_vel")[:-1].T,
+                 color='tab:gray', lw=0.15)
+        plt.plot(sim.t, getattr(sim, f"{feature}_vel")[-1],
+                 color='tab:gray', lw=0.15, label="Simulations")
+        plt.plot(sim.t, getattr(sim, f"{feature}_disp").T,
+                 color='tab:gray', lw=0.15)
 
     plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False)
     plt.xlabel("Time (s)")
     plt.ylabel("Cumulative mean zero crossing" if feature == 'mzc'
                else "Cumulative mean local extrema" if feature == 'mle'
-               else 'Cumulative positive-minima\nand negative-maxima')
+               else 'Cumulative mean positive-minima\nand negative-maxima')
     plt.show()
 
-def plot_motion(t: np.array, rec: np.array, sim1: np.array, sim2: np.array, ylabel='Acceleration (g)'):
+def plot_motion(t, sim1, sim2, rec, ylabel='Acceleration (g)'):
     """
     3 time series multiple plot
     """
@@ -111,7 +99,7 @@ def plot_motion(t: np.array, rec: np.array, sim1: np.array, sim2: np.array, ylab
     axes[0].set_ylabel(f'{ylabel}')
     axes[0].yaxis.set_major_locator(plt.MaxNLocator(5, symmetric=True))
     axes[0].minorticks_on()
-    # axes.flatten()[0].set_ylim([-1.05 * max(abs(target)), 1.05 * max(abs(target))])
+    # axes.flatten()[0].set_ylim([-1.05 * max(abs(rec)), 1.05 * max(abs(rec))])
     for idx, sim_data in enumerate([sim1, sim2], start=1):
         # sim_data = sim_data - np.linspace(0.0, sim_data[-1], len(sim_data))
         axes[idx].plot(t, sim_data, label='Simulation', color='tab:red')
@@ -121,14 +109,14 @@ def plot_motion(t: np.array, rec: np.array, sim1: np.array, sim2: np.array, ylab
         ax.legend(loc='lower right', frameon=False, handlelength=0)
     plt.show()
 
-def plot_mean_std(t: np.array, rec: np.array, sims: np.ndarray):
+def plot_mean_std(t, sims, rec):
     """
     Plot the common part of ce_plot and fas_plot
     """
     cm = plot_config()
     mean_all = np.mean(sims, axis=0)
     std_all = np.std(sims, axis=0)
-    plt.figure(figsize=(7*cm, 5.5*cm), layout="constrained")
+    plt.figure(figsize=(7*cm, 6*cm), layout="constrained")
     plt.plot(t, rec.flatten(), c='tab:blue', label='Target', zorder=2)
     plt.plot(t, mean_all, c='tab:red', linestyle='--', label='Mean', zorder=4)
     plt.plot(t, mean_all-std_all, c='k', linestyle='-.', label=r'Mean $\mathregular{\pm \, \sigma}$', zorder=3)
