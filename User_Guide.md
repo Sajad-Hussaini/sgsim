@@ -47,7 +47,7 @@ for func in ['modulating', 'freq', 'damping']:
     
 # an alternative approach 2
 # for func in ['modulating', 'all']:
-    # model_fit(func, model, real_motion, initial_guess=None, lower_bounds=None, upper_bounds=None)
+    # calibrate(func, model, real_motion, initial_guess=None, lower_bounds=None, upper_bounds=None)
     
 end = time.perf_counter()
 print(f'Model calibration done in {end - start:.1f}s.')
