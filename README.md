@@ -17,16 +17,15 @@
 - **Visualization**: Plot ground motion data, Fourier and response spectra, and other properties to verify and validate simulations.
 
 ## Installation
-To install **SGSIM** via `pip`, run:
-```bash
-pip install SGSIM
-```
-
-Or install from source:
+To install **SGSIM** from source:
 ```bash
 git clone https://github.com/Sajad-Hussaini/SGSIM.git
 cd SGSIM
 pip install .
+```
+or install via `pip` (will be added), run:
+```bash
+pip install SGSIM
 ```
 
 ## User Guide
