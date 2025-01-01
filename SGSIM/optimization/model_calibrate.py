@@ -125,7 +125,7 @@ def obj_mdl(t, *params, motion, model):
     Unique solution constraint 1: p1 < p2 -> p2 = p1+dp2 for beta_dual
     """
     mdl_func = model.mdl_func.__name__
-    if mdl_func == 'beta_multi':
+    if mdl_func == 'beta_dual':
         Et = motion.ce[-1]
         tn = motion.t[-1]
         p1, c1, dp2, c2, a1 = params
@@ -138,7 +138,7 @@ def obj_mdl(t, *params, motion, model):
         all_params = (p1, c1, Et, tn)
     elif mdl_func == 'gamma':
         all_params = params
-    elif mdl_func == 'housner_pw':
+    elif mdl_func == 'housner':
         all_params = params
     model.get_mdl(*all_params)
     return model.get_ce()
