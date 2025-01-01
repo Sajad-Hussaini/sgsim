@@ -6,19 +6,18 @@ def calibrate(func: str, model, motion, initial_guess=None, lower_bounds=None, u
     """ Fit the stochastic model to a target motion """
     initial_guess, lower_bounds, upper_bounds = initialize_bounds(func, model, initial_guess, lower_bounds, upper_bounds)
     xdata, ydata, obj_func, uncertainty = prepare_data(func, model, motion)
-    curve_fit(obj_func, xdata, ydata, p0=initial_guess, bounds=(lower_bounds, upper_bounds), sigma=uncertainty, maxfev=10000)
+    curve_fit(obj_func, xdata, ydata, p0=initial_guess, bounds=(lower_bounds, upper_bounds), sigma=uncertainty, absolute_sigma=False, maxfev=10000)
     return model
 
 def prepare_data(func, model, motion):
-    scale = np.max(model.mdl) * 0.01 if hasattr(model, 'mdl') else None
     if func == 'modulating':
         return prepare_modulating_data(motion, model)
     elif func == 'freq':
-        return prepare_freq_data(motion, model, scale)
+        return prepare_freq_data(motion, model)
     elif func == 'damping':
-        return prepare_damping_data(motion, model, scale)
+        return prepare_damping_data(motion, model)
     elif func == 'damping pmnm':
-        return prepare_damping_pmnm_data(motion, model, scale)
+        return prepare_damping_pmnm_data(motion, model)
     elif func == 'all':
         return prepare_all_data(motion, model)
     else:
@@ -30,25 +29,25 @@ def prepare_modulating_data(motion, model):
     obj_func = lambda t, *params: obj_mdl(t, *params, motion=motion, model=model)
     return xdata, ydata, obj_func, None
 
-def prepare_freq_data(motion, model, scale):
+def prepare_freq_data(motion, model):
     ydata = np.concatenate((motion.mzc_ac, motion.mzc_disp))
     xdata = np.concatenate((motion.t, motion.t))
     obj_func = lambda t, *params: obj_freq(t, *params, model=model)
-    uncertainty = 1 / (np.concatenate((model.mdl, model.mdl)) + scale)
+    uncertainty = np.max(model.mdl)*1.1 - (np.concatenate((model.mdl, model.mdl)))
     return xdata, ydata, obj_func, uncertainty
 
-def prepare_damping_data(motion, model, scale):
+def prepare_damping_data(motion, model):
     ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp))
     xdata = np.concatenate((motion.t, motion.t, motion.t))
     obj_func = lambda t, *params: obj_damping(t, *params, model=model)
-    uncertainty = 1 / (np.concatenate((model.mdl, model.mdl, model.mdl)) + scale)
+    uncertainty = np.max(model.mdl)*1.1 - (np.concatenate((model.mdl, model.mdl, model.mdl)))
     return xdata, ydata, obj_func, uncertainty
 
-def prepare_damping_pmnm_data(motion, model, scale):
+def prepare_damping_pmnm_data(motion, model):
     ydata = np.concatenate((motion.pmnm_vel, motion.pmnm_disp))
     xdata = np.concatenate((motion.t, motion.t))
     obj_func = lambda t, *params: obj_damping_pmnm(t, *params, model=model)
-    uncertainty = 1 / (np.concatenate((model.mdl, model.mdl)) + scale)
+    uncertainty = np.max(model.mdl)*1.1 - (np.concatenate((model.mdl, model.mdl)))
     return xdata, ydata, obj_func, uncertainty
 
 def prepare_all_data(motion, model):
