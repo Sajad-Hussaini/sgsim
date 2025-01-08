@@ -16,15 +16,16 @@ class StochasticModel(ModelCore):
                  wl_type: str = 'linear', zl_type: str = 'linear'):
         super().__init__(npts, dt, mdl_type, wu_type, zu_type, wl_type, zl_type)
         self.rng = np.random.default_rng()
+        self._seed = None
 
-    def set_seed(self, seed):
-        """
-        A fixed seed for White noise avoids stochastic behavior
-        None value produces variability
-        """
-        self.seed = seed
-        self.rng = np.random.default_rng(seed)
-        return self
+    @property
+    def seed(self):
+        return self._seed
+
+    @seed.setter
+    def seed(self, value):
+        self._seed = value
+        self.rng = np.random.default_rng(value)
 
     @staticmethod
     @jit(complex128[:, :](int64, int64, float64[:], float64[:], float64[:],
@@ -48,6 +49,7 @@ class StochasticModel(ModelCore):
         Simulate ground motions using the calibrated stochastic model
             acceleration, velocity, displacement time series
         """
+        self.stats
         n = int(n)
         chunk_size = 5
         self.ac = np.empty((n, self.npts))

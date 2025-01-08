@@ -126,7 +126,7 @@ class ModelPlot:
         model_error_disp = find_error(getattr(self.real, f"{feature}_disp"), getattr(self.model, f"{feature}_disp"))
 
         pts.plot_feature(self.model, None, self.real, feature) if not sim_plot else pts.plot_feature(self.model, self.sim, self.real, feature)
-        print('\n')
+        print()
         if feature in ['pmnm', 'mle']:
             print(f"{feature} model error:   vel: {model_error_vel:<10.2f}     disp: {model_error_disp:<10.2f}")
             if sim_plot:
