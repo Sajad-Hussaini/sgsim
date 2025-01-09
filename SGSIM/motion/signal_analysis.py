@@ -162,6 +162,12 @@ def get_ce(dt: float, rec):
     """
     return np.cumsum(rec ** 2, axis=-1) * dt
 
+def get_integral(dt: float, rec):
+    """
+    Compute the velocity of an acceleration input
+    """
+    return np.cumsum(rec, axis=-1) * dt
+
 def get_vel(dt: float, rec):
     """
     Compute the velocity of an acceleration input
@@ -181,8 +187,8 @@ def get_disp_detrend(dt: float, rec):
     uvec = get_disp(dt, rec)
     return uvec - np.linspace(0.0, uvec[-1], len(uvec))
 
-def get_pga(rec):
-    " Peak ground acceleration"
+def get_pgp(rec):
+    " Peak ground motion parameter"
     return np.max(np.abs(rec), axis=-1)
 
 def get_pgv(dt: float, rec):

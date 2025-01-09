@@ -10,12 +10,12 @@ class ModelCore(ModelConfig):
         i.e., variances, FAS, CE, zero crossing, and local extrema of the stochastic model
     """
     def __init__(self, npts: int, dt: float,
-                 mdl_type: str,
-                 wu_type: str, zu_type: str,
-                 wl_type: str, zl_type: str):
-        super().__init__(npts, dt, mdl_type, wu_type, zu_type, wl_type, zl_type)
+                 mdl_func: str,
+                 wu_func: str, zu_func: str,
+                 wl_func: str, zl_func: str):
+        super().__init__(npts, dt, mdl_func, wu_func, zu_func, wl_func, zl_func)
         self.reset_attributes()
-    
+
     @property
     def stats(self):
         """ Computes and stores the variances for internal use. """
