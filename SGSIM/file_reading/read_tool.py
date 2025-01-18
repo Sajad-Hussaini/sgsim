@@ -1,6 +1,5 @@
 import os
 import zipfile
-import io
 import tkinter as tk
 
 def read_file_from_zip(filename, zip_path):
@@ -9,11 +8,10 @@ def read_file_from_zip(filename, zip_path):
     """
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_file:
-            if filename not in zip_file.namelist():
-                raise FileNotFoundError(f'{filename} is not in the zip file.')
             with zip_file.open(filename, 'r') as file:
-                with io.TextIOWrapper(file, encoding='utf-8') as inputfile:
-                    return inputfile.readlines()
+                return file.read().splitlines()
+    except KeyError:
+        raise FileNotFoundError(f'{filename} is not in the zip file.')
     except Exception as e:
         raise IOError(f'Error reading zip file: {str(e)}')
 
@@ -22,8 +20,8 @@ def read_file(file_path):
     Read the lines of a file.
     """
     try:
-        with open(file_path, 'r') as inputfile:
-            return inputfile.readlines()
+        with open(file_path, 'r') as file:
+            return file.read().splitlines()
     except Exception as e:
         raise IOError(f'Error reading the record file: {str(e)}')
 

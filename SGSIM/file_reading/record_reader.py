@@ -1,5 +1,6 @@
 import numpy as np
 from . import read_tool
+from ..motion.signal_analysis import get_time
 
 class RecordReader:
     " A class to read records from different ground motion databases "
@@ -47,7 +48,7 @@ class RecordReader:
         self.dt = round(float(recInfo[recInfo.index(dt_key) + 1].rstrip('SEC,')), 3)
         self.ac = np.loadtxt(recData).flatten()
         self.npts = len(self.ac)
-        self.t = np.arange(self.npts) * self.dt
+        self.t = get_time(self.npts, self.dt)
         return self
 
     def parser_esm(self):
@@ -58,7 +59,7 @@ class RecordReader:
         self.dt = round(float(self.file_content[28].split()[1]), 3)
         self.ac = np.loadtxt(recData).flatten()
         self.npts = len(self.ac)
-        self.t = np.arange(self.npts) * self.dt
+        self.t = get_time(self.npts, self.dt)
         return self
 
     def parser_col(self):
@@ -81,7 +82,7 @@ class RecordReader:
         self.dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
         self.ac = np.loadtxt(recData).flatten()
         self.npts = len(self.ac)
-        self.t = np.arange(self.npts) * self.dt
+        self.t = get_time(self.npts, self.dt)
         return self
 
     def parser_cor(self):
@@ -95,5 +96,5 @@ class RecordReader:
         self.dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
         self.ac = np.loadtxt(recData).flatten()
         self.npts = len(self.ac)
-        self.t = np.arange(self.npts) * self.dt
+        self.t = get_time(self.npts, self.dt)
         return self

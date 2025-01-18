@@ -6,32 +6,41 @@ def get_mzc(rec):
     """
     The mean cumulative number of zero up and down crossings
     """
-    cross_vec = np.where(np.diff(np.sign(rec), append=0), 0.5, 0)
+    cross_mask = rec[..., :-1] * rec[..., 1:] < 0
+    cross_vec = np.empty_like(rec)
+    cross_vec[..., :-1] = cross_mask * 0.5
+    cross_vec[..., -1] = cross_vec[..., -2]
     return np.cumsum(cross_vec, axis=-1)
+
+def get_mpc(rec):
+    """
+    The mean cumulative number of pi / 2 changes for an orientation array
+    """
+    change_vec = np.where(np.abs(np.diff(rec, append=0))>np.pi/2, 0.5, 0)
+    return np.cumsum(change_vec, axis=-1)
 
 def get_pmnm(rec):
     """
     The mean cumulative number of positive-minima and negative-maxima
     """
-    pmnm_vec = np.where(
-        (rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) &
-        (rec[..., 1:-1] < 0) |
-        (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]) &
-        (rec[..., 1:-1] > 0), 0.5, 0)
-    pmnm_vec = np.concatenate((pmnm_vec[..., :1],
-                               pmnm_vec, pmnm_vec[..., -1:]), axis=-1)
+    pmnm_mask =((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) & (rec[..., 1:-1] < 0) |
+               (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]) & (rec[..., 1:-1] > 0))
+    pmnm_vec = np.empty_like(rec)
+    pmnm_vec[..., 1:-1] = pmnm_mask * 0.5
+    pmnm_vec[..., 0] = pmnm_vec[..., 1]
+    pmnm_vec[..., -1] = pmnm_vec[..., -2]
     return np.cumsum(pmnm_vec, axis=-1)
 
 def get_mle(rec):
     """
     The mean cumulative number of local extrema (peaks and valleys)
     """
-    mle_vec = np.where(
-        (rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) |
-        (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]),
-        0.5, 0)
-    mle_vec = np.concatenate((mle_vec[..., :1],
-                              mle_vec, mle_vec[..., -1:]), axis=-1)
+    mle_mask = ((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) |
+                (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]))
+    mle_vec = np.empty_like(rec)
+    mle_vec[..., 1:-1] = mle_mask * 0.5
+    mle_vec[..., 0] = mle_vec[..., 1]
+    mle_vec[..., -1] = mle_vec[..., -2]
     return np.cumsum(mle_vec, axis=-1)
 
 @jit(float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64), nopython=True, cache=True)
@@ -127,16 +136,11 @@ def get_spectra(dt: float, rec, period, zeta: float=0.05):
     chunk_size = 5
     for start in range(0, n_rec, chunk_size):
         end = min(start + chunk_size, n_rec)
-        rec_chunk = rec[start:end]
-        disp_sdf, vel_sdf, _, act_sdf = sdof_lin_model(dt=dt, rec=rec_chunk, period=period, zeta=zeta, mass=1.0)
+        disp_sdf, vel_sdf, _, act_sdf = sdof_lin_model(dt=dt, rec=rec[start:end], period=period, zeta=zeta, mass=1.0)
 
-        sd_chunk = np.max(np.abs(disp_sdf), axis=1)
-        sv_chunk = np.max(np.abs(vel_sdf), axis=1)
-        sa_chunk = np.max(np.abs(act_sdf), axis=1)
-
-        sd[start:end] = sd_chunk
-        sv[start:end] = sv_chunk
-        sa[start:end] = sa_chunk
+        sd[start:end] = np.max(np.abs(disp_sdf), axis=1)
+        sv[start:end] = np.max(np.abs(vel_sdf), axis=1)
+        sa[start:end] = np.max(np.abs(act_sdf), axis=1)
     return sd, sv, sa
 
 def get_energy_mask(dt: float, rec, target_range: tuple[float, float]=(0.001, 0.999)):
@@ -168,38 +172,16 @@ def get_integral(dt: float, rec):
     """
     return np.cumsum(rec, axis=-1) * dt
 
-def get_vel(dt: float, rec):
+def get_integral_detrend(dt: float, rec):
     """
-    Compute the velocity of an acceleration input
+    Compute the integral with linear detrending
     """
-    return np.cumsum(rec, axis=-1) * dt
-
-def get_disp(dt: float, rec):
-    """
-    Compute the displacement of an acceleration input
-    """
-    return np.cumsum(np.cumsum(rec, axis=-1), axis=-1) * dt ** 2
-
-def get_disp_detrend(dt: float, rec):
-    """
-    Compute the displacement of an acceleration input with linear detrending
-    """
-    uvec = get_disp(dt, rec)
+    uvec = get_integral(dt, rec)
     return uvec - np.linspace(0.0, uvec[-1], len(uvec))
 
 def get_pgp(rec):
     " Peak ground motion parameter"
     return np.max(np.abs(rec), axis=-1)
-
-def get_pgv(dt: float, rec):
-    " Peak ground velocity"
-    vel = get_vel(dt, rec)
-    return np.max(np.abs(vel), axis=-1)
-
-def get_pgd(dt: float, rec):
-    " Peak ground displacement"
-    disp = get_disp(dt, rec)
-    return np.max(np.abs(disp), axis=-1)
 
 def get_cav(dt: float, rec):
     " Cumulative absolute velocity"

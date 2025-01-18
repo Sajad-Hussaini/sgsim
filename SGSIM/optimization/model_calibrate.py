@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from ..motion.signal_processing import moving_average
 
 def calibrate(func: str, model, motion, initial_guess=None, lower_bounds=None, upper_bounds=None):
     """ Fit the stochastic model to a target motion """
@@ -51,7 +50,7 @@ def prepare_damping_pmnm_data(model, motion):
     return xdata, ydata, obj_func, uncertainty
 
 def prepare_all_data(model, motion):
-    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, moving_average(motion.fas[model.freq_mask])))
+    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, np.cumsum(motion.fas[model.freq_mask])))
     xdata = np.concatenate((motion.t, motion.t, motion.t, motion.freq[model.freq_mask]))
     obj_func = lambda t, *params: obj_all(t, params, model=model)
     return xdata, ydata, obj_func, None
@@ -87,7 +86,7 @@ def get_default_bounds(func: str, model):
         'all': {
             'linear': ((5.0, 5.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.5), (0.0, 0.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1), (50.0, 50.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)),
             'exponential': ((5.0, 5.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.5), (0.0, 0.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1), (50.0, 50.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0))}
-        }
+            }
     if func not in bounds_config:
         raise ValueError('Unknown Calibration Function.')
 
@@ -175,4 +174,4 @@ def obj_all(t, params, model):
     zl_param = params[3*quarter_param:]
     model.zu = zu_param
     model.zl = zl_param
-    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, moving_average(model.fas[model.freq_mask])))
+    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, np.cumsum(model.fas[model.freq_mask])))

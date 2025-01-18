@@ -51,7 +51,7 @@ class ModelConfig:
 
     def reset_attributes(self):
         """ Intended to be overridden in child classes. """
-        pass  # No implementation here; it's a placeholder
+        pass
 
     @property
     def mdl(self):

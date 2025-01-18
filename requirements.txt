@@ -3,4 +3,5 @@ scipy
 matplotlib
 pandas
 numba
+h5py
 setuptools

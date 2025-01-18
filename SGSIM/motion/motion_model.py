@@ -29,23 +29,6 @@ class Motion:
         self.vel = vel
         self.disp = disp
 
-    @classmethod
-    def from_file(cls, file_path: str | tuple[str, str], source: str, **kwargs):
-        """
-        Read data from a file or a filename in a zip
-
-        file_path: path to the file or a filename in a zip
-        source:    source type (e.g., 'NGA')
-        kwargs:    additional keyword arguments for RecordReader (e.g., 'skiprows')
-        """
-        record = RecordReader(file_path, source, **kwargs)
-        return cls(npts=record.npts, dt=record.dt, ac=record.ac)
-
-    @classmethod
-    def from_model(cls, model):
-        """ Read data from a stochastic model """
-        return cls(npts=model.npts, dt=model.dt, ac=model.ac, vel=model.vel, disp=model.disp)
-
     @property
     def t(self):
         if not hasattr(self, '_t'):
@@ -314,9 +297,9 @@ class Motion:
         characteristics_df.to_csv(filename, index=False)
         return self
 
-    def save_hdf5(self, filename: str):
+    def save_simfile(self, filename: str):
         """
-        Save all relevant data to an HDF5 file with improved structure.
+        Save simulation data to an HDF5 file with improved structure.
 
         filename: The name of the HDF5 file to save the data to.
         """
@@ -374,9 +357,9 @@ class Motion:
         return self
 
     @classmethod
-    def from_hdf5(cls, filename: str):
+    def from_simfile(cls, filename: str):
         """
-        Load data from an HDF5 file and create a Motion instance.
+        Load simulation data from an HDF5 file and create a Motion instance.
 
         filename: The name of the HDF5 file to load the data from.
         """
@@ -426,3 +409,20 @@ class Motion:
         motion_instance._pmnm_vel = pmnm_vel
         motion_instance._pmnm_disp = pmnm_disp
         return motion_instance
+
+    @classmethod
+    def from_file(cls, file_path: str | tuple[str, str], source: str, **kwargs):
+        """
+        Read data from a file or a filename in a zip
+
+        file_path: path to the file or a filename in a zip
+        source:    source type (e.g., 'NGA')
+        kwargs:    additional keyword arguments for RecordReader (e.g., 'skiprows')
+        """
+        record = RecordReader(file_path, source, **kwargs)
+        return cls(npts=record.npts, dt=record.dt, ac=record.ac)
+
+    @classmethod
+    def from_model(cls, model):
+        """ Read data from a stochastic model """
+        return cls(npts=model.npts, dt=model.dt, ac=model.ac, vel=model.vel, disp=model.disp)

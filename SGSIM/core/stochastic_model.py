@@ -69,10 +69,10 @@ class StochasticModel(ModelCore):
             self.disp[start:end] = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2))[..., :self.npts]
         return self
 
-    def save_hdf5(self, filename: str):
+    def save_parameters(self, filename: str):
         """
-        Save all relevant data to an HDF5 file with improved structure.
-
+        Save all model parameters to an HDF5 file with improved structure.
+        A stochastic model can be initiated from the saved file using the class method from_hdf5.
         filename: The name of the HDF5 file to save the data to.
         """
         with h5py.File(filename, 'w') as hdf:
@@ -101,10 +101,9 @@ class StochasticModel(ModelCore):
         return self
 
     @classmethod
-    def from_hdf5(cls, filename: str):
+    def from_file(cls, filename: str):
         """
-        Load data from an HDF5 file and create a Motion instance.
-
+        Load model parameters from an HDF5 file.
         filename: The name of the HDF5 file to load the data from.
         """
         with h5py.File(filename, 'r') as hdf:

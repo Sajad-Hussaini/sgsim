@@ -4,7 +4,7 @@ from scipy.special import beta
 def linear(t, params):
     """ Linear function using (first, last) values """
     pf, pl = params
-    result = (pf - (pf - pl) * (t / t[-1]))
+    result = pf - (pf - pl) * (t / t[-1])
     params_name = ("pf", "pl")
     return result, params, params_name
 

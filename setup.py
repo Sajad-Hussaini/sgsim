@@ -13,7 +13,7 @@ setup(
     python_requires=">=3.8",
     install_requires=['numpy', 'scipy', 'numba', 'pandas', 'matplotlib'],
     keywords=['Python', 'SGSIM', 'stochastic', 'ground motion', 'simulation model',
-              'site-based', 'stochastic ground motion', 'near-fault', 'multiple strong phase'
+              'site-based', 'stochastic ground motion', 'near-fault', 'multiple strong phase',
               'directivity pulse', 'basin effect'],
     classifiers=[
         "Programming Language :: Python :: 3",
