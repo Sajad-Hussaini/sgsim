@@ -4,98 +4,84 @@ This is a quick tutorial to help you get started with SGSIM.
 
 ## Step-by-Step Tutorial
 
-### Step 1: Import Libraries and Initialize Target Real Motion
+### Step 1: Import Libraries and Initialize a Real Target Motion
 ```python
 import time
 from SGSIM import StochasticModel, Motion, calibrate, ModelPlot
 
-# Specify a file as the target real accelerogram
-file = 'path/to-file/Northeidge.AT2'
-
-source = 'nga'                # Specify source: 'nga' for NGA and 'esm' for ESM databases
-
-
-target_range= (0.001, 0.999)  # Specify input target range (% of total energy)
-
-bandpass = (0.1, 25.0)        # if a bandpass filtering is required (in Hz)
-#bandpass = None              # if a bandpass filtering is not required
-
-real_motion = Motion.from_file(file_path, source).set_target_range(target_range, bandpass)
+# Path to the accelerogram file (e.g., Northridge.AT2) and source (e.g., 'NGA', 'ESM')
+file_path = r'C:\path\to\Northridge.AT2'  
+source = 'nga'
+real_motion = Motion.from_file(file_path, source)
+# Specify a target range (% of total energy) for the motion to avoid zero tails
+real_motion.set_range(option='energy', range_slice=(0.001, 0.999))
+# Pereform filtering if required usng bandpass freqs in Hz
+#real_motion.filter(bandpass_freqs=(0.1, 25.0))
 ```
 ### Step 2: Initialize the Stochastic Model
 ```python
-# Define the number of data points (npts), time step (dt) (can use the target motion as below)
-# Also define parameters functional forms
-# mdl, wu, zu, wl, zl are respectively modulating function, upper dominant frequency, upper bandwidth parameter, lower dominant frequency, lower bandwidth parameter
+# Need to define number of data points (npts), time step (dt), and functional forms for parameters:
+# mdl: modulating function
+# wu, zu: upper dominant frequency and damping ratio
+# wl, zl: lower dominant frequency and damping ratio
 
-# for mdl options are: 'beta_dual' for (two strong phase motions), 'beta_single', 'gamma' (for one strong phase)
-# for filter parameters all should be the same currently and can choose 'linear', 'exponential'
-
+# mdl func options: 'beta_dual' for (two strong phase motions), 'beta_single', 'gamma' (for one strong phase)
+# filter parameters should be the same and options are: 'linear', 'exponential'
 model = StochasticModel(npts = real_motion.npts, dt = real_motion.dt,
-                        mdl_type = 'beta_single',
-                        wu_type = 'linear', zu_type = 'linear',
-                        wl_type = 'linear', zl_type = 'linear')
+                        mdl_func = 'beta_single',
+                        wu_func = 'linear', zu_func = 'linear',
+                        wl_func = 'linear', zl_func = 'linear')
 ```
 ### Step 3: Calibrate the Stochastic Model Using the Real Motion
 ```python
-# initial guess and bounds can be provided for the parameters otherwise it uses the defaults
 start = time.perf_counter()
-
-# approach 1
-for func in ['modulating', 'freq', 'damping']:
+# Alternative schemes for calibration (change True to False to swtich between schemes)
+# Initial guess and bounds are set to Defaults if not provided
+scheme = ['modulating', 'freq', 'damping'] if True else ['modulating', 'all']
+for func in scheme:
     calibrate(func, model, real_motion, initial_guess=None, lower_bounds=None, upper_bounds=None)
-    
-# an alternative approach 2
-# for func in ['modulating', 'all']:
-    # calibrate(func, model, real_motion, initial_guess=None, lower_bounds=None, upper_bounds=None)
-    
 end = time.perf_counter()
-print(f'Model calibration done in {end - start:.1f}s.')
+print(f'\nModel calibration done in {end - start:.1f}s.')
 ```
 ### Step 4: Simulate Ground Motions Using the Stochastic Model
 ```python
-# nsim number of direct simulation (i.e. [nsim, npts]) of ac, vel, disp
-model.simulate(n=18)
-
-# get all model properties (i.e., FAS, CE, zero crossings, local extrema)
-model.get_properties()
-
-# to access simulation use lower case attributes (e.g., model.ac, model.vel
-# model.disp, model.fas, model.ce, model.mzc_ac, model.mzc_vel, model.mzc_disp, etc.)
-
-# Print fitted parameters
-model.print_parameters()
+# To print calibrated model parameters use below
+model.parameters()
+# To save the model parameters as hdf5 use below by specifying filename and path
+model.save_parameters(filename=r"C:\Users\Sajad\OneDrive - Universidade do Minho\Python-Scripts\examples\params.h5")
+# number of direct simulation (i.e. [n, npts]) of ac, vel, disp
+# to access simulation use lower case attributes (e.g., model.ac, model.vel, model.disp, model.fas, etc.)
+model.simulate(n=25)
 ```
 ### Step 5: Initialize Simulated Motions and Save Results
 ```python
-# it provides a 2D array [nsim, arrays] for each parameter
-sim_motion = Motion.from_model(model).get_properties()
-
-# Similarly, to access simulations use sim_motion.ac , sim_motion.fas, sim_motion.sa, sim_motion.sv, etc.
+# an instance of simulated motions to to obtain various properties of each simulation
+# direct access to each simulation properties as sim_motion.ac , sim_motion.fas, sim_motion.sa, sim_motion.sv, etc.
+sim_motion = Motion.from_model(model)
 
 # In case of necessity to save properties use below by specifying filename and path
-sim_motion.save_spectra(filename="path/simulated_spectra.csv")
+sim_motion.save_spectra(filename=r"C:\path\to\simulated_spectra.csv")
+sim_motion.save_motions(filename=r"C:\path\to\simulated_motions.csv")
+sim_motion.save_fas(filename=r"C:\path\to\simulated_fas.csv")
+sim_motion.save_peak_motions(filename=r"C:\path\to\simulated_PG_parameters.csv")
+sim_motion.save_characteristics(filename=r"C:\path\to\simulated_characteristics.csv")
 
-sim_motion.save_motions(filename="path/simulated_motions.csv")
-
-sim_motion.save_fas(filename="path/simulated_fas.csv")
-
-sim_motion.save_peak_motions(filename="path/simulated_PG_parameters.csv")
-
-sim_motion.save_characteristics(filename="path/simulated_characteristics.csv")
+# Alternatively, save related groups of properties in a single hdf5 file (often more efficient))
+sim_motion.save_simulations(filename=r"C:\path\to\simulations.h5", option=('spectra', 'motions', 'peak_motions', 'characteristics'))
 ```
 ### Step 6: Plot Results Using ModelPlot
 ```python
 mp = ModelPlot(model, sim_motion, real_motion)
-
-# indices to plot first 0 and last -1 simulated motion
-mp.plot_motion('Acceleration (g)', 0, -1)
-mp.plot_motion('Velocity (cm/s)', 0, -1)
-mp.plot_motion('Displacement (cm)', 0, -1)
-mp.plot_ce()
-mp.plot_fas()
-mp.plot_spectra()
-mp.error_feature('mzc')
-mp.error_feature('mle')
-mp.error_feature('pmnm')
+# Possibility to use **kwargs such as dpi, figsize
+dpi = 150
+# indices to plot: first 0 and last -1 simulated motion
+mp.plot_motion('Acceleration (g)', 0, -1, dpi=dpi)
+mp.plot_motion('Velocity (cm/s)', 0, -1, dpi=dpi)
+mp.plot_motion('Displacement (cm)', 0, -1, dpi=dpi)
+mp.plot_ce(dpi=dpi)
+mp.plot_fas(dpi=dpi)
+mp.plot_spectra(dpi=dpi)
+mp.error_feature('mzc', dpi=dpi)
+mp.error_feature('mle', dpi=dpi)
+mp.error_feature('pmnm', dpi=dpi)
 ```
