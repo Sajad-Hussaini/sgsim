@@ -24,11 +24,11 @@ class ModelCore(ModelConfig):
 
     def reset_attributes(self):
         """ Reset specific attributes when model parameters change. """
-        self._fas = self._ce = None
+        self._fasx = self._fas = self._ce = None
         self._mle_ac = self._mle_vel = self._mle_disp = None
         self._mzc_ac = self._mzc_vel = self._mzc_disp = None
         self._pmnm_ac = self._pmnm_vel = self._pmnm_disp = None
-        self.variance = self.variance_dot = self.variance_2dot = self.variance_bar = self.variance_2bar = None
+        self.variancex = self.variance = self.variance_dot = self.variance_2dot = self.variance_bar = self.variance_2bar = None
 
     @property
     def fas(self):

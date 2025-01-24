@@ -1,40 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from contextlib import contextmanager
-
-@contextmanager
-def plot_config(**kwargs):
-    defaults = {
-        'dpi': 900,
-        'font': 'Times New Roman',
-        'lw': 0.5,
-        'fontsize': 9,
-        'labelsize': 9,
-        'legend_fontsize': 9,
-        'axlw': 0.2,
-        'figsize': (4, 2.4),
-        'tight': True}
-    config = {**defaults, **kwargs}
-    original_params = plt.rcParams.copy()
-    plt.rcParams.update({
-        'figure.dpi': config['dpi'],
-        'lines.linewidth': config['lw'],
-        'font.size': config['fontsize'],
-        'axes.labelsize': config['labelsize'],
-        'legend.fontsize': config['legend_fontsize'],
-        'font.family': config['font'],
-        'axes.linewidth': config['axlw'],
-        'xtick.major.width': config['axlw'],
-        'xtick.minor.width': config['axlw'],
-        'ytick.major.width': config['axlw'],
-        'ytick.minor.width': config['axlw'],
-        'figure.figsize': config['figsize'],
-        'figure.constrained_layout.use': config['tight']
-        })
-    try:
-        yield
-    finally:
-        plt.rcParams.update(original_params)
 
 def plot_ac_ce(model, target):
     """
