@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit, prange, float64, complex128
+from numba import jit, prange, int64, float64, complex128
 
 @jit(complex128[:](float64, float64, float64, float64, float64[:]), nopython=True, cache=True)
 def get_frf(wu: float, zu: float, wl: float, zl: float, freq):
@@ -79,7 +79,7 @@ def get_stats(wu, zu, wl, zl, freq):
         variances[..., i] = get_variances(wu[i], zu[i], wl[i], zl[i], freq)[:5]
     return variances
 
-@jit(float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, cache=True)
+@jit(float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, fastmath=True, cache=True)
 def get_fas(mdl, wu, zu, wl, zl, freq):
     """
     The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
@@ -90,67 +90,14 @@ def get_fas(mdl, wu, zu, wl, zl, freq):
         psd += mdl[i] ** 2 * psd_i / np.sum(psd_i)
     return np.sqrt(psd)
 
-@jit(complex128[:, :](float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, cache=True)
-def get_frfX(wu, zu, wl, zl, freq):
+@jit(complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :]), nopython=True, parallel=True, fastmath=True, cache=True)
+def simulate_fourier_series(n, npts, t, freq_sim, mdl, wu, zu, wl, zl, variance, white_noise):
     """
-    Frequency response function for the filter
-
-    wu, zu: upper angular frequency and damping ratio
-    wl, zl: lower angular frequency and damping ratio
-    freq: angular frequency upto Nyq.
+    The Fourier series of n number of simulations
     """
-    wu = wu[:, None]
-    zu = zu[:, None]
-    wl = wl[:, None]
-    zl = zl[:, None]
-    return -1 * freq ** 2 / (((wl ** 2 - freq ** 2) + (2j * zl * wl * freq)) * ((wu ** 2 - freq ** 2) + (2j * zu * wu * freq)))
-
-@jit(float64[:, :](float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, cache=True)
-def get_psdx(wu: float, zu: float, wl: float, zl: float, freq):
-    """
-    Non-normalized Power Spectral Density (PSD) for the filter
-
-    wu, zu: upper angular frequency and damping ratio
-    wl, zl: lower angular frequency and damping ratio
-    freq: angular frequency up to Nyq.
-    """
-    wu = wu[:, None]
-    zu = zu[:, None]
-    wl = wl[:, None]
-    zl = zl[:, None]
-    return freq ** 4 / (((wl ** 2 - freq ** 2) ** 2 + (2 * zl * wl * freq) ** 2) * ((wu ** 2 - freq ** 2) ** 2 + (2 * zu * wu * freq) ** 2))
-
-def get_statsx(wu, zu, wl, zl, freq):
-    """
-    Calculate statistics using Power Spectral Density (PSD)
-
-    wu, zu: upper angular frequency and damping ratio
-    wl, zl: lower angular frequency and damping ratio
-    freq: angular frequency up to Nyq.
-
-    statistics:
-        variance :     variance                   using power 0
-        variance_dot:  variance 1st derivative    using power 2
-        variance_2dot: variance 2nd derivative    using power 4
-        variance_bar:  variance 1st integral      using power -2
-        variance_2bar: variance 2nd integral      using power -4
-    """
-    psdb = get_psdx(wu, zu, wl, zl, freq)
-    variances = np.empty((5, len(wu)))
-    variances[0] = np.sum(psdb, axis=1)
-    variances[1] = np.sum(freq ** 2 * psdb, axis=1)
-    variances[2] = np.sum(freq ** 4 * psdb, axis=1)
-    variances[3] = np.sum(freq[1:] ** -2 * psdb[:, 1:], axis=1)
-    variances[4] = np.sum(freq[1:] ** -4 * psdb[:, 1:], axis=1)
-    return variances
-
-def get_fasx(mdl, wu, zu, wl, zl, freq):
-    """
-    The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
-    """
-    psdb = get_psdx(wu, zu, wl, zl, freq)
-    factor = (mdl ** 2 / np.sum(psdb, axis=1))[:, None]
-    np.multiply(psdb, factor, out=psdb)
-    factor = np.sum(psdb, axis=0)
-    np.sqrt(factor, out=factor)
-    return factor
+    fourier = np.zeros((n, len(freq_sim)), dtype=np.complex128)
+    for sim in prange(n):
+        for i in range(npts):
+            fourier[sim, :] += (get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim)
+                                * np.exp(-1j * freq_sim * t[i]) * white_noise[sim][i] * mdl[i] / np.sqrt(variance[i] * 2 / npts))
+    return fourier

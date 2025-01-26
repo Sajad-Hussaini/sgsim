@@ -48,7 +48,7 @@ print(f'\nModel calibration done in {end - start:.1f}s.')
 # To print calibrated model parameters use below
 model.parameters()
 # To save the model parameters as hdf5 use below by specifying filename and path
-model.save_parameters(filename=r"C:\Users\Sajad\OneDrive - Universidade do Minho\Python-Scripts\examples\params.h5")
+model.save_parameters(filename=r"C:\path\to\model_params.h5")
 # number of direct simulation (i.e. [n, npts]) of ac, vel, disp
 # to access simulation use lower case attributes (e.g., model.ac, model.vel, model.disp, model.fas, etc.)
 model.simulate(n=25)
@@ -66,22 +66,23 @@ sim_motion.save_fas(filename=r"C:\path\to\simulated_fas.csv")
 sim_motion.save_peak_motions(filename=r"C:\path\to\simulated_PG_parameters.csv")
 sim_motion.save_characteristics(filename=r"C:\path\to\simulated_characteristics.csv")
 
-# Alternatively, save related groups of properties in a single hdf5 file (often more efficient))
+# Alternatively, save related groups of properties in a single hdf5 file (often more efficient than csv)
 sim_motion.save_simulations(filename=r"C:\path\to\simulations.h5", option=('spectra', 'motions', 'peak_motions', 'characteristics'))
 ```
 ### Step 6: Plot Results Using ModelPlot
 ```python
 mp = ModelPlot(model, sim_motion, real_motion)
-# Possibility to use **kwargs such as dpi, figsize
-dpi = 150
-# indices to plot: first 0 and last -1 simulated motion
-mp.plot_motion('Acceleration (g)', 0, -1, dpi=dpi)
-mp.plot_motion('Velocity (cm/s)', 0, -1, dpi=dpi)
-mp.plot_motion('Displacement (cm)', 0, -1, dpi=dpi)
-mp.plot_ce(dpi=dpi)
-mp.plot_fas(dpi=dpi)
-mp.plot_spectra(dpi=dpi)
-mp.error_feature('mzc', dpi=dpi)
-mp.error_feature('mle', dpi=dpi)
-mp.error_feature('pmnm', dpi=dpi)
+# Possibility to use a dict for plot config such as dpi, figsize
+config = {'figure.dpi':300}
+
+mp.plot_motion('Acceleration (g)', 0, -1, config=config)
+mp.plot_motion('Velocity (cm/s)', 0, -1, config=config)
+mp.plot_motion('Displacement (cm)', 0, -1, config=config)
+mp.plot_ce(config=config)
+mp.plot_fas(config=config)
+mp.plot_spectra(spectrum='sa', config=config)
+mp.error_feature(feature='mzc', config=config)
+mp.error_feature(feature='mle', config=config)
+mp.error_feature(feature='pmnm', config=config)
+mp.error_ce(config=config)
 ```

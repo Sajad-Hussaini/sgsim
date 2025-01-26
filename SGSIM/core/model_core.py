@@ -1,5 +1,5 @@
 import numpy as np
-from . import filter_engine
+from . import model_engine
 from .model_config import ModelConfig
 from ..motion import signal_analysis
 
@@ -20,21 +20,13 @@ class ModelCore(ModelConfig):
     def stats(self):
         """ Computes and stores the variances for internal use. """
         if self.variance is None:
-            self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = filter_engine.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq)
-
-    def reset_attributes(self):
-        """ Reset specific attributes when model parameters change. """
-        self._fasx = self._fas = self._ce = None
-        self._mle_ac = self._mle_vel = self._mle_disp = None
-        self._mzc_ac = self._mzc_vel = self._mzc_disp = None
-        self._pmnm_ac = self._pmnm_vel = self._pmnm_disp = None
-        self.variancex = self.variance = self.variance_dot = self.variance_2dot = self.variance_bar = self.variance_2bar = None
+            self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar = model_engine.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq)
 
     @property
     def fas(self):
         """ The Fourier amplitude spectrum (FAS) of the stochastic model using model's PSD """
         if self._fas is None:
-            self._fas = filter_engine.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq)
+            self._fas = model_engine.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq)
         return self._fas
 
     @property

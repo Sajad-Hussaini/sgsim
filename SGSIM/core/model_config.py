@@ -25,6 +25,10 @@ class ModelConfig:
         if not hasattr(self, '_t'):
             self._t = signal_analysis.get_time(self.npts, self.dt)
         return self._t
+    
+    @t.setter
+    def t(self, value):
+        self._t = value
 
     @property
     def freq(self):
@@ -50,8 +54,12 @@ class ModelConfig:
         self._freq_mask = signal_analysis.get_freq_mask(self.freq, target_range)
 
     def reset_attributes(self):
-        """ Intended to be overridden in child classes. """
-        pass
+        """ Reset specific attributes when model parameters change. """
+        self._fas = self._ce = None
+        self._mle_ac = self._mle_vel = self._mle_disp = None
+        self._mzc_ac = self._mzc_vel = self._mzc_disp = None
+        self._pmnm_ac = self._pmnm_vel = self._pmnm_disp = None
+        self.variance = self.variance_dot = self.variance_2dot = self.variance_bar = self.variance_2bar = None
 
     @property
     def mdl(self):

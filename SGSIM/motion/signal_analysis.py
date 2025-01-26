@@ -73,9 +73,7 @@ def sdof_lin_model(dt, rec, period, zeta, mass):
         response_type corresponds to disp, vel, ac, ac_tot
     """
     rec_3d = rec[:, :, None]
-    # p = -mass * rec if excitation == 'GM' else rec
-    p = -mass * rec_3d
-
+    p = -mass * rec_3d  # for excitation as ground motion that is our case we use this, otherwise p = rec_3d
     # SDOF properties
     wn = 2 * np.pi / period
     k = mass * wn ** 2
@@ -133,14 +131,15 @@ def get_spectra(dt: float, rec, period, zeta: float=0.05):
     sv = np.empty((n_rec, n_period))
     sa = np.empty((n_rec, n_period))
 
-    chunk_size = 5
+    chunk_size = 25
     for start in range(0, n_rec, chunk_size):
         end = min(start + chunk_size, n_rec)
-        disp_sdf, vel_sdf, _, act_sdf = sdof_lin_model(dt=dt, rec=rec[start:end], period=period, zeta=zeta, mass=1.0)
-
-        sd[start:end] = np.max(np.abs(disp_sdf), axis=1)
-        sv[start:end] = np.max(np.abs(vel_sdf), axis=1)
-        sa[start:end] = np.max(np.abs(act_sdf), axis=1)
+        sdf_responses = sdof_lin_model(dt=dt, rec=rec[start:end], period=period, zeta=zeta, mass=1.0)
+        np.abs(sdf_responses, out=sdf_responses)
+        sdf_responses = np.max(sdf_responses, axis=2)
+        sd[start:end] = sdf_responses[0]
+        sv[start:end] = sdf_responses[1]
+        sa[start:end] = sdf_responses[3]
     return sd, sv, sa
 
 def get_energy_mask(dt: float, rec, target_range: tuple[float, float]=(0.001, 0.999)):

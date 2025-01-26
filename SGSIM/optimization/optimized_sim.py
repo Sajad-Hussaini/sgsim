@@ -3,7 +3,7 @@ from .fit_eval import get_gof
 def gof_based_simulator(target_motion, sim_motion, metrics: list,
                         individual_score: float, mean_score: float = 65,
                         max_iterations: int = 100):
-    """ Simulate ground motions based on a level of GOF"""
+    """ #TODO Simulate ground motions based on a level of GOF"""
     iteration = 0
     while iteration < max_iterations:
         iteration += 1

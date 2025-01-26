@@ -9,20 +9,33 @@ class ModelPlot:
     This class allows to
         plot various simulation results and comparison with a target motion
     """
-    def __init__(self, model, simulated_motion, real_motion, custom_rc=None):
+    def __init__(self, model, simulated_motion, real_motion):
         self.model = model
         self.sim = simulated_motion
         self.real = real_motion
-        if custom_rc is None:
-            self.custom_rc = os.path.join(os.path.dirname(__file__), 'custom_rc.matplotlibrc')
-        else:
-            self.custom_rc = custom_rc
+        self.rcp = {
+            'font.family': 'Times New Roman',
+            'font.size': 9,
 
-    def _set_default_figsize(self, config, default_size):
-        if config is None:
-            config = {}
-        config.setdefault('figure.figsize', default_size)
-        return config
+            'lines.linewidth': 0.5,
+
+            'axes.titlesize': 'medium',
+            'axes.linewidth': 0.2,
+
+            'xtick.major.width': 0.2,
+            'ytick.major.width': 0.2,
+            'xtick.minor.width': 0.15,
+            'ytick.minor.width': 0.15,
+
+            'legend.framealpha': 1.0,
+            'legend.frameon': False,
+
+            'figure.dpi': 900,
+            'figure.figsize': (3.937, 3.1496),  # 10 cm by 8 cm
+            'figure.constrained_layout.use': True,
+
+            'patch.linewidth': 0.5,
+            }
 
     def plot_motion(self, motion_type, id1, id2, config=None):
         """
@@ -42,8 +55,8 @@ class ModelPlot:
         sim1 = getattr(self.sim, attr)[id1]
         sim2 = getattr(self.sim, attr)[id2]
         
-        config = self._set_default_figsize(config, (14/2.54, 4/2.54))
-        with plt.rc_context(rc=config, fname=self.custom_rc):
+        config = {**self.rcp, 'figure.figsize': (14/2.54, 4/2.54), **(config or {})}
+        with plt.rc_context(rc=config):
             pts.plot_motion(self.real.t, sim1, sim2, rec, ylabel=motion_type)
             plt.show()
         return self
@@ -54,8 +67,8 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'ce'):
             raise ValueError("""No simulations available.""")
-        config = self._set_default_figsize(config, (7/2.54, 6/2.54))
-        with plt.rc_context(rc=config, fname=self.custom_rc):
+        config = {**self.rcp, 'figure.figsize':  (7/2.54, 6/2.54), **(config or {})}
+        with plt.rc_context(rc=config):
             pts.plot_mean_std(self.real.t, self.sim.ce, self.real.ce)
             plt.legend(loc='lower right', frameon=False)
             plt.xlabel('Time (s)')
@@ -70,8 +83,8 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'fas'):
             raise ValueError("""No simulations available.""")
-        config = self._set_default_figsize(config, (7/2.54, 6/2.54))
-        with plt.rc_context(rc=config, fname=self.custom_rc):
+        config = {**self.rcp, 'figure.figsize':  (7/2.54, 6/2.54), **(config or {})}
+        with plt.rc_context(rc=config):
             pts.plot_mean_std(self.real.freq / (2 * np.pi), self.sim.fas, self.real.fas)
             plt.ylim(np.min(self.real.fas[self.real.freq_mask]), 2 * np.max(self.real.fas[self.real.freq_mask]))
             plt.xlim([0.1, 25.0])
@@ -96,8 +109,8 @@ class ModelPlot:
                'sd': 'displacement (cm)'}
         if not hasattr(self.sim, spectrum):
             raise ValueError("""No simulations available.""")
-        config = self._set_default_figsize(config, (7/2.54, 6/2.54))
-        with plt.rc_context(rc=config, fname=self.custom_rc):
+        config = {**self.rcp, 'figure.figsize':  (7/2.54, 6/2.54), **(config or {})}
+        with plt.rc_context(rc=config):
             pts.plot_mean_std(self.real.tp, getattr(self.sim, spectrum), getattr(self.real, spectrum))
             plt.xscale('log')
             if log_scale:
@@ -116,8 +129,8 @@ class ModelPlot:
         Comparing the cumulative energy and energy distribution
         of the record, model, and simulations
         """
-        config = self._set_default_figsize(config, (12/2.54, 5/2.54))
-        with plt.rc_context(rc=config, fname=self.custom_rc):
+        config = {**self.rcp, 'figure.figsize':  (12/2.54, 5/2.54), **(config or {})}
+        with plt.rc_context(rc=config):
             pts.plot_ac_ce(self.model, self.real)
             plt.show()
         model_error = find_error(self.real.ce, self.model.ce)
@@ -149,8 +162,8 @@ class ModelPlot:
         model_error_vel = find_error(getattr(self.real, f"{feature}_vel"), getattr(self.model, f"{feature}_vel"))
         model_error_disp = find_error(getattr(self.real, f"{feature}_disp"), getattr(self.model, f"{feature}_disp"))
 
-        config = self._set_default_figsize(config, (10/2.54, 7/2.54))
-        with plt.rc_context(rc=config, fname=self.custom_rc):
+        config = {**self.rcp, 'figure.figsize':  (10/2.54, 7/2.54), **(config or {})}
+        with plt.rc_context(rc=config):
             pts.plot_feature(self.model, None, self.real, feature) if not sim_plot else pts.plot_feature(self.model, self.sim, self.real, feature)
             plt.show()
         print()
