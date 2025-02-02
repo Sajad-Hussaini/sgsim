@@ -12,13 +12,6 @@ def get_mzc(rec):
     cross_vec[..., -1] = cross_vec[..., -2]
     return np.cumsum(cross_vec, axis=-1)
 
-def get_mpc(rec):
-    """
-    The mean cumulative number of pi / 2 changes for an orientation array
-    """
-    change_vec = np.where(np.abs(np.diff(rec, append=0))>np.pi/2, 0.5, 0)
-    return np.cumsum(change_vec, axis=-1)
-
 def get_pmnm(rec):
     """
     The mean cumulative number of positive-minima and negative-maxima
