@@ -190,3 +190,25 @@ def get_freq(npts, dt):
 def get_time(npts, dt):
     " time array "
     return np.linspace(0, (npts - 1) * dt, npts)
+
+def get_magnitude(rec_x, rec_y):
+    " magnitude of a vector that is indepednent of coordinate system"
+    return np.sqrt(np.abs(rec_x) ** 2 + np.abs(rec_y) ** 2)
+
+def get_angle(rec_x, rec_y):
+    " angle of a vector that is depednent on coordinate system"
+    return np.unwrap(np.arctan2(rec_y, rec_x))
+
+def get_turning_rate(dt, rec_x, rec_y):
+    " turning rate or angular velocity of a vector that is indepednent of coordinate system"
+    anlges = get_angle(rec_x, rec_y)
+    if len(anlges.shape) == 1:
+        return np.diff(anlges, prepend=anlges[0]) / dt
+    else:
+        return np.diff(anlges, prepend=anlges[..., 0][:, None]) / dt
+
+def rotate2d(rec_x, rec_y, angle):
+    " rotated components in the new coordinate system"
+    xr = rec_x * np.cos(angle) - rec_y * np.sin(angle)
+    yr = rec_x * np.sin(angle) + rec_y * np.cos(angle)
+    return xr, yr

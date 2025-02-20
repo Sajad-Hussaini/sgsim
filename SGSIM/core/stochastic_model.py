@@ -6,16 +6,17 @@ from .model_core import ModelCore
 
 class StochasticModel(ModelCore):
     """
-    This class allows to initiate a stochatic simulation model
+    This class allows to initiate a stochastic simulation model
         to calibrate model parameters
         to simulate ground motions using calibrated parameters
     """
     def __init__(self, npts: int, dt: float,
-                 mdl_func: str = 'beta_single',
-                 wu_func: str = 'linear', zu_func: str = 'linear',
-                 wl_func: str = 'linear', zl_func: str = 'linear'):
-        super().__init__(npts, dt, mdl_func, wu_func, zu_func, wl_func, zl_func)
-        self.rng = np.random.default_rng()
+                 modulating_function: str = 'beta_single',
+                 upper_dominant_frequency_function: str = 'linear', upper_damping_ratio_function: str = 'linear',
+                 lower_dominant_frequency_function: str = 'linear', lower_damping_ratio_function: str = 'linear'):
+        super().__init__(npts, dt, modulating_function,
+                         upper_dominant_frequency_function, upper_damping_ratio_function,
+                         lower_dominant_frequency_function, lower_damping_ratio_function)
         self._seed = None
 
     @property
@@ -25,7 +26,6 @@ class StochasticModel(ModelCore):
     @seed.setter
     def seed(self, value):
         self._seed = value
-        self.rng = np.random.default_rng(value)
 
     def simulate(self, n: int):
         """
@@ -34,7 +34,7 @@ class StochasticModel(ModelCore):
         """
         self.stats
         n = int(n)
-        white_noise = self.rng.standard_normal((n, self.npts))
+        white_noise = np.random.default_rng(self._seed).standard_normal((n, self.npts))
         fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim,
                                                         self.mdl, self.wu, self.zu, self.wl, self.zl,
                                                         self.variance, white_noise)
@@ -67,17 +67,11 @@ class StochasticModel(ModelCore):
             parameter_group['zu'].attrs['func'] = self.zu_func.__name__
             parameter_group['wl'].attrs['func'] = self.wl_func.__name__
             parameter_group['zl'].attrs['func'] = self.zl_func.__name__
-            # Save parameter names as attributes
-            parameter_group['mdl'].attrs['vars'] = self.mdl_params_name
-            parameter_group['wu'].attrs['vars'] = self.wu_params_name
-            parameter_group['zu'].attrs['vars'] = self.zu_params_name
-            parameter_group['wl'].attrs['vars'] = self.wl_params_name
-            parameter_group['zl'].attrs['vars'] = self.zl_params_name
             parameter_group.attrs['description'] = 'Parameters of the Stochastic model: Modulating, Upper and lower frequencies and damping ratios'
         return self
 
     @classmethod
-    def from_file(cls, filename: str):
+    def from_file(cls, filename: str) -> 'StochasticModel':
         """
         Load model parameters from an HDF5 file.
         filename: The name of the HDF5 file to load the data from.
@@ -98,7 +92,9 @@ class StochasticModel(ModelCore):
             wl_func = hdf['parameters/wl'].attrs['func']
             zl_func = hdf['parameters/zl'].attrs['func']
         # Create a new Stochastic Model instance with the loaded function types
-        model = cls(npts=npts, dt=dt, mdl_func=mdl_func, wu_func=wu_func, zu_func=zu_func, wl_func=wl_func, zl_func=zl_func)
+        model = cls(npts=int(npts), dt=float(dt), modulating_function=mdl_func, 
+                upper_dominant_frequency_function=wu_func, upper_damping_ratio_function=zu_func, 
+                lower_dominant_frequency_function=wl_func, lower_damping_ratio_function=zl_func)
         model.mdl = mdl_params
         model.wu = wu_params
         model.zu = zu_params

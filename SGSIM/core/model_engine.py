@@ -79,7 +79,7 @@ def get_stats(wu, zu, wl, zl, freq):
         variances[..., i] = get_variances(wu[i], zu[i], wl[i], zl[i], freq)[:5]
     return variances
 
-@jit(float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, fastmath=True, cache=True)
+@jit(float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:]), nopython=True, cache=True)
 def get_fas(mdl, wu, zu, wl, zl, freq):
     """
     The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
@@ -90,7 +90,7 @@ def get_fas(mdl, wu, zu, wl, zl, freq):
         psd += mdl[i] ** 2 * psd_i / np.sum(psd_i)
     return np.sqrt(psd)
 
-@jit(complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :]), nopython=True, parallel=True, fastmath=True, cache=True)
+@jit(complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :]), nopython=True, parallel=True, cache=True)
 def simulate_fourier_series(n, npts, t, freq_sim, mdl, wu, zu, wl, zl, variance, white_noise):
     """
     The Fourier series of n number of simulations

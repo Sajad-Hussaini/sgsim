@@ -5,7 +5,7 @@ def calibrate(func: str, model, motion, initial_guess=None, lower_bounds=None, u
     """ Fit the stochastic model to a target motion """
     initial_guess, lower_bounds, upper_bounds = initialize_bounds(func, model, initial_guess, lower_bounds, upper_bounds)
     xdata, ydata, obj_func, uncertainty = prepare_data(func, model, motion)
-    curve_fit(obj_func, xdata, ydata, p0=initial_guess, bounds=(lower_bounds, upper_bounds), sigma=uncertainty, absolute_sigma=False, maxfev=10000)
+    curve_fit(obj_func, xdata, ydata, p0=initial_guess, bounds=(lower_bounds, upper_bounds), sigma=uncertainty, maxfev=10000)
     return model
 
 def prepare_data(func, model, motion):
@@ -36,10 +36,10 @@ def prepare_freq_data(model, motion):
     return xdata, ydata, obj_func, uncertainty
 
 def prepare_damping_data(model, motion):
-    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp))
-    xdata = np.tile(motion.t, 3)
+    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, np.cumsum(motion.fas[model.freq_mask])))
+    xdata = np.concatenate((motion.t, motion.t, motion.t, motion.freq[model.freq_mask]))
     obj_func = lambda t, *params: obj_damping(t, params, model=model)
-    uncertainty = np.max(model.mdl)*1.1 - (np.tile(model.mdl, 3))
+    uncertainty = np.concatenate((np.max(model.mdl)*1.1 - (np.tile(model.mdl, 3)), np.ones_like(motion.freq[model.freq_mask]) * 0.1 * np.max(model.mdl)))
     return xdata, ydata, obj_func, uncertainty
 
 def prepare_damping_pmnm_data(model, motion):
@@ -71,7 +71,7 @@ def get_default_bounds(func: str, model):
     bounds_config = {
         'modulating': {
             'beta_dual': ((0.1, 5.0, 0.2, 5.0, 0.6), (0.01, 1.0, 0.0, 1.0, 0.0), (0.7, 200.0, 0.8, 200.0, 0.95)),
-            'beta_single': ((0.1, 5.0), (0.01, 0.0), (0.8, 200.0)),
+            'beta_single': ((0.1, 5.0), (0.01, 1.0), (0.8, 200.0)),
             'gamma': ((1, 1, 1), (0, 0.0, 0.0), (200, 200, 200)),
             'housner': ((1, 1, 1, 1, 2), (0, 0, 0, 0.1, 0.2), (200, 200, 200, 50, 200))},
         'freq': {
@@ -109,13 +109,13 @@ def obj_mdl(t, params, model, motion):
     Unique solution constraint 1: p1 < p2 -> p2 = p1+dp2 for beta_dual
     """
     mdl_func = model.mdl_func.__name__
-    Et, tn = motion.ce[-1], motion.t[-1]
+    et, tn = motion.ce[-1], motion.t[-1]
     if mdl_func == 'beta_dual':
         p1, c1, dp2, c2, a1 = params
-        params = (p1, c1, p1 + dp2, c2, a1, Et, tn)
+        params = (p1, c1, p1 + dp2, c2, a1, et, tn)
     elif mdl_func == 'beta_single':
         p1, c1 = params
-        params = (p1, c1, Et, tn)
+        params = (p1, c1, et, tn)
     model.mdl = params
     return model.ce
 
@@ -144,7 +144,7 @@ def obj_damping(t, params, model):
     zl_param = params[half_param:]
     model.zu = zu_param
     model.zl = zl_param
-    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp))
+    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, np.cumsum(model.fas[model.freq_mask])))
 
 def obj_damping_pmnm(t, params, model):
     """

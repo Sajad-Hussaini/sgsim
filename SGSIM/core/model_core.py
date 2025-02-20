@@ -10,10 +10,12 @@ class ModelCore(ModelConfig):
         i.e., variances, FAS, CE, zero crossing, and local extrema of the stochastic model
     """
     def __init__(self, npts: int, dt: float,
-                 mdl_func: str,
-                 wu_func: str, zu_func: str,
-                 wl_func: str, zl_func: str):
-        super().__init__(npts, dt, mdl_func, wu_func, zu_func, wl_func, zl_func)
+                 modulating_function: str,
+                 upper_dominant_frequency_function: str, upper_damping_ratio_function: str,
+                 lower_dominant_frequency_function: str, lower_damping_ratio_function: str):
+        super().__init__(npts, dt, modulating_function,
+                         upper_dominant_frequency_function, upper_damping_ratio_function,
+                         lower_dominant_frequency_function, lower_damping_ratio_function)
         self.reset_attributes()
 
     @property

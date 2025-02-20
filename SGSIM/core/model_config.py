@@ -8,17 +8,24 @@ class ModelConfig:
     and configuring model parameters or parametric functions.
     """
     def __init__(self, npts: int, dt: float,
-                 mdl_func: str,
-                 wu_func: str, zu_func: str,
-                 wl_func: str, zl_func: str):
+                 modulating_function: str,
+                 upper_dominant_frequency_function: str, upper_damping_ratio_function: str,
+                 lower_dominant_frequency_function: str, lower_damping_ratio_function: str):
         self.npts = npts
         self.dt = dt
-        # Set model functions
-        self.mdl_func = getattr(parametric_functions, mdl_func.lower(), None)
-        self.wu_func = getattr(parametric_functions, wu_func.lower(), None)
-        self.zu_func = getattr(parametric_functions, zu_func.lower(), None)
-        self.wl_func = getattr(parametric_functions, wl_func.lower(), None)
-        self.zl_func = getattr(parametric_functions, zl_func.lower(), None)
+        self.mdl_func = getattr(parametric_functions, modulating_function.lower(), None)
+        self.wu_func = getattr(parametric_functions, upper_dominant_frequency_function.lower(), None)
+        self.zu_func = getattr(parametric_functions, upper_damping_ratio_function.lower(), None)
+        self.wl_func = getattr(parametric_functions, lower_dominant_frequency_function.lower(), None)
+        self.zl_func = getattr(parametric_functions, lower_damping_ratio_function.lower(), None)
+
+    def reset_attributes(self):
+        """ Reset specific attributes when model parameters change. """
+        self._fas = self._ce = None
+        self._mle_ac = self._mle_vel = self._mle_disp = None
+        self._mzc_ac = self._mzc_vel = self._mzc_disp = None
+        self._pmnm_ac = self._pmnm_vel = self._pmnm_disp = None
+        self.variance = self.variance_dot = self.variance_2dot = self.variance_bar = self.variance_2bar = None
 
     @property
     def t(self):
@@ -53,14 +60,6 @@ class ModelConfig:
     def freq_mask(self, target_range: tuple[float, float]):
         self._freq_mask = signal_analysis.get_freq_mask(self.freq, target_range)
 
-    def reset_attributes(self):
-        """ Reset specific attributes when model parameters change. """
-        self._fas = self._ce = None
-        self._mle_ac = self._mle_vel = self._mle_disp = None
-        self._mzc_ac = self._mzc_vel = self._mzc_disp = None
-        self._pmnm_ac = self._pmnm_vel = self._pmnm_disp = None
-        self.variance = self.variance_dot = self.variance_2dot = self.variance_bar = self.variance_2bar = None
-
     @property
     def mdl(self):
         """ Modulating function """
@@ -70,7 +69,8 @@ class ModelConfig:
 
     @mdl.setter
     def mdl(self, params):
-        self._mdl, self.mdl_params, self.mdl_params_name = self.mdl_func(self.t, params)
+        self._mdl = self.mdl_func(self.t, params)
+        self.mdl_params = params
         self.reset_attributes()
 
     @property
@@ -82,7 +82,8 @@ class ModelConfig:
 
     @wu.setter
     def wu(self, params):
-        self._wu, self.wu_params, self.wu_params_name = self.wu_func(self.t, params)
+        self._wu = self.wu_func(self.t, params)
+        self.wu_params = params
         self._wu *= 2 * np.pi  # Convert to angular frequency
         self.reset_attributes()
 
@@ -95,7 +96,8 @@ class ModelConfig:
 
     @wl.setter
     def wl(self, params):
-        self._wl, self.wl_params, self.wl_params_name = self.wl_func(self.t, params)
+        self._wl = self.wl_func(self.t, params)
+        self.wl_params = params
         self._wl *= 2 * np.pi  # Convert to angular frequency
         self.reset_attributes()
 
@@ -108,7 +110,8 @@ class ModelConfig:
 
     @zu.setter
     def zu(self, params):
-        self._zu, self.zu_params, self.zu_params_name = self.zu_func(self.t, params)
+        self._zu = self.zu_func(self.t, params)
+        self.zu_params = params
         self.reset_attributes()
 
     @property
@@ -120,16 +123,17 @@ class ModelConfig:
 
     @zl.setter
     def zl(self, params):
-        self._zl, self.zl_params, self.zl_params_name = self.zl_func(self.t, params)
+        self._zl = self.zl_func(self.t, params)
+        self.zl_params = params
         self.reset_attributes()
 
     def parameters(self):
         """ Print formatted parameters """
-        def format_params(val, name):
-            return ', '.join([f"{key}: {round(value, 6) if key == 'Et' else round(value, 2)}" for value, key in zip(val, name)])
+        def format_params(values):
+            return ', '.join([f"{round(val, 3)}" for val in values])
         print()
-        print(f"Modulating function (mdl) ({self.mdl_func.__name__}): {format_params(self.mdl_params, self.mdl_params_name)}")
-        print(f"Upper frequency function (wu) ({self.wu_func.__name__}): {format_params(self.wu_params, self.wu_params_name)}")
-        print(f"Lower frequency function (wl) ({self.wl_func.__name__}): {format_params(self.wl_params, self.wl_params_name)}")
-        print(f"Upper damping function (zu) ({self.zu_func.__name__}): {format_params(self.zu_params, self.zu_params_name)}")
-        print(f"Lower damping function (zl) ({self.zl_func.__name__}): {format_params(self.zl_params, self.zl_params_name)}")
+        print(f"Modulating function (mdl): {format_params(self.mdl_params)}")
+        print(f"Upper frequency function (wu): {format_params(self.wu_params)}")
+        print(f"Lower frequency function (wl): {format_params(self.wl_params)}")
+        print(f"Upper damping function (zu): {format_params(self.zu_params)}")
+        print(f"Lower damping function (zl): {format_params(self.zl_params)}")
