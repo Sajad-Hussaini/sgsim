@@ -5,7 +5,7 @@ def calibrate(func: str, model, motion, initial_guess=None, lower_bounds=None, u
     """ Fit the stochastic model to a target motion """
     initial_guess, lower_bounds, upper_bounds = initialize_bounds(func, model, initial_guess, lower_bounds, upper_bounds)
     xdata, ydata, obj_func, uncertainty = prepare_data(func, model, motion)
-    curve_fit(obj_func, xdata, ydata, p0=initial_guess, bounds=(lower_bounds, upper_bounds), sigma=uncertainty, maxfev=10000)
+    curve_fit(obj_func, xdata, ydata, p0=initial_guess, bounds=(lower_bounds, upper_bounds), sigma=uncertainty)
     return model
 
 def prepare_data(func, model, motion):
@@ -15,8 +15,6 @@ def prepare_data(func, model, motion):
         return prepare_freq_data(model, motion)
     elif func == 'damping':
         return prepare_damping_data(model, motion)
-    elif func == 'damping pmnm':
-        return prepare_damping_pmnm_data(model, motion)
     elif func == 'all':
         return prepare_all_data(model, motion)
     else:
@@ -36,22 +34,15 @@ def prepare_freq_data(model, motion):
     return xdata, ydata, obj_func, uncertainty
 
 def prepare_damping_data(model, motion):
-    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, np.cumsum(motion.fas[model.freq_mask])))
-    xdata = np.concatenate((motion.t, motion.t, motion.t, motion.freq[model.freq_mask]))
+    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, motion.pmnm_vel, motion.pmnm_disp, np.cumsum(motion.fas[model.freq_mask])))
+    xdata = np.concatenate((motion.t, motion.t, motion.t, motion.t, motion.t, motion.freq[model.freq_mask]))
     obj_func = lambda t, *params: obj_damping(t, params, model=model)
-    uncertainty = np.concatenate((np.max(model.mdl)*1.1 - (np.tile(model.mdl, 3)), np.ones_like(motion.freq[model.freq_mask]) * 0.1 * np.max(model.mdl)))
-    return xdata, ydata, obj_func, uncertainty
-
-def prepare_damping_pmnm_data(model, motion):
-    ydata = np.concatenate((motion.pmnm_vel, motion.pmnm_disp))
-    xdata = np.tile(motion.t, 2)
-    obj_func = lambda t, *params: obj_damping_pmnm(t, params, model=model)
-    uncertainty = np.max(model.mdl)*1.1 - (np.tile(model.mdl, 2))
+    uncertainty = np.concatenate((np.max(model.mdl)*1.1 - (np.tile(model.mdl, 5)), np.ones_like(motion.freq[model.freq_mask]) * 0.5 * np.max(model.mdl)))
     return xdata, ydata, obj_func, uncertainty
 
 def prepare_all_data(model, motion):
-    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, np.cumsum(motion.fas[model.freq_mask])))
-    xdata = np.concatenate((motion.t, motion.t, motion.t, motion.freq[model.freq_mask]))
+    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, motion.pmnm_vel, motion.pmnm_disp, np.cumsum(motion.fas[model.freq_mask])))
+    xdata = np.concatenate((motion.t, motion.t, motion.t, motion.t, motion.t, motion.freq[model.freq_mask]))
     obj_func = lambda t, *params: obj_all(t, params, model=model)
     return xdata, ydata, obj_func, None
 
@@ -70,17 +61,14 @@ def get_default_bounds(func: str, model):
     """
     bounds_config = {
         'modulating': {
-            'beta_dual': ((0.1, 5.0, 0.2, 5.0, 0.6), (0.01, 1.0, 0.0, 1.0, 0.0), (0.7, 200.0, 0.8, 200.0, 0.95)),
-            'beta_single': ((0.1, 5.0), (0.01, 1.0), (0.8, 200.0)),
+            'beta_dual': ((0.1, 20.0, 0.2, 5.0, 0.6), (0.01, 1.0, 0.0, 1.0, 0.0), (0.7, 200.0, 0.8, 200.0, 0.95)),
+            'beta_single': ((0.1, 20.0), (0.01, 1.0), (0.8, 200.0)),
             'gamma': ((1, 1, 1), (0, 0.0, 0.0), (200, 200, 200)),
             'housner': ((1, 1, 1, 1, 2), (0, 0, 0, 0.1, 0.2), (200, 200, 200, 50, 200))},
         'freq': {
             'linear': ((5.0, 5.0, 1.0, 1.0), (0.0, 0.0, 0.1, 0.1), (25.0, 25.0, 5.0, 5.0)),
             'exponential': ((5.0, 5.0, 1.0, 1.0), (0.0, 0.0, 0.1, 0.1), (25.0, 25.0, 5.0, 5.0))},
         'damping': {
-            'linear': ((0.5, 0.5, 0.5, 0.5), (0.1, 0.1, 0.1, 0.1), (5.0, 5.0, 5.0, 5.0)),
-            'exponential': ((0.5, 0.5, 0.5, 0.5), (0.1, 0.1, 0.1, 0.1), (5.0, 5.0, 5.0, 5.0))},
-        'damping pmnm': {
             'linear': ((0.5, 0.5, 0.5, 0.5), (0.1, 0.1, 0.1, 0.1), (5.0, 5.0, 5.0, 5.0)),
             'exponential': ((0.5, 0.5, 0.5, 0.5), (0.1, 0.1, 0.1, 0.1), (5.0, 5.0, 5.0, 5.0))},
         'all': {
@@ -144,19 +132,7 @@ def obj_damping(t, params, model):
     zl_param = params[half_param:]
     model.zu = zu_param
     model.zl = zl_param
-    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, np.cumsum(model.fas[model.freq_mask])))
-
-def obj_damping_pmnm(t, params, model):
-    """
-    The damping objective function using pmnm
-    # TODO For now zu and zl must be the same form (i.e., linear, exponential, etc.)
-    """
-    half_param = len(params) // 2
-    zu_param = params[:half_param]
-    zl_param = params[half_param:]
-    model.zu = zu_param
-    model.zl = zl_param
-    return np.concatenate((model.pmnm_vel, model.pmnm_disp))
+    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, model.pmnm_vel, model.pmnm_disp, np.cumsum(model.fas[model.freq_mask])))
 
 def obj_all(t, params, model):
     """
@@ -174,4 +150,4 @@ def obj_all(t, params, model):
     zl_param = params[3*quarter_param:]
     model.zu = zu_param
     model.zl = zl_param
-    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, np.cumsum(model.fas[model.freq_mask])))
+    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, model.pmnm_vel, model.pmnm_disp, np.cumsum(model.fas[model.freq_mask])))

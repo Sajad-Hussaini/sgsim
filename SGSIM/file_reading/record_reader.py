@@ -58,7 +58,7 @@ class RecordReader:
         Reading the ESM records (.ASC)
         """
         recData = self.file_content[64:-1]
-        scale = 980.655 if b"cm/s^2" in self.file_content[32] else 1
+        scale = 980.655 if "cm/s^2" in self.file_content[32] else 1
         self.dt = round(float(self.file_content[28].split()[1]), 3)
         self.ac = np.loadtxt(recData).flatten() / scale
         self.npts = len(self.ac)
