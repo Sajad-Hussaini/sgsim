@@ -1,31 +1,25 @@
 import numpy as np
 from scipy.fft import irfft
-import h5py
 from . import model_engine
+from . import parametric_functions
 from .model_core import ModelCore
 
 class StochasticModel(ModelCore):
     """
-    This class allows to initiate a stochastic simulation model
-        to calibrate model parameters
-        to simulate ground motions using calibrated parameters
+    This class allows to construct a stochastic simulation model
+    for calibrattion of model parameters and simulation of ground motions
     """
-    def __init__(self, npts: int, dt: float,
-                 modulating_function: str = 'beta_single',
-                 upper_dominant_frequency_function: str = 'linear', upper_damping_ratio_function: str = 'linear',
-                 lower_dominant_frequency_function: str = 'linear', lower_damping_ratio_function: str = 'linear'):
-        super().__init__(npts, dt, modulating_function,
-                         upper_dominant_frequency_function, upper_damping_ratio_function,
-                         lower_dominant_frequency_function, lower_damping_ratio_function)
-        self._seed = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # Pass all arguments to the superclass
+        self._seed = None  # Initialize seed without modifying superclass behavior
 
     @property
     def seed(self):
         return self._seed
 
     @seed.setter
-    def seed(self, value):
-        self._seed = value
+    def seed(self, fixed_seed: int):
+        self._seed = fixed_seed
 
     def simulate(self, n: int):
         """
@@ -43,61 +37,67 @@ class StochasticModel(ModelCore):
         self.vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
         self.disp = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2), workers=-1)[..., :self.npts]
         return self
+    
+    def show_parameters(self):
+        """ Print all model parameters to the console. """
+        print()
+        print(f"modulating_func (mdl): {self.mdl_func.__name__} {", ".join(map(str, self.mdl_params))}")
+        print(f"upper_frequency_func (wu): {self.wu_func.__name__} {", ".join(map(str, self.wu_params))}")
+        print(f"lower_frequency_func (wl): {self.wl_func.__name__} {", ".join(map(str, self.wl_params))}")
+        print(f"upper_damping_func (zu): {self.zu_func.__name__} {", ".join(map(str, self.zu_params))}")
+        print(f"lower_damping_func (zl): {self.zl_func.__name__} {", ".join(map(str, self.zl_params))}")
 
     def save_parameters(self, filename: str):
         """
-        Save all model parameters to an HDF5 file with improved structure.
-        A stochastic model can be initiated from the saved file using the class method from_hdf5.
-        filename: The name of the HDF5 file to save the data to.
+        Save all model parameters to a plain text file.
+        A stochastic model can be initiated from the saved file using the class method from_file.
+        filename: The name of the text file to save the data to.
         """
-        with h5py.File(filename, 'w') as hdf:
-            # Save parameters
-            parameter_group = hdf.create_group('parameters')
-            parameter_group.create_dataset('mdl', data=self.mdl_params)
-            parameter_group.create_dataset('wu', data=self.wu_params)
-            parameter_group.create_dataset('zu', data=self.zu_params)
-            parameter_group.create_dataset('wl', data=self.wl_params)
-            parameter_group.create_dataset('zl', data=self.zl_params)
-            parameter_group.create_dataset('npts', data=self.npts)
-            parameter_group.create_dataset('dt', data=self.dt)
-            parameter_group.create_dataset('t', data=self.t)
-            # Save function types as attributes
-            parameter_group['mdl'].attrs['func'] = self.mdl_func.__name__
-            parameter_group['wu'].attrs['func'] = self.wu_func.__name__
-            parameter_group['zu'].attrs['func'] = self.zu_func.__name__
-            parameter_group['wl'].attrs['func'] = self.wl_func.__name__
-            parameter_group['zl'].attrs['func'] = self.zl_func.__name__
-            parameter_group.attrs['description'] = 'Parameters of the Stochastic model: Modulating, Upper and lower frequencies and damping ratios'
+        with open(filename, 'w') as file:
+            file.write("SGSIM: Stochastic Simulation Model Parameters\n")
+            file.write(f"npts={self.npts}\n")
+            file.write(f"dt={self.dt}\n")
+
+            file.write(f"modulating_func={self.mdl_func.__name__}\n")
+            file.write(f"modulating_params={','.join(map(str, self.mdl_params))}\n")
+
+            file.write(f"upper_frequency_func={self.wu_func.__name__}\n")
+            file.write(f"upper_frequency_params={','.join(map(str, self.wu_params))}\n")
+
+            file.write(f"upper_damping_func={self.zu_func.__name__}\n")
+            file.write(f"upper_damping_params={','.join(map(str, self.zu_params))}\n")
+
+            file.write(f"lower_frequency_func={self.wl_func.__name__}\n")
+            file.write(f"lower_frequency_params={','.join(map(str, self.wl_params))}\n")
+
+            file.write(f"lower_damping_func={self.zl_func.__name__}\n")
+            file.write(f"lower_damping_params={','.join(map(str, self.zl_params))}\n")
         return self
 
     @classmethod
     def from_file(cls, filename: str) -> 'StochasticModel':
         """
-        Load model parameters from an HDF5 file.
-        filename: The name of the HDF5 file to load the data from.
+        Construct a stochastic model using loaded model parameters from a plain text file.
+        filename: The name of the text file to load the data from.
         """
-        with h5py.File(filename, 'r') as hdf:
-            # Load parameters
-            mdl_params = hdf['parameters/mdl'][:]
-            wu_params = hdf['parameters/wu'][:]
-            zu_params = hdf['parameters/zu'][:]
-            wl_params = hdf['parameters/wl'][:]
-            zl_params = hdf['parameters/zl'][:]
-            npts = hdf['parameters/npts'][:]
-            dt = hdf['parameters/dt'][:]
-            # Load function types
-            mdl_func = hdf['parameters/mdl'].attrs['func']
-            wu_func = hdf['parameters/wu'].attrs['func']
-            zu_func = hdf['parameters/zu'].attrs['func']
-            wl_func = hdf['parameters/wl'].attrs['func']
-            zl_func = hdf['parameters/zl'].attrs['func']
+        params = {}
+        with open(filename, 'r') as file:
+            # Skip the header line
+            next(file)
+            for line in file:
+                key, value = line.strip().split('=')
+                params[key] = value
+
         # Create a new Stochastic Model instance with the loaded function types
-        model = cls(npts=int(npts), dt=float(dt), modulating_function=mdl_func, 
-                upper_dominant_frequency_function=wu_func, upper_damping_ratio_function=zu_func, 
-                lower_dominant_frequency_function=wl_func, lower_damping_ratio_function=zl_func)
-        model.mdl = mdl_params
-        model.wu = wu_params
-        model.zu = zu_params
-        model.wl = wl_params
-        model.zl = zl_params
+        model = cls(npts=int(params['npts']), dt=float(params['dt']),
+                    modulating=getattr(parametric_functions, params['modulating_func']),
+                    upper_frequency=getattr(parametric_functions, params['upper_frequency_func']),
+                    upper_damping=getattr(parametric_functions, params['upper_damping_func']),
+                    lower_frequency=getattr(parametric_functions, params['lower_frequency_func']),
+                    lower_damping=getattr(parametric_functions, params['lower_damping_func']))
+        model.mdl = tuple(map(float, params['modulating_params'].split(',')))
+        model.wu = tuple(map(float, params['upper_frequency_params'].split(',')))
+        model.zu = tuple(map(float, params['upper_damping_params'].split(',')))
+        model.wl = tuple(map(float, params['lower_frequency_params'].split(',')))
+        model.zl = tuple(map(float, params['lower_damping_params'].split(',')))
         return model

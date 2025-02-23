@@ -123,16 +123,14 @@ def get_spectra(dt: float, rec, period, zeta: float=0.05):
     sd = np.empty((n_rec, n_period))
     sv = np.empty((n_rec, n_period))
     sa = np.empty((n_rec, n_period))
-
     chunk_size = 25
     for start in range(0, n_rec, chunk_size):
         end = min(start + chunk_size, n_rec)
         sdf_responses = sdof_lin_model(dt=dt, rec=rec[start:end], period=period, zeta=zeta, mass=1.0)
         np.abs(sdf_responses, out=sdf_responses)
-        sdf_responses = np.max(sdf_responses, axis=2)
-        sd[start:end] = sdf_responses[0]
-        sv[start:end] = sdf_responses[1]
-        sa[start:end] = sdf_responses[3]
+        np.max(sdf_responses[0], axis=1, out=sd[start:end])
+        np.max(sdf_responses[1], axis=1, out=sv[start:end])
+        np.max(sdf_responses[3], axis=1, out=sa[start:end])
     return sd, sv, sa
 
 def get_energy_mask(dt: float, rec, target_range: tuple[float, float]=(0.001, 0.999)):

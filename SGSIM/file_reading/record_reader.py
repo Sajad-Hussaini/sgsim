@@ -46,7 +46,7 @@ class RecordReader:
 
         dt_key = 'dt=' if 'dt=' in recInfo else 'DT='
         self.dt = round(float(recInfo[recInfo.index(dt_key) + 1].rstrip('SEC,')), 3)
-        self.ac = np.loadtxt(recData).flatten()
+        self.ac = np.loadtxt(recData).flatten() * 980.655  # convert to cm/s^2
         self.npts = len(self.ac)
         self.t = get_time(self.npts, self.dt)
         self.vel = get_integral(self.dt, self.ac)
@@ -58,9 +58,8 @@ class RecordReader:
         Reading the ESM records (.ASC)
         """
         recData = self.file_content[64:-1]
-        scale = 980.655 if "cm/s^2" in self.file_content[32] else 1
         self.dt = round(float(self.file_content[28].split()[1]), 3)
-        self.ac = np.loadtxt(recData).flatten() / scale
+        self.ac = np.loadtxt(recData).flatten()
         self.npts = len(self.ac)
         self.t = get_time(self.npts, self.dt)
         self.vel = get_integral(self.dt, self.ac)
