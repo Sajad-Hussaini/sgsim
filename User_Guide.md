@@ -7,7 +7,7 @@ This is a quick tutorial to help you get started with SGSIM.
 ### Step 1: Import Libraries and Initialize a Real Target Motion
 ```python
 import time
-from SGSIM import StochasticModel, Motion, calibrate, ModelPlot
+from sgsim import StochasticModel, Motion, calibrate, ModelPlot, functions, tools
 
 # Path to the accelerogram file (e.g., Northridge.AT2) and source (e.g., 'NGA', 'ESM')
 file_path = r'C:\path\to\Northridge.AT2'  
@@ -20,17 +20,12 @@ real_motion.set_range(option='energy', range_slice=(0.001, 0.999))
 ```
 ### Step 2: Initialize the Stochastic Model
 ```python
-# Need to define number of data points (npts), time step (dt), and functional forms for parameters:
-# mdl: modulating function
-# wu, zu: upper dominant frequency and damping ratio
-# wl, zl: lower dominant frequency and damping ratio
-
-# mdl func options: 'beta_dual' for (two strong phase motions), 'beta_single', 'gamma' (for one strong phase)
+# Need to define number of data points (npts), time step (dt), and function reference for parameters:
+# modulating options: 'beta_dual' for (two strong phase motions), 'beta_single', 'gamma' (for one strong phase)
 # filter parameters should be the same and options are: 'linear', 'exponential'
-model = StochasticModel(npts = real_motion.npts, dt = real_motion.dt,
-                        mdl_func = 'beta_single',
-                        wu_func = 'linear', zu_func = 'linear',
-                        wl_func = 'linear', zl_func = 'linear')
+model = StochasticModel(npts = real_motion.npts, dt = real_motion.dt, modulating = functions.beta_dual,
+                        upper_frequency = functions.linear, upper_damping = functions.linear,
+                        lower_frequency = functions.linear, lower_damping = functions.linear)
 ```
 ### Step 3: Calibrate the Stochastic Model Using the Real Motion
 ```python
@@ -46,9 +41,9 @@ print(f'\nModel calibration done in {end - start:.1f}s.')
 ### Step 4: Simulate Ground Motions Using the Stochastic Model
 ```python
 # To print calibrated model parameters use below
-model.parameters()
-# To save the model parameters as hdf5 use below by specifying filename and path
-model.save_parameters(filename=r"C:\path\to\model_params.h5")
+model.show_parameters()
+# To save the model parameters as plain text use below by specifying filename and path
+model.save_parameters(filename=r"C:\path\to\model_params.txt")
 # number of direct simulation (i.e. [n, npts]) of ac, vel, disp
 # to access simulation use lower case attributes (e.g., model.ac, model.vel, model.disp, model.fas, etc.)
 model.simulate(n=25)
@@ -59,15 +54,9 @@ model.simulate(n=25)
 # direct access to each simulation properties as sim_motion.ac , sim_motion.fas, sim_motion.sa, sim_motion.sv, etc.
 sim_motion = Motion.from_model(model)
 
-# In case of necessity to save properties use below by specifying filename and path
-sim_motion.save_spectra(filename=r"C:\path\to\simulated_spectra.csv")
-sim_motion.save_motions(filename=r"C:\path\to\simulated_motions.csv")
-sim_motion.save_fas(filename=r"C:\path\to\simulated_fas.csv")
-sim_motion.save_peak_motions(filename=r"C:\path\to\simulated_PG_parameters.csv")
-sim_motion.save_characteristics(filename=r"C:\path\to\simulated_characteristics.csv")
-
-# Alternatively, save related groups of properties in a single hdf5 file (often more efficient than csv)
-sim_motion.save_simulations(filename=r"C:\path\to\simulations.h5", option=('spectra', 'motions', 'peak_motions', 'characteristics'))
+# In case of necessity to save properties as csv file use below by specifying filename and path
+sim_motion.save_simulations(filename = r"C:\path\to\simulated_spectra.csv", x_var = "tp", y_vars = ["sa", "sv", "sd"])
+sim_motion.save_simulations(filename = r"C:\path\to\simulated_motions.csv", x_var = "t", y_vars = ["ac", "vel", "disp"])
 ```
 ### Step 6: Plot Results Using ModelPlot
 ```python

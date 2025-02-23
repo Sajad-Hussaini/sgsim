@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="SGSIM",
+    name="sgsim",
     version="1.0.0",
     author="S.M.Sajad Hussaini",
     author_email="hussaini.smsajad@gmail.com",
@@ -11,7 +11,7 @@ setup(
     url="https://github.com/Sajad-Hussaini/SGSIM",
     packages=find_packages(),
     python_requires=">=3.10",
-    install_requires=['numpy', 'scipy', 'numba', 'pandas', 'matplotlib', 'h5py'],
+    install_requires=['numpy', 'scipy', 'numba', 'matplotlib'],
     keywords=['Python', 'SGSIM', 'simulation model', 'stochastic ground motion'],
     classifiers=[
         "Programming Language :: Python :: 3",
