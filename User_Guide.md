@@ -32,7 +32,7 @@ model = StochasticModel(npts = real_motion.npts, dt = real_motion.dt, modulating
 start = time.perf_counter()
 # Alternative schemes for calibration (change True to False to swtich between schemes)
 # Initial guess and bounds are set to Defaults if not provided
-scheme = ['modulating', 'freq', 'damping'] if True else ['modulating', 'all']
+scheme = ['modulating', 'frequency', 'damping'] if True else ['modulating', 'all']
 for func in scheme:
     calibrate(func, model, real_motion, initial_guess=None, lower_bounds=None, upper_bounds=None)
 end = time.perf_counter()
