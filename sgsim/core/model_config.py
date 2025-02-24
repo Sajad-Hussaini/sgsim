@@ -1,15 +1,13 @@
 import numpy as np
-from ..motion import signal_analysis
-from typing import Callable
 from .domain_config import DomainConfig
 
 class ModelConfig(DomainConfig):
     """
     This class allows to configure time, frequency, and model parametric functions.
     """
-    def __init__(self, npts: int, dt: float, modulating: Callable,
-                 upper_frequency: Callable, upper_damping: Callable,
-                 lower_frequency: Callable, lower_damping: Callable):
+    def __init__(self, npts: int, dt: float, modulating,
+                 upper_frequency, upper_damping,
+                 lower_frequency, lower_damping):
         super().__init__(npts, dt)
         self.mdl_func = modulating
         self.wu_func = upper_frequency
@@ -24,11 +22,22 @@ class ModelConfig(DomainConfig):
 
     def reset_attributes(self):
         """ Reset core model features upon parameters change. """
-        self._fas[:] = 0.0
-        self._ce[:] = self._mle_ac[:] = self._mle_vel[:] = self._mle_disp[:] = 0.0
-        self._mzc_ac[:] = self._mzc_vel[:] = self._mzc_disp[:] = 0.0
-        self._pmnm_ac[:] = self._pmnm_vel[:] = self._pmnm_disp[:] = 0.0
-        self.variance[:] = self.variance_dot[:] = self.variance_2dot[:] = self.variance_bar[:] = self.variance_2bar[:] = 0.0
+        self._fas.fill(0.0)
+        self._ce.fill(0.0)
+        self._mle_ac.fill(0.0)
+        self._mle_vel.fill(0.0)
+        self._mle_disp.fill(0.0)
+        self._mzc_ac.fill(0.0)
+        self._mzc_vel.fill(0.0)
+        self._mzc_disp.fill(0.0)
+        self._pmnm_ac.fill(0.0)
+        self._pmnm_vel.fill(0.0)
+        self._pmnm_disp.fill(0.0)
+        self.variance.fill(0.0)
+        self.variance_dot.fill(0.0)
+        self.variance_2dot.fill(0.0)
+        self.variance_bar.fill(0.0)
+        self.variance_2bar.fill(0.0)
 
     @property
     def mdl(self):
