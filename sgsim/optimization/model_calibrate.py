@@ -22,7 +22,7 @@ def get_default_bounds(func: str, model):
     """
     # Tuple-based lookup: (calibration function, model function name)
     frequency_common = ((5.0, 4.0, 1.0, 1.0), (0.0, 0.0, 0.1, 0.1), (25.0, 25.0, 10.0, 10.0))
-    damping_common = ((0.5, 0.5, 0.5, 0.5), (0.1, 0.1, 0.1, 0.1), (5.0, 10.0, 10.0, 10.0))
+    damping_common = ((0.5, 0.2, 0.1, 0.5), (0.1, 0.1, 0.1, 0.1), (5.0, 5.0, 5.0, 5.0))
     unified_bounds_config = {
         ('modulating', 'beta_dual'): ((0.1, 20.0, 0.2, 10.0, 0.6), (0.01, 1.0, 0.0, 1.0, 0.0), (0.7, 200.0, 0.8, 200.0, 0.95)),
         ('modulating', 'beta_single'): ((0.1, 20.0), (0.01, 1.0), (0.8, 200.0)),
@@ -57,21 +57,19 @@ def prepare_modulating_data(model, motion):
     ydata = motion.ce
     xdata = motion.t
     obj_func = lambda _, *params: obj_mdl(params, model=model, motion=motion)
-    return xdata, ydata, obj_func, None
+    return xdata, ydata, obj_func
 
 def prepare_frequency_data(model, motion):
     ydata = np.concatenate((motion.mzc_ac * model.mdl, motion.mzc_disp * model.mdl))
     xdata = np.tile(motion.t, 2)
     obj_func = lambda _, *params: obj_freq(params, model=model)
-    # uncertainty = np.max(model.mdl)*1.1 - np.tile(model.mdl, 2)
-    return xdata, ydata, obj_func, None
+    return xdata, ydata, obj_func
 
 def prepare_damping_data(model, motion):
     ydata = np.concatenate((motion.mzc_ac * model.mdl, motion.mzc_vel * model.mdl, motion.mzc_disp * model.mdl, motion.pmnm_vel * model.mdl, motion.pmnm_disp * model.mdl))
     xdata = np.concatenate((motion.t, motion.t, motion.t, motion.t, motion.t))
     obj_func = lambda _, *params: obj_damping(params, model=model)
-    # uncertainty = np.max(model.mdl)*1.1 - np.tile(model.mdl, 5)
-    return xdata, ydata, obj_func, None
+    return xdata, ydata, obj_func
 
 def obj_mdl(params, model, motion):
     """
