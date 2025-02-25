@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import butter, sosfilt
+from scipy.signal import butter, sosfilt, resample
 
 def bandpass_filter(dt, rec, lowcut=0.1, highcut=25.0, order=4):
     """
@@ -41,3 +41,15 @@ def moving_average(rec, window_size=9):
     else:
         raise ValueError("Input must be a 1D or 2D array.")
     return smoothed_rec
+
+def upsample(dt, dt_new, rec):
+    """
+    Upsample a time series from an original time step dt to a finer dt_new.
+    """
+    if dt_new >= dt:
+        raise ValueError("The new time step should be smaller than the original time step.")
+    npts = len(rec)
+    duration = (npts - 1) * dt
+    npts_new = int(np.floor(duration / dt_new)) + 1
+    ac_new = resample(rec, npts_new)
+    return npts_new, dt_new, ac_new

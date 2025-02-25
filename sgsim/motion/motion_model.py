@@ -171,6 +171,18 @@ class Motion(DomainConfig):
         self.vel = signal_analysis.get_integral(self.dt, self.ac)
         self.disp = signal_analysis.get_integral(self.dt, self.vel)
         return self
+    
+    def upsample(self, dt_new: float):
+        """
+        Upsample the motion data to a finer time step.
+
+        Args:
+            dt_new (float): The new, finer time step.
+        """
+        self.npts, self.dt, self.ac = signal_processing.upsample(self.dt, dt_new, self.ac)
+        self.vel = signal_analysis.get_integral(dt_new, self.ac)
+        self.disp = signal_analysis.get_integral(dt_new, self.vel)
+        return self
 
     def save_simulations(self, filename: str, x_var: str, y_vars: list[str]):
         """
