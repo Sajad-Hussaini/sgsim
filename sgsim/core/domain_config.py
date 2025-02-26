@@ -12,11 +12,15 @@ class DomainConfig:
         """
         self._npts = npts
         self._dt = dt
+        self._reset_cache()
+    
+    def _reset_cache(self):
+        """Reset cached properties."""
         self._t = None
         self._freq = None
         self._freq_sim = None
-        self._tp = None
         self._freq_mask = None
+        self._tp = None
 
     @property
     def npts(self):
@@ -25,10 +29,7 @@ class DomainConfig:
     @npts.setter
     def npts(self, num_points):
         self._npts = num_points
-        self._t = None
-        self._freq = None
-        self._freq_sim = None
-        self._freq_mask = None
+        self._reset_cache()
 
     @property
     def dt(self):
@@ -37,10 +38,7 @@ class DomainConfig:
     @dt.setter
     def dt(self, time_step):
         self._dt = time_step
-        self._t = None
-        self._freq = None
-        self._freq_sim = None
-        self._freq_mask = None
+        self._reset_cache()
 
     @property
     def t(self):

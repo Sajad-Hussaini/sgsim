@@ -20,7 +20,7 @@ class ModelConfig(DomainConfig):
          self._pmnm_ac, self._pmnm_vel, self._pmnm_disp) = np.zeros((20, self.npts))
         self._fas = np.zeros_like(self.freq)
 
-    def reset_attributes(self):
+    def _reset_attributes(self):
         """ Reset core model features upon parameters change. """
         self._fas.fill(0.0)
         self._ce.fill(0.0)
@@ -48,7 +48,7 @@ class ModelConfig(DomainConfig):
     def mdl(self, params):
         self._mdl[:] = self.mdl_func(self.t, *params)
         self.mdl_params = params
-        self.reset_attributes()
+        self._reset_attributes()
 
     @property
     def wu(self):
@@ -60,7 +60,7 @@ class ModelConfig(DomainConfig):
         self._wu[:] = self.wu_func(self.t, *params)
         self.wu_params = params
         self._wu *= 2 * np.pi  # Convert to angular frequency
-        self.reset_attributes()
+        self._reset_attributes()
 
     @property
     def wl(self):
@@ -72,7 +72,7 @@ class ModelConfig(DomainConfig):
         self._wl[:] = self.wl_func(self.t, *params)
         self.wl_params = params
         self._wl *= 2 * np.pi  # Convert to angular frequency
-        self.reset_attributes()
+        self._reset_attributes()
 
     @property
     def zu(self):
@@ -83,7 +83,7 @@ class ModelConfig(DomainConfig):
     def zu(self, params):
         self._zu[:] = self.zu_func(self.t, *params)
         self.zu_params = params
-        self.reset_attributes()
+        self._reset_attributes()
 
     @property
     def zl(self):
@@ -94,4 +94,4 @@ class ModelConfig(DomainConfig):
     def zl(self, params):
         self._zl[:] = self.zl_func(self.t, *params)
         self.zl_params = params
-        self.reset_attributes()
+        self._reset_attributes()

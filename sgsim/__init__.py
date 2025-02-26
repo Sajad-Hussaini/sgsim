@@ -1,6 +1,3 @@
-"""
-SGSIM package initialization.
-"""
 from .core.stochastic_model import StochasticModel
 from .motion.motion_model import Motion
 from .optimization.model_calibrate import calibrate
