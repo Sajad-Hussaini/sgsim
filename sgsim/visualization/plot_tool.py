@@ -1,23 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_ac_ce(model, target):
+def plot_ac_ce(model, motion):
     """
     Comparing the cumulative energy and energy distribution
     of the record, model, and simulations
     """
     fig, axes = plt.subplots(1, 2, sharex=True, sharey=False)
-    axes[0].plot(target.t, target.ac, c='tab:blue')
+    axes[0].plot(motion.t, motion.ac, c='tab:blue')
     axes[0].plot(model.t, model.mdl, c='tab:red', ls='--')
     axes[0].plot(model.t, -model.mdl, c='tab:red', ls='--')
     axes[0].axhline(y=0, color='k', ls='--', lw=0.15)
     axes[0].set_ylabel('Acceleration (g)')
     axes[0].set_xlabel('Time (s)')
-    axes[0].set_ylim([-1.05 * max(abs(target.ac)), 1.05 * max(abs(target.ac))])
+    axes[0].set_ylim([-1.05 * max(abs(motion.ac)), 1.05 * max(abs(motion.ac))])
     axes[0].yaxis.set_major_locator(plt.MaxNLocator(5, symmetric=True))
     axes[0].minorticks_on()
 
-    axes[1].plot(target.t, target.ce, label= 'Target', c='tab:blue')
+    axes[1].plot(motion.t, motion.ce, label= 'motion', c='tab:blue')
     axes[1].plot(model.t, model.ce, label= 'Model', c='tab:red', ls='--')
     axes[1].set_ylabel(r'Cumulative energy $\mathregular{(g^2.s)}$')
     axes[1].set_xlabel('Time (s)')
@@ -25,16 +25,16 @@ def plot_ac_ce(model, target):
     # axes[1].ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
     axes[1].minorticks_on()
 
-def plot_feature(model, sim, target, feature='mzc'):
+def plot_feature(model, sim, motion, feature='mzc'):
     """
     Comparing the indicated error of the record, model, and simulations
     mzc, mle, pmnm
     """
-    plt.plot(target.t, getattr(target, f"{feature}_ac"), label="Target acceleration",
+    plt.plot(motion.t, getattr(motion, f"{feature}_ac"), label="motion acceleration",
             c='tab:blue', zorder=2) if feature == 'mzc' else None
-    plt.plot(target.t, getattr(target, f"{feature}_vel"), label="Target velocity",
+    plt.plot(motion.t, getattr(motion, f"{feature}_vel"), label="motion velocity",
             c='tab:orange', linestyle='--', zorder=2)
-    plt.plot(target.t, getattr(target, f"{feature}_disp"), label="Target displacement",
+    plt.plot(motion.t, getattr(motion, f"{feature}_disp"), label="motion displacement",
             c='tab:green', linestyle='-.', zorder=2)
 
     if model is not None:
@@ -69,7 +69,7 @@ def plot_motion(t, sim1, sim2, rec, ylabel='Acceleration (g)'):
     3 time series multiple plot
     """
     fig, axes = plt.subplots(1, 3, sharex=True, sharey=True)
-    axes[0].plot(t, rec, label='Target', color='tab:blue')
+    axes[0].plot(t, rec, label='motion', color='tab:blue')
     axes[0].set_ylabel(f'{ylabel}')
     axes[0].yaxis.set_major_locator(plt.MaxNLocator(5, symmetric=True))
     axes[0].minorticks_on()
@@ -88,7 +88,7 @@ def plot_mean_std(t, sims, rec):
     """
     mean_all = np.mean(sims, axis=0)
     std_all = np.std(sims, axis=0)
-    plt.plot(t, rec.flatten(), c='tab:blue', label='Target', zorder=2)
+    plt.plot(t, rec.flatten(), c='tab:blue', label='motion', zorder=2)
     plt.plot(t, mean_all, c='tab:red', linestyle='--', label='Mean', zorder=4)
     plt.plot(t, mean_all-std_all, c='k', linestyle='-.', label=r'Mean $\mathregular{\pm \, \sigma}$', zorder=3)
     plt.plot(t, mean_all+std_all, c='k', linestyle='-.', zorder=3)

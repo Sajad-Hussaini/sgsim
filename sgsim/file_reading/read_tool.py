@@ -1,25 +1,22 @@
-import os
 import zipfile
+import pathlib
 
 def read_file_from_zip(filename, zip_path):
     """
     Read the content of a file from a zip file.
     """
     try:
-        with zipfile.ZipFile(zip_path, 'r') as zip_file:
-            with zip_file.open(filename, 'r') as file:
-                return file.read().decode('utf-8').splitlines()
-    except KeyError:
-        raise FileNotFoundError(f'{filename} is not in the zip file.')
+        return zipfile.Path(zip_path, filename).read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        raise FileNotFoundError(f'{filename} not found in {zip_path}')
     except Exception as e:
-        raise IOError(f'Error reading zip file: {str(e)}')
+        raise IOError(f'Error in reading zip: {str(e)}')
 
 def read_file(file_path):
     """
     Read the lines of a file.
     """
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            return file.read().splitlines()
+        return pathlib.Path(file_path).read_text(encoding="utf-8").splitlines()
     except Exception as e:
-        raise IOError(f'Error reading the record file: {str(e)}')
+        raise IOError(f'Error in reading file: {str(e)}')
