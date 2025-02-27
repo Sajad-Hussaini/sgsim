@@ -209,7 +209,7 @@ class Motion(DomainConfig):
     @property
     def energy_mask(self):
         if self._energy_mask is None:
-            raise ValueError("The range based on energy has not been set (e.g., 0.001, 0.999).")
+            self._energy_mask = signal_analysis.get_energy_mask(self.dt, self.ac, (0.001, 0.999))  # Default range
         return self._energy_mask
 
     @energy_mask.setter
