@@ -19,8 +19,13 @@ class DomainConfig:
         self._t = None
         self._freq = None
         self._freq_sim = None
+        self._freq_sim_p2 = None
         self._freq_mask = None
         self._tp = None
+        self._freq_p2 = None
+        self._freq_p4 = None
+        self._freq_n2 = None
+        self._freq_n4 = None
 
     @property
     def npts(self):
@@ -78,3 +83,33 @@ class DomainConfig:
     @tp.setter
     def tp(self, period_range: tuple[float, float, float]):
         self._tp = np.arange(*period_range)
+
+    @property
+    def freq_sim_p2(self):
+        if self._freq_sim_p2 is None:
+            self._freq_sim_p2 = self.freq_sim ** 2
+        return self._freq_sim_p2
+
+    @property
+    def freq_p2(self):
+        if self._freq_p2 is None:
+            self._freq_p2 = self.freq ** 2
+        return self._freq_p2
+    
+    @property
+    def freq_p4(self):
+        if self._freq_p4 is None:
+            self._freq_p4 = self.freq ** 4
+        return self._freq_p4
+    
+    @property
+    def freq_n2(self):
+        if self._freq_n2 is None:
+            self._freq_n2 = self.freq[1:] ** -2
+        return self._freq_n2
+    
+    @property
+    def freq_n4(self):
+        if self._freq_n4 is None:
+            self._freq_n4 = self.freq[1:] ** -4
+        return self._freq_n4

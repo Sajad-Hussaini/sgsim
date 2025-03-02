@@ -12,13 +12,13 @@ class ModelCore(ModelConfig):
     def stats(self):
         """ Computes and stores the variances for internal use. """
         if not np.any(self.variance):
-            model_engine.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq, self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar)
+            model_engine.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar)
 
     @property
     def fas(self):
         """ The Fourier amplitude spectrum (FAS) of the stochastic model using model's PSD """
         if not np.any(self._fas):
-            model_engine.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq, self._fas)
+            model_engine.get_fas(self.mdl, self.wu, self.zu, self.wl, self.zl, self.freq_p2, self.freq_p4, self._fas)
         return self._fas
 
     @property

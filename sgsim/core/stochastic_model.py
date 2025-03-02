@@ -29,7 +29,7 @@ class StochasticModel(ModelCore):
         self.stats
         n = int(n)
         white_noise = np.random.default_rng(self._seed).standard_normal((n, self.npts))
-        fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim,
+        fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2,
                                                         self.mdl, self.wu, self.zu, self.wl, self.zl,
                                                         self.variance, white_noise)
         self.ac = irfft(fourier, workers=-1)[..., :self.npts]  # to avoid aliasing
