@@ -65,14 +65,14 @@ class Motion(DomainConfig):
         self._reset_attributes()
         return self
     
-    def upsample(self, dt_new: float):
+    def resample(self, dt_new: float):
         """
-        Upsample the motion data to a finer time step.
+        resample the motion data to a new time step.
 
         Args:
-            dt_new (float): The new, finer time step.
+            dt_new (float): The new time step.
         """
-        self.npts, self.dt, self.ac = signal_processing.upsample(self.dt, dt_new, self.ac)
+        self.npts, self.dt, self.ac = signal_processing.resample(self.dt, dt_new, self.ac)
         self.vel = signal_analysis.get_integral(dt_new, self.ac)
         self.disp = signal_analysis.get_integral(dt_new, self.vel)
         self._reset_attributes()
