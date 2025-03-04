@@ -29,7 +29,7 @@ pip install SGSIM
 ```
 
 ## User Guide
-For a step-by-step walkthrough on using **SGSIM**, refer to the [Quick Start with SGSIM](User_Guide.md). The User Guide will be updated for more instructions.
+For a step-by-step walkthrough on using **SGSIM**, refer to the [Quick Start with SGSIM](user_guide.ipynb). The User Guide will be updated for more instructions.
 
 ## License
 SGSIM is released under the [GNU AGPL 3.0](https://www.gnu.org/licenses/agpl-3.0.en.html).
