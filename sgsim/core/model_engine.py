@@ -60,9 +60,10 @@ def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, fas):
     """
     The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
     """
+    fas.fill(0.0)
     for i in range(len(wu)):
         psd_i = get_psd(wu[i], zu[i], wl[i], zl[i], freq_p2, freq_p4)
-        fas += mdl[i] ** 2 * psd_i / np.sum(psd_i)
+        fas += mdl[i] ** 2 * psd_i / psd_i.sum()
     fas[:] = np.sqrt(fas)
 
 @njit(complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :]), parallel=True, cache=True)

@@ -133,22 +133,26 @@ def get_spectra(dt: float, rec, period, zeta: float=0.05):
         np.max(sdf_responses[3], axis=1, out=sa[start:end])
     return sd, sv, sa
 
-def get_energy_mask(dt: float, rec, target_range: tuple[float, float]=(0.001, 0.999)):
-    " A boolean mask for slicing the input motion using total energy percentages"
+def slice_energy(dt: float, rec, target_range: tuple[float, float]=(0.001, 0.999)):
+    " A slicer of the input motion using a range of total energy. "
     cumulative_energy = get_ce(dt, rec)
-    return ((cumulative_energy >= target_range[0] * cumulative_energy[-1]) &
-            (cumulative_energy <= target_range[1] * cumulative_energy[-1]))
+    total_energy = cumulative_energy[-1]
+    start_idx = np.searchsorted(cumulative_energy, target_range[0] * total_energy)
+    end_idx = np.searchsorted(cumulative_energy, target_range[1] * total_energy)
+    return slice(start_idx, end_idx + 1)
 
-def get_amplitude_mask(rec, threshold: float):
-    " A boolean mask for slicing the input motion using a threshold of amplitude"
-    indices = np.where(np.abs(rec) > threshold)[0]
+def slice_amplitude(rec, threshold: float):
+    " A slicer of the input motion using an amplitude threshold. "
+    indices = np.nonzero(np.abs(rec) > threshold)[0]
     if len(indices) == 0:
-        return slice(0, 0)
+        raise ValueError("No values exceed the threshold. Consider using a lower threshold value.")
     return slice(indices[0], indices[-1] + 1)
 
-def get_freq_mask(freq: np.array, target_range: tuple[float, float]=(0.1, 25.0)):
-    " A boolean mask for slicing the frequency array using input freqs in Hz"
-    return (freq >= target_range[0] * 2 * np.pi) & (freq <= target_range[1] * 2 * np.pi)
+def slice_freq(freq, target_range: tuple[float, float]=(0.1, 25.0)):
+    " A slicer of the frequencies using a frequency range in Hz"
+    start_idx = np.searchsorted(freq, target_range[0] * 2 * np.pi)
+    end_idx = np.searchsorted(freq, target_range[1] * 2 * np.pi)
+    return slice(start_idx, end_idx + 1)
 
 def get_ce(dt: float, rec):
     """

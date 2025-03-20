@@ -1,3 +1,4 @@
+from functools import cached_property
 import numpy as np
 from . import signal_analysis
 from . import signal_processing
@@ -8,6 +9,8 @@ class Motion(DomainConfig):
     """
     This class describes ground motions in terms of various proprties (e.g., spectra, peak motions, characteristics)
     """
+    _CORE_ATTRS = frozenset({'npts', 'dt', 'ac', 'vel', 'disp'})
+
     def __init__(self, npts, dt, ac, vel, disp):
         """
         npts:  number of data points (array length)
@@ -21,38 +24,54 @@ class Motion(DomainConfig):
         self.ac = ac
         self.vel = vel
         self.disp = disp
-        self._reset_attributes()
+    
+    def clear_cache(self):
+        """Clear cached properties, preserving core attributes."""
+        core_values = {attr: getattr(self, attr) for attr in self._CORE_ATTRS}
+        self.__dict__.clear()
+        self.__dict__.update(core_values)
 
-    def _reset_attributes(self):
-        """Reset all dependent attributes to None upon changing main inputs."""
-        attrs_to_reset = {
-            '_fas', '_fas_star', '_ce', '_mle_ac', '_mle_vel', '_mle_disp',
-            '_mzc_ac', '_mzc_vel', '_mzc_disp', '_pmnm_ac', '_pmnm_vel',
-            '_pmnm_disp', '_sd', '_sv', '_sa', '_pga', '_pgv', '_pgd', '_energy_mask'
-            }
-        for attr in attrs_to_reset:
-            setattr(self, attr, None)
-        return self
-
-    def set_range(self, option: str, range_slice: tuple[float, float]|np.ndarray):
+    def trim(self, option: str, value: tuple[float, float] | slice | int):
         """
-        Define a range for the ground motion using an option
-        [option]: 'energy' which requires a tuple of total energy percentages i.e., (0.001, 0.999)
-                'mask' which requires a numpy array of boolean values
-                other options to be added later (i.e., amplitude)
+        Trim the ground motion data using specified criteria.
+        
+        option (str): Trimming method:
+            - 'energy': Trim based on cumulative energy range (e.g., (0.001, 0.999))
+            - 'npts': Keep specified number of points from beginning
+            - 'slice': Apply a custom slice directly to the motion arrays
+        value: Parameters for the chosen option:
+            - For 'energy': tuple[float, float] as (start_fraction, end_fraction)
+            - For 'npts': int representing number of points to keep
+            - For 'slice': slice object to apply directly
+        
+        Example:
+            >>> motion.trim('energy', (0.05, 0.95))  # Keep middle 90% of energy
+            >>> motion.trim('npts', 1000)            # Keep first 1000 points
+            >>> motion.trim('slice', slice(100, 500)) # Custom slice
         """
         if option.lower() == 'energy':
-            self.energy_mask = range_slice
-            mask = self.energy_mask
-        elif option.lower() == 'mask':
-            mask = range_slice
+            if not isinstance(value, tuple) or len(value) != 2:
+                raise ValueError("Energy trimming requires a tuple of (start_fraction, end_fraction)")
+            self.energy_slice = value
+            slicer = self.energy_slice
+
+        elif option.lower() == 'npts':
+            if not isinstance(value, int) or value <= 0 or value > self.npts:
+                raise ValueError("Number of points must be a positive integer less than the current number of points")
+            slicer = slice(0, value)
+        
+        elif option.lower() == 'slice':
+            if not isinstance(value, slice):
+                raise ValueError("Slice option requires a Python slice object")
+            slicer = value
+        
         else:
-            raise ValueError("The option is not supported yet.")
-        self.npts = mask.sum()
-        self.ac = self.ac[mask]
-        self.vel = self.vel[mask]
-        self.disp = self.disp[mask]
-        self._reset_attributes()
+            raise ValueError(f"Unsupported trim option: '{option}'. Use 'energy', 'npts', or 'slice'")
+        self.ac = self.ac[slicer]
+        self.vel = self.vel[slicer]
+        self.disp = self.disp[slicer]
+        self.npts = len(self.ac)
+        self.clear_cache()
         return self
     
     def filter(self, bandpass_freqs: tuple[float, float]):
@@ -62,20 +81,20 @@ class Motion(DomainConfig):
         self.ac = signal_processing.bandpass_filter(self.dt, self.ac, bandpass_freqs[0], bandpass_freqs[1])
         self.vel = signal_analysis.get_integral(self.dt, self.ac)
         self.disp = signal_analysis.get_integral(self.dt, self.vel)
-        self._reset_attributes()
+        self.clear_cache()
         return self
     
-    def resample(self, dt_new: float):
+    def resample(self, dt: float):
         """
         resample the motion data to a new time step.
 
         Args:
-            dt_new (float): The new time step.
+            dt (float): The new time step.
         """
-        self.npts, self.dt, self.ac = signal_processing.resample(self.dt, dt_new, self.ac)
-        self.vel = signal_analysis.get_integral(dt_new, self.ac)
-        self.disp = signal_analysis.get_integral(dt_new, self.vel)
-        self._reset_attributes()
+        self.npts, self.dt, self.ac = signal_processing.resample(self.dt, dt, self.ac)
+        self.vel = signal_analysis.get_integral(dt, self.ac)
+        self.disp = signal_analysis.get_integral(dt, self.vel)
+        self.clear_cache()
         return self
 
     def save_simulations(self, filename: str, x_var: str, y_vars: list[str]):
@@ -95,126 +114,91 @@ class Motion(DomainConfig):
         np.savetxt(filename, data, delimiter=",", header=header, comments="")
         return self
     
-    @property
+    @cached_property
     def fas(self):
-        if self._fas is None:
-            self._fas = signal_analysis.get_fas(self.npts, self.ac)
-        return self._fas
+        return signal_analysis.get_fas(self.npts, self.ac)
 
-    @property
-    def fas_star(self):
-        if self._fas_star is None:
-            self._fas_star = signal_processing.moving_average(self.fas, 9)[..., self.freq_mask]
-        return self._fas_star
+    @cached_property
+    def fas_smooth(self):
+        return signal_processing.moving_average(self.fas, 9)[..., self.freq_slice]
 
-    @property
+    @cached_property
     def ce(self):
-        if self._ce is None:
-            self._ce = signal_analysis.get_ce(self.dt, self.ac)
-        return self._ce
+        return signal_analysis.get_ce(self.dt, self.ac)
     
-    @property
+    @cached_property
     def mle_ac(self):
-        if self._mle_ac is None:
-            self._mle_ac = signal_analysis.get_mle(self.ac)
-        return self._mle_ac
+        return signal_analysis.get_mle(self.ac)
 
-    @property
+    @cached_property
     def mle_vel(self):
-        if self._mle_vel is None:
-            self._mle_vel = signal_analysis.get_mle(self.vel)
-        return self._mle_vel
+        return signal_analysis.get_mle(self.vel)
 
-    @property
+    @cached_property
     def mle_disp(self):
-        if self._mle_disp is None:
-            self._mle_disp = signal_analysis.get_mle(self.disp)
-        return self._mle_disp
+        return signal_analysis.get_mle(self.disp)
 
-    @property
+    @cached_property
     def mzc_ac(self):
-        if self._mzc_ac is None:
-            self._mzc_ac = signal_analysis.get_mzc(self.ac)
-        return self._mzc_ac
+        return signal_analysis.get_mzc(self.ac)
 
-    @property
+    @cached_property
     def mzc_vel(self):
-        if self._mzc_vel is None:
-            self._mzc_vel = signal_analysis.get_mzc(self.vel)
-        return self._mzc_vel
+        return signal_analysis.get_mzc(self.vel)
 
-    @property
+    @cached_property
     def mzc_disp(self):
-        if self._mzc_disp is None:
-            self._mzc_disp = signal_analysis.get_mzc(self.disp)
-        return self._mzc_disp
+        return signal_analysis.get_mzc(self.disp)
 
-    @property
+    @cached_property
     def pmnm_ac(self):
-        if self._pmnm_ac is None:
-            self._pmnm_ac = signal_analysis.get_pmnm(self.ac)
-        return self._pmnm_ac
+        return signal_analysis.get_pmnm(self.ac)
 
-    @property
+    @cached_property
     def pmnm_vel(self):
-        if self._pmnm_vel is None:
-            self._pmnm_vel = signal_analysis.get_pmnm(self.vel)
-        return self._pmnm_vel
+        return signal_analysis.get_pmnm(self.vel)
 
-    @property
+    @cached_property
     def pmnm_disp(self):
-        if self._pmnm_disp is None:
-            self._pmnm_disp = signal_analysis.get_pmnm(self.disp)
-        return self._pmnm_disp
+        return signal_analysis.get_pmnm(self.disp)
+
+    @cached_property
+    def spectra(self):
+        return signal_analysis.get_spectra(self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=self.tp, zeta=0.05)
 
     @property
     def sa(self):
-        if self._sa is None:
-            self._sd, self._sv, self._sa = signal_analysis.get_spectra(
-                self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=self.tp, zeta=0.05)
-        return self._sa
+        return self.spectra[2]
     
     @property
     def sv(self):
-        if self._sv is None:
-            self._sd, self._sv, self._sa = signal_analysis.get_spectra(
-                self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=self.tp, zeta=0.05)
-        return self._sv
+        return self.spectra[1]
     
     @property
     def sd(self):
-        if self._sd is None:
-            self._sd, self._sv, self._sa = signal_analysis.get_spectra(
-                self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=self.tp, zeta=0.05)
-        return self._sd
+        return self.spectra[0]
 
-    @property
+    @cached_property
     def pga(self):
-        if self._pga is None:
-            self._pga = signal_analysis.get_pgp(self.ac)
-        return self._pga
+        return signal_analysis.get_pgp(self.ac)
 
-    @property
+    @cached_property
     def pgv(self):
-        if self._pgv is None:
-            self._pgv = signal_analysis.get_pgp(self.vel)
-        return self._pgv
+        return signal_analysis.get_pgp(self.vel)
 
-    @property
+    @cached_property
     def pgd(self):
-        if self._pgd is None:
-            self._pgd = signal_analysis.get_pgp(self.disp)
-        return self._pgd
+        return signal_analysis.get_pgp(self.disp)
 
     @property
-    def energy_mask(self):
-        if self._energy_mask is None:
-            self._energy_mask = signal_analysis.get_energy_mask(self.dt, self.ac, (0.001, 0.999))  # Default range
-        return self._energy_mask
+    def energy_slice(self):
+        if not hasattr(self, '_energy_slice'):
+            self._energy_slice = signal_analysis.slice_energy(self.dt, self.ac, (0.001, 0.999))  # Default range
+        return self._energy_slice
 
-    @energy_mask.setter
-    def energy_mask(self, target_range: tuple[float, float]):
-        self._energy_mask = signal_analysis.get_energy_mask(self.dt, self.ac, target_range)
+    @energy_slice.setter
+    def energy_slice(self, energy_range: tuple[float, float]):
+        self._energy_slice = signal_analysis.slice_energy(self.dt, self.ac, energy_range)
 
     @classmethod
     def from_file(cls, file_path: str | tuple[str, str], source: str, **kwargs):
