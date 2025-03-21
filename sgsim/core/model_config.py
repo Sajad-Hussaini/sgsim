@@ -5,7 +5,7 @@ class ModelConfig(DomainConfig):
     """
     This class allows to configure time, frequency, and model parametric functions.
     """
-    FAS, CE, STATS, MLE_AC, MLE_VEL, MLE_DISP, MZC_AC, MZC_VEL, MZC_DISP, PMNM_AC, PMNM_VEL, PMNM_DISP = (
+    FAS, CE, VARIANCES, MLE_AC, MLE_VEL, MLE_DISP, MZC_AC, MZC_VEL, MZC_DISP, PMNM_AC, PMNM_VEL, PMNM_DISP = (
     1 << i for i in range(12))  # bit flags for dependent attributes
 
     def __init__(self, npts: int, dt: float, modulating,

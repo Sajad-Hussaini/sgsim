@@ -11,9 +11,9 @@ class ModelCore(ModelConfig):
     @property
     def stats(self):
         """ Computes and stores the variances for internal use. """
-        if self._dirty_flags & self.STATS:  # check bit flag
+        if self._dirty_flags & self.VARIANCES:  # check bit flag
             model_engine.get_stats(self.wu, self.zu, self.wl, self.zl, self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.variance, self.variance_dot, self.variance_2dot, self.variance_bar, self.variance_2bar)
-            self._dirty_flags &= ~self.STATS  # clear bit flag (set to 0)
+            self._dirty_flags &= ~self.VARIANCES  # clear bit flag (set to 0)
 
     @property
     def fas(self):
@@ -30,87 +30,84 @@ class ModelCore(ModelConfig):
             self._ce[:] = signal_analysis.get_ce(self.dt, self.mdl)
             self._dirty_flags &= ~self.CE
         return self._ce
-
+    
     @property
     def mle_ac(self):
         """ The mean cumulative number of local extream (peaks and valleys) of the acceleration model """
-        self.stats
         if self._dirty_flags & self.MLE_AC:
-            np.cumsum((np.sqrt(self.variance_2dot / self.variance_dot) / (2 * np.pi)) * self.dt, out=self._mle_ac)
+            self.stats
+            model_engine.cumulative_rate(self.dt, self.variance_2dot, self.variance_dot, self._mle_ac)
             self._dirty_flags &= ~self.MLE_AC
         return self._mle_ac
 
     @property
     def mle_vel(self):
         """ The mean cumulative number of local extream (peaks and valleys) of the velocity model """
-        self.stats
         if self._dirty_flags & self.MLE_VEL:
-            np.cumsum((np.sqrt(self.variance_dot / self.variance) / (2 * np.pi)) * self.dt, out=self._mle_vel)
+            self.stats
+            model_engine.cumulative_rate(self.dt, self.variance_dot, self.variance, self._mle_vel)
             self._dirty_flags &= ~self.MLE_VEL
         return self._mle_vel
 
     @property
     def mle_disp(self):
         """ The mean cumulative number of local extream (peaks and valleys) of the displacement model """
-        self.stats
         if self._dirty_flags & self.MLE_DISP:
-            np.cumsum((np.sqrt(self.variance / self.variance_bar) / (2 * np.pi)) * self.dt, out=self._mle_disp)
+            self.stats
+            model_engine.cumulative_rate(self.dt, self.variance, self.variance_bar, self._mle_disp)
             self._dirty_flags &= ~self.MLE_DISP
         return self._mle_disp
 
     @property
     def mzc_ac(self):
         """ The mean cumulative number of zero crossing (up and down) of the acceleration model """
-        self.stats
         if self._dirty_flags & self.MZC_AC:
-            np.cumsum((np.sqrt(self.variance_dot / self.variance) / (2 * np.pi)) * self.dt, out=self._mzc_ac)
+            self.stats
+            model_engine.cumulative_rate(self.dt, self.variance_dot, self.variance, self._mzc_ac)
             self._dirty_flags &= ~self.MZC_AC
         return self._mzc_ac
 
     @property
     def mzc_vel(self):
         """ The mean cumulative number of zero crossing (up and down) of the velocity model """
-        self.stats
         if self._dirty_flags & self.MZC_VEL:
-            np.cumsum((np.sqrt(self.variance / self.variance_bar) / (2 * np.pi)) * self.dt, out=self._mzc_vel)
+            self.stats
+            model_engine.cumulative_rate(self.dt, self.variance, self.variance_bar, self._mzc_vel)
             self._dirty_flags &= ~self.MZC_VEL
         return self._mzc_vel
 
     @property
     def mzc_disp(self):
         """ The mean cumulative number of zero crossing (up and down) of the displacement model """
-        self.stats
         if self._dirty_flags & self.MZC_DISP:
-            np.cumsum((np.sqrt(self.variance_bar / self.variance_2bar) / (2 * np.pi)) * self.dt, out=self._mzc_disp)
+            self.stats
+            model_engine.cumulative_rate(self.dt, self.variance_bar, self.variance_2bar, self._mzc_disp)
             self._dirty_flags &= ~self.MZC_DISP
         return self._mzc_disp
 
     @property
     def pmnm_ac(self):
         """ The mean cumulative number of positive-minima and negative maxima of the acceleration model """
-        self.stats
         if self._dirty_flags & self.PMNM_AC:
-            np.cumsum(((np.sqrt(self.variance_2dot / self.variance_dot) -
-                        np.sqrt(self.variance_dot / self.variance)) / (4 * np.pi)) * self.dt, out=self._pmnm_ac)
+            self.stats
+            model_engine.pmnm_rate(self.dt, self.variance_2dot, self.variance_dot, self.variance, self._pmnm_ac)
             self._dirty_flags &= ~self.PMNM_AC
         return self._pmnm_ac
 
     @property
     def pmnm_vel(self):
         """ The mean cumulative number of positive-minima and negative maxima of the velocity model """
-        self.stats
         if self._dirty_flags & self.PMNM_VEL:
-            np.cumsum(((np.sqrt(self.variance_dot / self.variance) -
-                       np.sqrt(self.variance / self.variance_bar)) / (4 * np.pi)) * self.dt, out=self._pmnm_vel)
+            self.stats
+            model_engine.pmnm_rate(self.dt, self.variance_dot, self.variance, self.variance_bar, self._pmnm_vel)
             self._dirty_flags &= ~self.PMNM_VEL
         return self._pmnm_vel
 
     @property
     def pmnm_disp(self):
         """ The mean cumulative number of positive-minima and negative maxima of the displacement model """
-        self.stats
         if self._dirty_flags & self.PMNM_DISP:
-            np.cumsum(((np.sqrt(self.variance / self.variance_bar) -
-                       np.sqrt(self.variance_bar / self.variance_2bar)) / (4 * np.pi)) * self.dt, out=self._pmnm_disp)
+            self.stats
+            model_engine.pmnm_rate(self.dt, self.variance, self.variance_bar, self.variance_2bar, self._pmnm_disp)
             self._dirty_flags &= ~self.PMNM_DISP
         return self._pmnm_disp

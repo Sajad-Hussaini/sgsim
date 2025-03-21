@@ -1,7 +1,7 @@
 import numpy as np
 from numba import njit, prange, int64, float64, complex128
 
-@njit(complex128[:](float64, float64, float64, float64, float64[:], float64[:]), cache=True)
+@njit(complex128[::1](float64, float64, float64, float64, float64[::1], float64[::1]), fastmath=True, cache=True)
 def get_frf(wu, zu, wl, zl, freq, freq_p2):
     """
     Frequency response function for the filter
@@ -15,7 +15,7 @@ def get_frf(wu, zu, wl, zl, freq, freq_p2):
     return -freq_p2 / (((wl ** 2 - freq_p2) + (2j * zl * wl * freq)) *
                        ((wu ** 2 - freq_p2) + (2j * zu * wu * freq)))
 
-@njit(float64[:](float64, float64, float64, float64, float64[:], float64[:]), cache=True)
+@njit(float64[::1](float64, float64, float64, float64, float64[::1], float64[::1]), fastmath=True, cache=True)
 def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
     """
     Non-normalized Power Spectral Density (PSD) for the filter
@@ -30,7 +30,7 @@ def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
     return freq_p4 / ((wl ** 4 + freq_p4 + 2 * wl ** 2 * freq_p2 * (2 * zl ** 2 - 1)) *
                       (wu ** 4 + freq_p4 + 2 * wu ** 2 * freq_p2 * (2 * zu ** 2 - 1)))
 
-@njit((float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:]), parallel=True, cache=True)
+@njit((float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1]), parallel=True, fastmath=True, cache=True)
 def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, variance, variance_dot, variance_2dot, variance_bar, variance_2bar):
     """
     The evolutionary statistics of the stochastic model using Power Spectral Density (PSD)
@@ -49,24 +49,37 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, variance, vari
     """
     for i in prange(len(wu)):
         psdb = get_psd(wu[i], zu[i], wl[i], zl[i], freq_p2, freq_p4)
-        variance[i] = np.sum(psdb)
-        variance_dot[i] = np.sum(freq_p2 * psdb)
-        variance_2dot[i] = np.sum(freq_p4 * psdb)
-        variance_bar[i] = np.sum(freq_n2 * psdb[1:])
-        variance_2bar[i] = np.sum(freq_n4 * psdb[1:])
+        variance[i] = 0.0
+        variance_dot[i] = 0.0
+        variance_2dot[i] = 0.0
+        variance_bar[i] = 0.0
+        variance_2bar[i] = 0.0
+        for j in range(len(psdb)):  # one passage with scalar operation through the loop is faster than using np.sum and np.dot (5 passages)
+            variance[i] += psdb[j]
+            variance_dot[i] += freq_p2[j] * psdb[j]
+            variance_2dot[i] += freq_p4[j] * psdb[j]
+            variance_bar[i] += freq_n2[j] * psdb[j]
+            variance_2bar[i] += freq_n4[j] * psdb[j]
+        # variance[i] = np.sum(psdb)  # slower than the loop
+        # variance_dot[i] = np.dot(freq_p2, psdb)
+        # variance_2dot[i] = np.dot(freq_p4, psdb)
+        # variance_bar[i] = np.dot(freq_n2, psdb)
+        # variance_2bar[i] = np.dot(freq_n4, psdb)
 
-@njit((float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:]), cache=True)
+@njit((float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1]), parallel=True, fastmath=True, cache=True)
 def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, fas):
     """
     The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
     """
     fas.fill(0.0)
-    for i in range(len(wu)):
+    for i in prange(len(wu)):
         psd_i = get_psd(wu[i], zu[i], wl[i], zl[i], freq_p2, freq_p4)
-        fas += mdl[i] ** 2 * psd_i / psd_i.sum()
+        scale = mdl[i] ** 2 / np.sum(psd_i)
+        for j in range(len(psd_i)):
+            fas[j] += scale * psd_i[j]
     fas[:] = np.sqrt(fas)
 
-@njit(complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :]), parallel=True, cache=True)
+@njit(complex128[:, ::1](int64, int64, float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[:, ::1]), parallel=True, fastmath=True, cache=True)
 def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise):
     """
     The Fourier series of n number of simulations
@@ -77,3 +90,19 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
             fourier[sim, :] += (get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim, freq_sim_p2) *
                                 np.exp(-1j * freq_sim * t[i]) * white_noise[sim][i] * mdl[i] / np.sqrt(variance[i] * 2 / npts))
     return fourier
+
+@njit((float64, float64[::1], float64[::1], float64[::1]), fastmath=True, cache=True)
+def cumulative_rate(dt, numerator, denominator, out):
+    scale = dt / (2 * np.pi)
+    cumsum = 0.0
+    for i in range(len(numerator)):
+        cumsum += np.sqrt(numerator[i] / denominator[i]) * scale
+        out[i] = cumsum
+
+@njit((float64, float64[::1], float64[::1], float64[::1], float64[::1]), fastmath=True, cache=True)
+def pmnm_rate(dt, first, middle, last, out):
+    scale = dt / (4 * np.pi)
+    cumsum = 0.0
+    for i in range(len(first)):
+        cumsum += (np.sqrt(first[i] / middle[i]) - np.sqrt(middle[i] / last[i])) * scale
+        out[i] = cumsum

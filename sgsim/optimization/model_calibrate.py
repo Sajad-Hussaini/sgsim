@@ -4,8 +4,8 @@ from scipy.optimize import curve_fit
 def calibrate(func: str, model, motion, initial_guess=None, lower_bounds=None, upper_bounds=None):
     """ Fit the stochastic model to a target motion """
     init_guess, lw_bounds, up_bounds = initialize_bounds(func, model, initial_guess, lower_bounds, upper_bounds)
-    xdata, ydata, obj_func = prepare_data(func, model, motion)
-    curve_fit(obj_func, xdata, ydata, p0=init_guess, bounds=(lw_bounds, up_bounds))
+    xdata, ydata, obj_func, sigmas = prepare_data(func, model, motion)
+    curve_fit(obj_func, xdata, ydata, p0=init_guess, bounds=(lw_bounds, up_bounds), sigma=sigmas)
     return model
 
 def initialize_bounds(func, model, init_guess, lw_bounds, up_bounds):
@@ -57,19 +57,23 @@ def prepare_modulating_data(model, motion):
     ydata = motion.ce
     xdata = motion.t
     obj_func = lambda _, *params: obj_mdl(params, model=model, motion=motion)
-    return xdata, ydata, obj_func
+    return xdata, ydata, obj_func, None
 
 def prepare_frequency_data(model, motion):
-    ydata = np.concatenate((motion.mzc_ac * model.mdl, motion.mzc_disp * model.mdl))
+    mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 1e-2)
+    ydata = np.concatenate((motion.mzc_ac, motion.mzc_disp))
     xdata = np.tile(motion.t, 2)
     obj_func = lambda _, *params: obj_freq(params, model=model)
-    return xdata, ydata, obj_func
+    sigmas = np.tile(mdl_norm, 2)
+    return xdata, ydata, obj_func, sigmas
 
 def prepare_damping_data(model, motion):
-    ydata = np.concatenate((motion.mzc_ac * model.mdl, motion.mzc_vel * model.mdl, motion.mzc_disp * model.mdl, motion.pmnm_vel * model.mdl, motion.pmnm_disp * model.mdl))
-    xdata = np.concatenate((motion.t, motion.t, motion.t, motion.t, motion.t))
+    mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 1e-2)
+    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, motion.pmnm_vel, motion.pmnm_disp))
+    xdata = np.tile(motion.t, 5)
     obj_func = lambda _, *params: obj_damping(params, model=model)
-    return xdata, ydata, obj_func
+    sigmas = np.tile(mdl_norm, 5)
+    return xdata, ydata, obj_func, sigmas
 
 def obj_mdl(params, model, motion):
     """
@@ -100,7 +104,7 @@ def obj_freq(params, model):
     model.wl = wl_param
     wu_array = np.cumsum(model.wu / (2 * np.pi)) * model.dt
     wl_array = np.cumsum(model.wl / (2 * np.pi)) * model.dt
-    return np.concatenate((wu_array * model.mdl, wl_array * model.mdl))
+    return np.concatenate((wu_array, wl_array))
 
 def obj_damping(params, model):
     """
@@ -112,4 +116,4 @@ def obj_damping(params, model):
     zl_param = params[half_param:]
     model.zu = zu_param
     model.zl = zl_param
-    return np.concatenate((model.mzc_ac * model.mdl, model.mzc_vel * model.mdl, model.mzc_disp * model.mdl, model.pmnm_vel * model.mdl, model.pmnm_disp * model.mdl))
+    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, model.pmnm_vel, model.pmnm_disp))

@@ -59,8 +59,12 @@ class DomainConfig:
 
     @cached_property
     def freq_n2(self):
-        return self.freq[1:] ** -2
+        _freq_n2 = np.zeros_like(self.freq)
+        _freq_n2[1:] = self.freq[1:] ** -2
+        return _freq_n2
 
     @cached_property
     def freq_n4(self):
-        return self.freq[1:] ** -4
+        _freq_n4 = np.zeros_like(self.freq)
+        _freq_n4[1:] = self.freq[1:] ** -4
+        return _freq_n4

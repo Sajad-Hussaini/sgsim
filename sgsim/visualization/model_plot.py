@@ -68,7 +68,8 @@ class ModelPlot:
                     ax.set_xlabel('Time (s)') if row_idx == 2 else None
                     ax.minorticks_on()
 
-                axes[row_idx, 0].set_ylim([-1.05 * max(abs(rec)), 1.05 * max(abs(rec))])
+                max_val = max(np.max(np.abs(rec)), np.max(np.abs(sim1)), np.max(np.abs(sim2)))
+                axes[row_idx, 0].set_ylim([-1.05 * max_val, 1.05 * max_val])
                 axes[row_idx, 0].yaxis.set_major_locator(plt.MaxNLocator(5, symmetric=True))
             axes[0, 0].set_title('Real')
             axes[0, 1].set_title('Simulation')
@@ -103,7 +104,7 @@ class ModelPlot:
         config = {**self.rcp, 'figure.figsize':  (8/2.54, 6/2.54), **(config or {})}
         with plt.rc_context(rc=config):
             self._plot_mean_std(self.real.freq / (2 * np.pi), self.sim.fas, self.real.fas)
-            plt.ylim(np.min(self.real.fas[self.real.freq_mask]), 2 * np.max(self.real.fas[self.real.freq_mask]))
+            plt.ylim(np.min(self.real.fas[self.real.freq_slice]), 2 * np.max(self.real.fas[self.real.freq_slice]))
             plt.xlim([0.1, 25.0])
             plt.xscale('log')
             if log_scale:
