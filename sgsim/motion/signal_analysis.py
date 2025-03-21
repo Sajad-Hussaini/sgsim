@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.fft import rfft, rfftfreq
-from numba import jit, float64
+from numba import njit, float64
 
 def get_mzc(rec):
     """
@@ -36,7 +36,7 @@ def get_mle(rec):
     mle_vec[..., -1] = mle_vec[..., -2]
     return np.cumsum(mle_vec, axis=-1)
 
-@jit(float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64), nopython=True, cache=True)
+@njit(float64[:, :, :, ::1](float64, float64[:, ::1], float64[::1], float64, float64), cache=True)
 def sdof_lin_model(dt, rec, period, zeta, mass):
     """
     linear analysis of a SDOF model using newmark method
@@ -201,7 +201,7 @@ def get_angle(rec_x, rec_y):
     " angle of a vector that is depednent on coordinate system"
     return np.unwrap(np.arctan2(rec_y, rec_x))
 
-def get_turning_rate(dt, rec_x, rec_y):
+def turning_rate(dt, rec_x, rec_y):
     " turning rate or angular velocity of a vector that is indepednent of coordinate system"
     anlges = get_angle(rec_x, rec_y)
     if len(anlges.shape) == 1:
@@ -214,3 +214,7 @@ def rotate2d(rec_x, rec_y, angle):
     xr = rec_x * np.cos(angle) - rec_y * np.sin(angle)
     yr = rec_x * np.sin(angle) + rec_y * np.cos(angle)
     return xr, yr
+
+def correlation2d(rec_x, rec_y):
+    " correlation between two signals"
+    return np.sum(rec_x * rec_y) / np.sqrt(np.sum(rec_x ** 2) * np.sum(rec_y ** 2))

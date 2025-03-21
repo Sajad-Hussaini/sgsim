@@ -37,15 +37,17 @@ class StochasticModel(ModelCore):
         self.vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
         self.disp = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2), workers=-1)[..., :self.npts]
         return self
-    
+
     def show_parameters(self):
         """ Print all model parameters to the console. """
         print()
-        print(f"modulating_func (mdl): {self.mdl_func.__name__} {", ".join(map(str, self.mdl_params))}")
-        print(f"upper_frequency_func (wu): {self.wu_func.__name__} {", ".join(map(str, self.wu_params))}")
-        print(f"lower_frequency_func (wl): {self.wl_func.__name__} {", ".join(map(str, self.wl_params))}")
-        print(f"upper_damping_func (zu): {self.zu_func.__name__} {", ".join(map(str, self.zu_params))}")
-        print(f"lower_damping_func (zl): {self.zl_func.__name__} {", ".join(map(str, self.zl_params))}")
+        for name, func, params in [
+            ("modulating_func (mdl)", self.mdl_func, self.mdl_params),
+            ("upper_frequency_func (wu)", self.wu_func, self.wu_params),
+            ("lower_frequency_func (wl)", self.wl_func, self.wl_params),
+            ("upper_damping_func (zu)", self.zu_func, self.zu_params),
+            ("lower_damping_func (zl)", self.zl_func, self.zl_params)]:
+            print(f"{name}: {func.__name__} {', '.join(f'{p:.3f}' for p in params)}")
 
     def save_parameters(self, filename: str):
         """
