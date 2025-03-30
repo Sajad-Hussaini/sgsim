@@ -14,6 +14,10 @@ class ModelPlot:
         self.real = real_motion
         self.rcp = {
             'font.family': 'Times New Roman',
+            'mathtext.fontset': 'custom',
+            'mathtext.rm': 'Times New Roman',
+            'mathtext.it': 'Times New Roman:italic',
+            'mathtext.bf': 'Times New Roman:bold',
             'font.size': 9,
 
             'lines.linewidth': 0.5,
@@ -30,7 +34,7 @@ class ModelPlot:
             'legend.frameon': False,
 
             'figure.dpi': 900,
-            'figure.figsize': (3.937, 3.1496),  # 10 cm by 8 cm
+            'figure.figsize': (10/2.54, 8/2.54),
             'figure.constrained_layout.use': True,
 
             'patch.linewidth': 0.5,
