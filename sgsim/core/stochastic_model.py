@@ -38,7 +38,7 @@ class StochasticModel(ModelCore):
         self.disp = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2), workers=-1)[..., :self.npts]
         return self
 
-    def parameters_summary(self, filename: str):
+    def parameters_summary(self, filename: str = None):
         """
         Print all model parameters to the console.
         Save all model parameters to a plain text file.
@@ -54,25 +54,26 @@ class StochasticModel(ModelCore):
             ("lower_damping_func (zl)", self.zl_func, self.zl_params)]:
             print(f"{name}: {func.__name__} {', '.join(f'{p:.3f}' for p in params)}")
         
-        with open(filename, 'w') as file:
-            file.write("SGSIM: Stochastic Simulation Model Parameters\n")
-            file.write(f"npts={self.npts}\n")
-            file.write(f"dt={self.dt}\n")
+        if filename:
+            with open(filename, 'w') as file:
+                file.write("SGSIM: Stochastic Simulation Model Parameters\n")
+                file.write(f"npts={self.npts}\n")
+                file.write(f"dt={self.dt}\n")
 
-            file.write(f"modulating_func={self.mdl_func.__name__}\n")
-            file.write(f"modulating_params={','.join(map(str, self.mdl_params))}\n")
+                file.write(f"modulating_func={self.mdl_func.__name__}\n")
+                file.write(f"modulating_params={','.join(map(str, self.mdl_params))}\n")
 
-            file.write(f"upper_frequency_func={self.wu_func.__name__}\n")
-            file.write(f"upper_frequency_params={','.join(map(str, self.wu_params))}\n")
+                file.write(f"upper_frequency_func={self.wu_func.__name__}\n")
+                file.write(f"upper_frequency_params={','.join(map(str, self.wu_params))}\n")
 
-            file.write(f"upper_damping_func={self.zu_func.__name__}\n")
-            file.write(f"upper_damping_params={','.join(map(str, self.zu_params))}\n")
+                file.write(f"upper_damping_func={self.zu_func.__name__}\n")
+                file.write(f"upper_damping_params={','.join(map(str, self.zu_params))}\n")
 
-            file.write(f"lower_frequency_func={self.wl_func.__name__}\n")
-            file.write(f"lower_frequency_params={','.join(map(str, self.wl_params))}\n")
+                file.write(f"lower_frequency_func={self.wl_func.__name__}\n")
+                file.write(f"lower_frequency_params={','.join(map(str, self.wl_params))}\n")
 
-            file.write(f"lower_damping_func={self.zl_func.__name__}\n")
-            file.write(f"lower_damping_params={','.join(map(str, self.zl_params))}\n")
+                file.write(f"lower_damping_func={self.zl_func.__name__}\n")
+                file.write(f"lower_damping_params={','.join(map(str, self.zl_params))}\n")
         return self
 
     @classmethod

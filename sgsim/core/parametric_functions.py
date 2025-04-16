@@ -15,6 +15,9 @@ def bilinear(t, p0, p_mid, pn, t_mid):
 def exponential(t, p0, pn):
     return p0 * np.exp(np.log(pn / p0) * (t / t[-1]))
 
+def exponential_peak(t, tp, p0, pn):
+    return 0.1 + p0 * np.exp(-pn * np.abs(t / t[-1] - tp))
+
 def beta_basic(t, p1, c1, et, tn):
     mdl = ((t ** (c1 * p1) * (tn - t) ** (c1 * (1 - p1))) /
            (beta(1 + c1 * p1, 1 + c1 * (1 - p1)) * tn ** (1 + c1)))
