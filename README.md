@@ -19,13 +19,13 @@
 ## Installation
 To install **SGSIM** from source:
 ```bash
-git clone https://github.com/Sajad-Hussaini/SGSIM.git
-cd SGSIM
+git clone https://github.com/Sajad-Hussaini/sgsim.git
+cd sgsim
 pip install .
 ```
 or install via `pip` (will be added), run:
 ```bash
-pip install SGSIM
+pip install sgsim
 ```
 
 ## User Guide
@@ -36,7 +36,9 @@ SGSIM is released under the [GNU AGPL 3.0](https://www.gnu.org/licenses/agpl-3.0
 See the [License](License) for the full text.
 
 ## Contact
-S.M. Sajad Hussaini  
+If you have any questions or need assistance, feel free to contact me at hussaini.smsajad@gmail.com, with "SGSIM" in the subject line.  
+
+S.M. Sajad Hussaini:
 [hussaini.smsajad@gmail.com](mailto:hussaini.smsajad@gmail.com)
 
 If you find this package useful, contributions to help maintain and improve it are always appreciated. You can donate via [PayPal](https://www.paypal.com/paypalme/sajadhussaini)
@@ -44,8 +46,8 @@ If you find this package useful, contributions to help maintain and improve it a
 ## References
 Please cite the following references for any formal study:  
 
-*[1] Broadband Stochastic Simulation of Earthquake Ground Motions with Multiple Strong Phases with An Application to the 2023 Kahramanmaraş Türkiye Earthquake*  
-*DOI: To be assigned upon publication*
+*[1] BROADBAND STOCHASTIC SIMULATION OF EARTHQUAKE GROUND MOTIONS WITH MULTIPLE STRONG PHASES WITH AN APPLICATION TO THE 2023 KAHRAMANMARAS, TURKEY (TÜRKIYE), EARTHQUAKE*  
+*DOI: https://doi.org/10.1177/87552930251331981 (journal of Earthquake Spectra)
 
-*[2] SGSIM Code*  
+*[2] SGSIM Package*  
 *DOI: https://doi.org/10.5281/zenodo.14565922*

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="sgsim",
-    version="1.0.6",
+    version="1.0.7",
     author="S.M.Sajad Hussaini",
     author_email="hussaini.smsajad@gmail.com",
     description="SGSIM: Stochastic Ground-motion SIMulation model.",
@@ -16,8 +16,8 @@ setup(
     keywords=['Python', 'SGSIM', 'stochastic ground motion simulation', 'earthquake engineering'],
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: GNU AGPL v3",
+        "License :: OSI Approved :: GNU Affero General Public License v3",
         "Operating System :: OS Independent",
-        "Intended Audience :: Science/Engineering/Research",
-        "Topic :: Scientific/Engineering",]
+        "Intended Audience :: Science/Research",
+        "Topic :: Scientific/Engineering"]
     )
