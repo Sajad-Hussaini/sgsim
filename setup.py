@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="sgsim",
-    version="1.0.61",
+    version="1.0.6",
     author="S.M.Sajad Hussaini",
     author_email="hussaini.smsajad@gmail.com",
     description="SGSIM: Stochastic Ground-motion SIMulation model.",
