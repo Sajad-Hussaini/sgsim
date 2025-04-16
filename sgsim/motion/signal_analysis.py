@@ -36,7 +36,7 @@ def get_mle(rec):
     mle_vec[..., -1] = mle_vec[..., -2]
     return np.cumsum(mle_vec, axis=-1)
 
-@njit(float64[:, :, :, ::1](float64, float64[:, ::1], float64[::1], float64, float64), cache=True)
+@njit(float64[:, :, :, ::1](float64, float64[:, :], float64[::1], float64, float64), cache=True)
 def sdof_lin_model(dt, rec, period, zeta, mass):
     """
     linear analysis of a SDOF model using newmark method

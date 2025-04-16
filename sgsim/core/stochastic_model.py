@@ -38,8 +38,13 @@ class StochasticModel(ModelCore):
         self.disp = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2), workers=-1)[..., :self.npts]
         return self
 
-    def show_parameters(self):
-        """ Print all model parameters to the console. """
+    def parameters_summary(self, filename: str):
+        """
+        Print all model parameters to the console.
+        Save all model parameters to a plain text file.
+        A stochastic model can be initiated from the saved file using the class method from_file.
+        filename: The name of the text file to save the data to.
+        """
         print()
         for name, func, params in [
             ("modulating_func (mdl)", self.mdl_func, self.mdl_params),
@@ -48,13 +53,7 @@ class StochasticModel(ModelCore):
             ("upper_damping_func (zu)", self.zu_func, self.zu_params),
             ("lower_damping_func (zl)", self.zl_func, self.zl_params)]:
             print(f"{name}: {func.__name__} {', '.join(f'{p:.3f}' for p in params)}")
-
-    def save_parameters(self, filename: str):
-        """
-        Save all model parameters to a plain text file.
-        A stochastic model can be initiated from the saved file using the class method from_file.
-        filename: The name of the text file to save the data to.
-        """
+        
         with open(filename, 'w') as file:
             file.write("SGSIM: Stochastic Simulation Model Parameters\n")
             file.write(f"npts={self.npts}\n")
