@@ -1,7 +1,6 @@
 # SGSIM
-<p align="justify">
-<strong>SGSIM</strong> is a Python package for simulating target earthquake ground motions using a site-based stochastic model [1]. It derives model parameters that implicitly account for the earthquake and site characteristics of the target ground motion. Using these parameters, the package simulates ground motions for the specific earthquake scenario, accounting for their aleatoric variability. It also provides tools for visualizing the simulation results..
-</p>
+**SGSIM** is a Python package for simulating target earthquake ground motions using a site-compatible stochastic model [1]. It derives model parameters that implicitly account for the earthquake and site characteristics of the target ground motion. Using these parameters, the package simulates ground motions for the specific earthquake scenario, accounting for their aleatoric variability. It also provides tools for visualizing the simulation results.  
+To ensure compatibility with the user guide, it's recommended to use the latest **release** available on **GitHub** or **PyPI** or **Zenodo**.
 
 ## Table of Contents
 - [Features](#features)

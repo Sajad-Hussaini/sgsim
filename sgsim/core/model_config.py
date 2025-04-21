@@ -36,7 +36,7 @@ class ModelConfig(DomainConfig):
     @mdl.setter
     def mdl(self, params):
         self._mdl[:] = self.mdl_func(self.t, *params)
-        self.mdl_params = params
+        self.mdl_params = tuple(p for p in params if np.isscalar(p))
         self._set_dirty_flag()
 
     @property
@@ -47,7 +47,7 @@ class ModelConfig(DomainConfig):
     @wu.setter
     def wu(self, params):
         self._wu[:] = self.wu_func(self.t, *params)
-        self.wu_params = params
+        self.wu_params = tuple(p for p in params if np.isscalar(p))
         self._wu *= 2 * np.pi  # Convert to angular frequency
         self._set_dirty_flag()
 
@@ -59,7 +59,7 @@ class ModelConfig(DomainConfig):
     @wl.setter
     def wl(self, params):
         self._wl[:] = self.wl_func(self.t, *params)
-        self.wl_params = params
+        self.wl_params = tuple(p for p in params if np.isscalar(p))
         self._wl *= 2 * np.pi  # Convert to angular frequency
         self._set_dirty_flag()
 
@@ -71,7 +71,7 @@ class ModelConfig(DomainConfig):
     @zu.setter
     def zu(self, params):
         self._zu[:] = self.zu_func(self.t, *params)
-        self.zu_params = params
+        self.zu_params = tuple(p for p in params if np.isscalar(p))
         self._set_dirty_flag()
 
     @property
@@ -82,5 +82,5 @@ class ModelConfig(DomainConfig):
     @zl.setter
     def zl(self, params):
         self._zl[:] = self.zl_func(self.t, *params)
-        self.zl_params = params
+        self.zl_params = tuple(p for p in params if np.isscalar(p))
         self._set_dirty_flag()
