@@ -198,10 +198,14 @@ class ModelPlot:
         sim_params = ['ce', 'fas', 'sa', 'sv', 'sd', 'mzc_ac', 'mzc_vel', 'mzc_disp', 'pmnm_vel', 'pmnm_disp']
         
         return (
-            {param: metric_func(getattr(self.real, param), getattr(self.model, param)) 
-             for param in model_params},
-            {param: metric_func(getattr(self.real, param), getattr(self.sim, param)) 
-             for param in sim_params}
+            {param: metric_func(np.log(getattr(self.real, param)+1e-10), np.log(getattr(self.model, param)+1e-10)) 
+              if param in ['fas', 'sa', 'sv', 'sd'] else 
+              metric_func(getattr(self.real, param), getattr(self.model, param))
+              for param in model_params},
+            {param: metric_func(np.log(getattr(self.real, param)+1e-10), np.log(getattr(self.sim, param)+1e-10)) 
+              if param in ['fas', 'sa', 'sv', 'sd'] else 
+              metric_func(getattr(self.real, param), getattr(self.sim, param))
+              for param in sim_params}
              )
 
     @property

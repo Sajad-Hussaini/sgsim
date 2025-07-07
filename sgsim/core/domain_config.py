@@ -39,7 +39,7 @@ class DomainConfig:
 
     @property
     def tp(self):
-        return self._tp if hasattr(self, '_tp') else np.arange(0.04, 10.04, 0.01)
+        return self._tp if hasattr(self, '_tp') else np.arange(0.04, 10.01, 0.01)
 
     @tp.setter
     def tp(self, period_range: tuple[float, float, float]):

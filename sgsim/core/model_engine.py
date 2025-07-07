@@ -49,34 +49,33 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, variance, vari
     """
     for i in prange(len(wu)):
         psdb = get_psd(wu[i], zu[i], wl[i], zl[i], freq_p2, freq_p4)
-        variance[i] = 0.0
-        variance_dot[i] = 0.0
-        variance_2dot[i] = 0.0
-        variance_bar[i] = 0.0
-        variance_2bar[i] = 0.0
-        for j in range(len(psdb)):  # one passage with scalar operation through the loop is faster than using np.sum and np.dot (5 passages)
-            variance[i] += psdb[j]
-            variance_dot[i] += freq_p2[j] * psdb[j]
-            variance_2dot[i] += freq_p4[j] * psdb[j]
-            variance_bar[i] += freq_n2[j] * psdb[j]
-            variance_2bar[i] += freq_n4[j] * psdb[j]
-        # variance[i] = np.sum(psdb)  # slower than the loop
-        # variance_dot[i] = np.dot(freq_p2, psdb)
-        # variance_2dot[i] = np.dot(freq_p4, psdb)
-        # variance_bar[i] = np.dot(freq_n2, psdb)
-        # variance_2bar[i] = np.dot(freq_n4, psdb)
+        # Avoid repeated array lookups in machine code 
+        var, var_dot, var_2dot, var_bar, var_2bar = 0.0, 0.0, 0.0, 0.0, 0.0
+        # faster one passage scalar operation in machine code
+        for j in range(len(psdb)):
+            psd_val = psdb[j]
+            var += psd_val
+            var_dot += freq_p2[j] * psd_val
+            var_2dot += freq_p4[j] * psd_val
+            var_bar += freq_n2[j] * psd_val
+            var_2bar += freq_n4[j] * psd_val
 
-@njit((float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1]), parallel=True, fastmath=True, cache=True)
+        variance[i] = var
+        variance_dot[i] = var_dot
+        variance_2dot[i] = var_2dot
+        variance_bar[i] = var_bar
+        variance_2bar[i] = var_2bar
+
+@njit((float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1]), fastmath=True, cache=True)
 def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, fas):
     """
     The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
     """
     fas.fill(0.0)
-    for i in prange(len(wu)):
+    for i in range(len(wu)):
         psd_i = get_psd(wu[i], zu[i], wl[i], zl[i], freq_p2, freq_p4)
         scale = mdl[i] ** 2 / np.sum(psd_i)
-        for j in range(len(psd_i)):
-            fas[j] += scale * psd_i[j]
+        fas += scale * psd_i
     fas[:] = np.sqrt(fas)
 
 @njit(complex128[:, ::1](int64, int64, float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[:, ::1]), parallel=True, fastmath=True, cache=True)
@@ -85,10 +84,15 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
     The Fourier series of n number of simulations
     """
     fourier = np.zeros((n, len(freq_sim)), dtype=np.complex128)
-    for sim in prange(n):
-        for i in range(npts):
-            fourier[sim, :] += (get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim, freq_sim_p2) *
-                                np.exp(-1j * freq_sim * t[i]) * white_noise[sim][i] * mdl[i] / np.sqrt(variance[i] * 2 / npts))
+    for i in range(npts):
+        frf_i = get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim, freq_sim_p2)
+        exp_i = np.exp(-1j * freq_sim * t[i])
+        scale_i = mdl[i] / np.sqrt(variance[i] * 2.0 / npts)
+        term_vector_i = frf_i * exp_i * scale_i
+
+        for sim in prange(n):
+            fourier[sim, :] += term_vector_i * white_noise[sim, i]
+            
     return fourier
 
 @njit((float64, float64[::1], float64[::1], float64[::1]), fastmath=True, cache=True)

@@ -42,6 +42,9 @@ _rc_config = {
     'legend.framealpha': 1.0,
     'legend.frameon': False,
 
+    'grid.linewidth': 0.2,
+    'grid.alpha': 1.0,
+
     'figure.dpi': 1000,
     'figure.figsize': (15/2.54, 10/2.54),
     'figure.constrained_layout.use': True,
