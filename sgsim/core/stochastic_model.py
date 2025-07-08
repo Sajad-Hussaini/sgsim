@@ -9,26 +9,14 @@ class StochasticModel(ModelCore):
     This class allows to construct a stochastic simulation model
     for calibrattion of model parameters and simulation of ground motions
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._seed = None
-
-    @property
-    def seed(self):
-        return self._seed
-
-    @seed.setter
-    def seed(self, fixed_seed: int):
-        self._seed = fixed_seed
-
-    def simulate(self, n: int):
+    def simulate(self, n: int, seed: int = None):
         """
         Simulate ground motions using the calibrated stochastic model
             acceleration, velocity, displacement time series
         """
         self.stats
         n = int(n)
-        white_noise = np.random.default_rng(self._seed).standard_normal((n, self.npts))
+        white_noise = np.random.default_rng(seed).standard_normal((n, self.npts))
         fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2,
                                                         self.mdl, self.wu, self.zu, self.wl, self.zl,
                                                         self.variance, white_noise)
@@ -38,22 +26,41 @@ class StochasticModel(ModelCore):
         self.disp = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2), workers=-1)[..., :self.npts]
         return self
 
-    def parameters_summary(self, filename: str = None):
+    def summary(self, filename: str = None):
         """
         Print all model parameters to the console.
         Save all model parameters to a plain text file.
         A stochastic model can be initiated from the saved file using the class method from_file.
         filename: The name of the text file to save the data to.
         """
-        print()
+        param_lines = {
+            "Time Step (dt)": f"{self.dt}",
+            "Number of Points (npts)": f"{self.npts}",
+            "Duration (tn)": f"{self.t[-1]:.2f}",}
+
+        func_lines = {}
         for name, func, params in [
-            ("modulating_func (mdl)", self.mdl_func, self.mdl_params),
-            ("upper_frequency_func (wu)", self.wu_func, self.wu_params),
-            ("lower_frequency_func (wl)", self.wl_func, self.wl_params),
-            ("upper_damping_func (zu)", self.zu_func, self.zu_params),
-            ("lower_damping_func (zl)", self.zl_func, self.zl_params)]:
-            print(f"{name}: {func.__name__} {', '.join(f'{p:.3f}' for p in params)}")
-        
+            ("Modulating (mdl)", self.mdl_func, self.mdl_params),
+            ("Upper Frequency (wu)", self.wu_func, self.wu_params),
+            ("Lower Frequency (wl)", self.wl_func, self.wl_params),
+            ("Upper Damping (zu)", self.zu_func, self.zu_params),
+            ("Lower Damping (zl)", self.zl_func, self.zl_params)]:
+            param_str = ', '.join(f'{p:.3f}' for p in params)
+            func_lines[name] = f"{func.__name__} ({param_str})"
+
+        max_label_len = max(len(label) for label in list(param_lines.keys()) + list(func_lines.keys()))
+
+        title = "Stochastic Model Summary " + "=" * 30
+        print(title)
+
+        for label, value in param_lines.items():
+            print(f"{label:<{max_label_len}} : {value}")
+        print("-" * len(title))
+
+        for label, value in func_lines.items():
+            print(f"{label:<{max_label_len}} : {value}")
+        print("-" * len(title))
+
         if filename:
             with open(filename, 'w') as file:
                 file.write("SGSIM: Stochastic Simulation Model Parameters\n")

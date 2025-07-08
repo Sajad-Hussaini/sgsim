@@ -4,6 +4,9 @@ from ..motion import signal_analysis
 
 class DomainConfig:
     """ Time and frequency domain configuration """
+
+    _CORE_ATTRS = frozenset(['_npts', '_dt'])
+
     def __init__(self, npts, dt):
         """
         npts: int
@@ -11,8 +14,34 @@ class DomainConfig:
         dt: float
             Time step between points.
         """
-        self.npts = npts
-        self.dt = dt
+        self._npts = npts
+        self._dt = dt
+    
+    @property
+    def npts(self):
+        return self._npts
+
+    @npts.setter
+    def npts(self, value: int):
+        if value != self._npts:
+            self._npts = value
+            self.clear_cache()
+
+    @property
+    def dt(self):
+        return self._dt
+
+    @dt.setter
+    def dt(self, value: float):
+        if value != self._dt:
+            self._dt = value
+            self.clear_cache()
+
+    def clear_cache(self):
+        """Clear cached properties, preserving core attributes."""
+        core_values = {attr: getattr(self, attr) for attr in self._CORE_ATTRS}
+        self.__dict__.clear()
+        self.__dict__.update(core_values)
 
     @cached_property
     def t(self):

@@ -26,7 +26,9 @@ class ModelConfig(DomainConfig):
     
     def _set_dirty_flag(self):
         " Set a dirty flag on dependent attributes upon core attribute changes. "
-        self._dirty_flags = (1 << 12) - 1  # Set all flags to dirty using bit flag 0b111111111111 (fun overkill!)
+        # Set all flags to dirty where 1 << 12 the 13th bit is 1 and all others are 0.
+        # (1 << 12) - 1 = 0b111111111111 bitmask for the first 12 bits.
+        self._dirty_flags = (1 << 12) - 1
 
     @property
     def mdl(self):

@@ -9,7 +9,7 @@ class Motion(DomainConfig):
     """
     This class describes ground motions in terms of various proprties (e.g., spectra, peak motions, characteristics)
     """
-    _CORE_ATTRS = frozenset({'npts', 'dt', 'ac', 'vel', 'disp'})
+    _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset({'ac', 'vel', 'disp'})
 
     def __init__(self, npts, dt, ac, vel, disp):
         """
@@ -24,12 +24,6 @@ class Motion(DomainConfig):
         self.ac = ac
         self.vel = vel
         self.disp = disp
-    
-    def clear_cache(self):
-        """Clear cached properties, preserving core attributes."""
-        core_values = {attr: getattr(self, attr) for attr in self._CORE_ATTRS}
-        self.__dict__.clear()
-        self.__dict__.update(core_values)
 
     def trim(self, option: str, value: tuple[float, float] | slice | int):
         """
@@ -70,8 +64,7 @@ class Motion(DomainConfig):
         self.ac = self.ac[slicer]
         self.vel = self.vel[slicer]
         self.disp = self.disp[slicer]
-        self.npts = len(self.ac)
-        self.clear_cache()
+        self.npts = len(self.ac)  # auto clear cache
         return self
     
     def filter(self, bandpass_freqs: tuple[float, float]):
@@ -91,10 +84,12 @@ class Motion(DomainConfig):
         Args:
             dt (float): The new time step.
         """
-        self.npts, self.dt, self.ac = signal_processing.resample(self.dt, dt, self.ac)
-        self.vel = signal_analysis.get_integral(dt, self.ac)
-        self.disp = signal_analysis.get_integral(dt, self.vel)
-        self.clear_cache()
+        npts_new, dt_new, ac_new = signal_processing.resample(self.dt, dt, self.ac)
+        self.ac = ac_new
+        self.vel = signal_analysis.get_integral(dt_new, self.ac)
+        self.disp = signal_analysis.get_integral(dt_new, self.vel)
+        self.npts = npts_new  # auto clear cache
+        self.dt = dt_new
         return self
 
     def save_simulations(self, filename: str, x_var: str, y_vars: list[str]):

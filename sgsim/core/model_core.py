@@ -1,4 +1,3 @@
-import numpy as np
 from . import model_engine
 from .model_config import ModelConfig
 from ..motion import signal_analysis
