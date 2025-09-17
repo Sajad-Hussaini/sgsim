@@ -158,6 +158,13 @@ def get_ce(dt: float, rec):
     """
     return np.cumsum(rec ** 2, axis=-1) * dt
 
+def get_nce(dt: float, rec):
+    """
+    Compute the normalized cumulative energy
+    """
+    ce = get_ce(dt, rec)
+    return ce / ce[-1]
+
 def get_integral(dt: float, rec):
     """
     Compute the velocity of an acceleration input

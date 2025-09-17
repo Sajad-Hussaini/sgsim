@@ -20,11 +20,11 @@ class StochasticModel(ModelCore):
         fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2,
                                                         self.mdl, self.wu, self.zu, self.wl, self.zl,
                                                         self.variance, white_noise)
-        self.ac = irfft(fourier, workers=-1)[..., :self.npts]  # anti-aliasing
+        ac = irfft(fourier, workers=-1)[..., :self.npts]  # anti-aliasing
         # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
-        self.vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
-        self.disp = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2), workers=-1)[..., :self.npts]
-        return self
+        vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
+        disp = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2), workers=-1)[..., :self.npts]
+        return ac, vel, disp
 
     def summary(self, filename: str = None):
         """
@@ -84,7 +84,7 @@ class StochasticModel(ModelCore):
         return self
 
     @classmethod
-    def from_file(cls, filename: str) -> 'StochasticModel':
+    def from_file(cls, filename: str):
         """
         Construct a stochastic model using loaded model parameters from a plain text file.
         filename: The name of the text file to load the data from.

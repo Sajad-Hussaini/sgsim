@@ -31,6 +31,14 @@ class ModelCore(ModelConfig):
         return self._ce
     
     @property
+    def nce(self):
+        """ The normalized cumulative energy of the stochastic model. """
+        if self._dirty_flags & self.NCE:
+            self._nce[:] = signal_analysis.get_nce(self.dt, self.mdl)
+            self._dirty_flags &= ~self.NCE
+        return self._nce
+    
+    @property
     def mle_ac(self):
         """ The mean cumulative number of local extream (peaks and valleys) of the acceleration model """
         if self._dirty_flags & self.MLE_AC:

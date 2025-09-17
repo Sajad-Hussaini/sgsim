@@ -122,6 +122,10 @@ class Motion(DomainConfig):
         return signal_analysis.get_ce(self.dt, self.ac)
     
     @cached_property
+    def nce(self):
+        return signal_analysis.get_nce(self.dt, self.ac)
+    
+    @cached_property
     def mle_ac(self):
         return signal_analysis.get_mle(self.ac)
 
@@ -206,8 +210,3 @@ class Motion(DomainConfig):
         """
         record = RecordReader(file_path, source, **kwargs)
         return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp)
-
-    @classmethod
-    def from_model(cls, model):
-        """ Construct a motion class from a calibrated stochastic model """
-        return cls(npts=model.npts, dt=model.dt, ac=model.ac, vel=model.vel, disp=model.disp)

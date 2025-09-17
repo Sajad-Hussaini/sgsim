@@ -28,13 +28,11 @@ def get_default_bounds(func: str, model):
         ('modulating', 'beta_single'): ((0.1, 20.0), (0.01, 1.0), (0.8, 200.0)),
         ('frequency', 'linear'): frequency_common,
         ('frequency', 'exponential'): frequency_common,
-        ('frequency', 'expobell'): ((5.0, 1.0, 1.0, 1.0), (0.0, -250.0, 0.0, -250.0), (25.0, 250.0, 25.0, 250.0)),
+        ('frequency', 'rayleigh'): ((1.0, 1.0, 1.0, 1.0), (0.0, 0.0, 0.0, 0.0), (50.0, 50.0, 50.0, 50.0)),
         ('damping', 'linear'): damping_common,
         ('damping', 'exponential'): damping_common,
-        ('damping', 'expobell'): ((0.5, 1.0, 0.4, 1.0), (0.0, -250.0, 0.0, -250.0), (25.0, 250.0, 25.0, 250.0)),
-        ('damping', 'rayleigh'): ((1.0, 1.0, 1.0, 1.0), (0.0, 0.0, 0.0, 0.0), (50.0, 50.0, 50.0, 50.0)),
-        }
-    
+        ('damping', 'rayleigh'): ((1.0, 1.0, 1.0, 1.0), (0.0, 0.0, 0.0, 0.0), (50.0, 50.0, 50.0, 50.0)),}
+
     if func == 'modulating':
         model_func_name = model.mdl_func.__name__
     elif func == 'frequency':
@@ -104,11 +102,6 @@ def obj_freq(params, model):
     half_param = len(params) // 2
     dwu_param, wl_param = params[:half_param], params[half_param:]
     wu_param = np.add(wl_param, dwu_param)
-    wu_func = model.wu_func.__name__
-    if wu_func == 'expobell':
-        tp = model.mdl_params[0]
-        wu_param = (tp, *wu_param)
-        wl_param = (tp, *wl_param)
     model.wu = wu_param
     model.wl = wl_param
     wu_array = np.cumsum(model.wu / (2 * np.pi)) * model.dt
@@ -123,14 +116,6 @@ def obj_damping(params, model):
     half_param = len(params) // 2
     zu_param = params[:half_param]
     zl_param = params[half_param:]
-    zu_func = model.zu_func.__name__
-    if zu_func == 'expobell':
-        tp = model.mdl_params[0]
-        zu_param = (tp, *zu_param)
-        zl_param = (tp, *zl_param)
-    elif zu_func == 'rayleigh':
-        zu_param = (model.wu/2/np.pi, *zu_param)
-        zl_param = (model.wl/2/np.pi, *zl_param)
     model.zu = zu_param
     model.zl = zl_param
     return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, model.pmnm_vel, model.pmnm_disp))

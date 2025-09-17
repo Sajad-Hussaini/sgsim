@@ -7,7 +7,7 @@ class DomainConfig:
 
     _CORE_ATTRS = frozenset(['_npts', '_dt'])
 
-    def __init__(self, npts, dt):
+    def __init__(self, npts: int, dt: float):
         """
         npts: int
             Number of points in the time series.
