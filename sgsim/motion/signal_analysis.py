@@ -131,12 +131,11 @@ def get_spectra(dt: float, rec, period, zeta: float=0.05, chunk_size: int=10):
 
     return sd, sv, sa
 
-def slice_energy(dt: float, rec, target_range: tuple[float, float]=(0.001, 0.999)):
-    " A slicer of the input motion using a range of total energy. "
-    cumulative_energy = get_ce(dt, rec)
-    total_energy = cumulative_energy[-1]
-    start_idx = np.searchsorted(cumulative_energy, target_range[0] * total_energy)
-    end_idx = np.searchsorted(cumulative_energy, target_range[1] * total_energy)
+def slice_energy(ce: np.ndarray, target_range: tuple[float, float]=(0.001, 0.999)):
+    " A slicer of the input motion using a target cumulative energy range (as a fraction of total energy) "
+    total_energy = ce[-1]
+    start_idx = np.searchsorted(ce, target_range[0] * total_energy)
+    end_idx = np.searchsorted(ce, target_range[1] * total_energy)
     return slice(start_idx, end_idx + 1)
 
 def slice_amplitude(rec, threshold: float):

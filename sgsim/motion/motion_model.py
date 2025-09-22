@@ -192,7 +192,7 @@ class Motion(DomainConfig):
     @property
     def energy_slice(self):
         if not hasattr(self, '_energy_slice'):
-            self._energy_slice = signal_analysis.slice_energy(self.dt, self.ac, (0.001, 0.999))  # Default range
+            self._energy_slice = signal_analysis.slice_energy(self.ce, (0.001, 0.999))  # Default range
         return self._energy_slice
 
     @energy_slice.setter

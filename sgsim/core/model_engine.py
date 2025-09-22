@@ -1,8 +1,6 @@
 import numpy as np
-from numba import njit, prange, int64, float64, complex128
+from numba import njit, prange
 
-
-# @njit(complex128[::1](float64, float64, float64, float64, float64[::1], float64[::1]), fastmath=True, cache=True)
 @njit('complex128[:](float64, float64, float64, float64, float64[:], float64[:])', fastmath=True, cache=True)
 def get_frf(wu, zu, wl, zl, freq, freq_p2):
     """
@@ -17,7 +15,6 @@ def get_frf(wu, zu, wl, zl, freq, freq_p2):
     return -freq_p2 / (((wl ** 2 - freq_p2) + (2j * zl * wl * freq)) *
                        ((wu ** 2 - freq_p2) + (2j * zu * wu * freq)))
 
-# @njit(float64[::1](float64, float64, float64, float64, float64[::1], float64[::1]), fastmath=True, cache=True)
 @njit('float64[:](float64, float64, float64, float64, float64[:], float64[:])', fastmath=True, cache=True)
 def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
     """
@@ -33,7 +30,6 @@ def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
     return freq_p4 / ((wl ** 4 + freq_p4 + 2 * wl ** 2 * freq_p2 * (2 * zl ** 2 - 1)) *
                       (wu ** 4 + freq_p4 + 2 * wu ** 2 * freq_p2 * (2 * zu ** 2 - 1)))
 
-# @njit((float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1]), parallel=True, fastmath=True, cache=True)
 @njit('void(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:])', parallel=True, fastmath=True, cache=True)
 def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, variance, variance_dot, variance_2dot, variance_bar, variance_2bar):
     """
@@ -70,7 +66,6 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, variance, vari
         variance_bar[i] = var_bar
         variance_2bar[i] = var_2bar
 
-# @njit((float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1]), fastmath=True, cache=True)
 @njit('void(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:])', fastmath=True, cache=True)
 def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, fas):
     """
@@ -83,7 +78,6 @@ def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, fas):
         fas += scale * psd_i
     fas[:] = np.sqrt(fas)
 
-# @njit(complex128[:, ::1](int64, int64, float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[:, ::1]), parallel=True, fastmath=True, cache=True)
 @njit('complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :])', parallel=True, fastmath=True, cache=True)
 def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise):
     """
@@ -101,7 +95,6 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
             
     return fourier
 
-# @njit((float64, float64[::1], float64[::1], float64[::1]), fastmath=True, cache=True)
 @njit('void(float64, float64[:], float64[:], float64[:])', fastmath=True, cache=True)
 def cumulative_rate(dt, numerator, denominator, out):
     scale = dt / (2 * np.pi)
@@ -110,7 +103,6 @@ def cumulative_rate(dt, numerator, denominator, out):
         cumsum += np.sqrt(numerator[i] / denominator[i]) * scale
         out[i] = cumsum
 
-# @njit((float64, float64[::1], float64[::1], float64[::1], float64[::1]), fastmath=True, cache=True)
 @njit('void(float64, float64[:], float64[:], float64[:], float64[:])', fastmath=True, cache=True)
 def pmnm_rate(dt, first, middle, last, out):
     scale = dt / (4 * np.pi)
