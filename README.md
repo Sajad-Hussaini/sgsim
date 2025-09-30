@@ -2,11 +2,10 @@
 
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![PyPI](https://img.shields.io/pypi/v/merm.svg)](https://pypi.org/project/sgsim/)
+[![PyPI](https://img.shields.io/pypi/v/sgsim.svg)](https://pypi.org/project/sgsim)
+[![Documentation Status](https://readthedocs.org/projects/sgsim/badge/?version=latest)](https://sgsim.readthedocs.io/en/latest/?badge=latest)
 
-**SGSIM** is a Python package for simulating earthquake ground motions using a site-compatible stochastic model [1]. It derives model parameters that implicitly account for the earthquake and site characteristics of the target ground motion. Using these parameters, the package simulates ground motions for the specific earthquake scenario, accounting for their aleatoric variability. It also provides tools for visualizing the simulation results.  
-
-> 💡 **Tip**: To ensure compatibility with the user guide, it's recommended to use the latest **release** available on **GitHub**, **PyPI**, or **Zenodo**.
+**SGSIM** is a Python package for simulating earthquake ground motions using a site-compatible stochastic model [1]. It derives model parameters that implicitly account for the earthquake and site characteristics of the target ground motion. Using these parameters, the package simulates ground motions for the specific earthquake scenario, accounting for their aleatoric variability. It also provides tools for ground motion processing and analysis.  
 
 ## Table of Contents
 - [Features](#features)
@@ -18,29 +17,17 @@
 
 ## Features
 
-✅ **Site-based Stochastic Modeling**: Configure and fit the stochastic model to ground motion data with customizable parameters.  
-✅ **Flexibility**: Various types of ground motions can be simulated rapidly.
-✅ **Simulation**: Simulate ground motion time series, Fourier and response spectra, and other properties rapidly. The results can be saved in csv files.
-✅ **Visualization**: Plot ground motion data, Fourier and response spectra, and other properties to verify and validate simulations.
+See the [full list of features in the documentation](https://readthedocs.org/projects/sgsim/badge/?version=latest).
+
 
 ## Installation
 
-### Install from PyPI (Recommended)
-```bash
-pip install sgsim
-```
-### Install from Source
-```bash
-git clone https://github.com/Sajad-Hussaini/sgsim.git
-cd sgsim
-pip install .
-```
+See the [full list of features in the documentation](https://readthedocs.org/projects/sgsim/badge/?version=latest).
 
 ## User Guide
 
-For a step-by-step walkthrough on using **SGSIM**, refer to the [Quick Start with SGSIM](user_guide.ipynb).
+The full documentation, including examples and the complete API reference, is available at [sgsim.readthedocs.io](https://www.google.com/search?q=https://sgsim.readthedocs.io/).
 
-> 📚 **Note**: The User Guide will be updated with more detailed instructions.
 
 ## License
 
