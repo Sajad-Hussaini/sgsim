@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.fft import rfft, rfftfreq
-from numba import njit, prange, float64
+from numba import njit, prange
 
 def get_mzc(rec):
     """

@@ -1,0 +1,384 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sgsim.motion.motion_model &mdash; sgsim  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            sgsim
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">sgsim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/user_guide.html">SGSIM User Guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">sgsim</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">sgsim.motion.motion_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for sgsim.motion.motion_model</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal_analysis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal_processing</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..file_reading.record_reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordReader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..core.domain_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">DomainConfig</span>
+
+<div class="viewcode-block" id="Motion">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Motion</span><span class="p">(</span><span class="n">DomainConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class describes ground motions in terms of various proprties (e.g., spectra, peak motions, characteristics)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_CORE_ATTRS</span> <span class="o">=</span> <span class="n">DomainConfig</span><span class="o">.</span><span class="n">_CORE_ATTRS</span> <span class="o">|</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s1">&#39;ac&#39;</span><span class="p">,</span> <span class="s1">&#39;vel&#39;</span><span class="p">,</span> <span class="s1">&#39;disp&#39;</span><span class="p">})</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">npts</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">ac</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">disp</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        npts:  number of data points (array length)</span>
+<span class="sd">        dt:    time step</span>
+<span class="sd">        t:     time array</span>
+<span class="sd">        ac:    acceleration array</span>
+<span class="sd">        vel:   velocity array</span>
+<span class="sd">        disp:  displacement array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">npts</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ac</span> <span class="o">=</span> <span class="n">ac</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="n">vel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disp</span> <span class="o">=</span> <span class="n">disp</span>
+
+<div class="viewcode-block" id="Motion.trim">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.trim">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">trim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">option</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Trim the ground motion data using specified criteria.</span>
+<span class="sd">        </span>
+<span class="sd">        option (str): Trimming method:</span>
+<span class="sd">            - &#39;energy&#39;: Trim based on cumulative energy range (e.g., (0.001, 0.999))</span>
+<span class="sd">            - &#39;npts&#39;: Keep specified number of points from beginning</span>
+<span class="sd">            - &#39;slice&#39;: Apply a custom slice directly to the motion arrays</span>
+<span class="sd">        value: Parameters for the chosen option:</span>
+<span class="sd">            - For &#39;energy&#39;: tuple[float, float] as (start_fraction, end_fraction)</span>
+<span class="sd">            - For &#39;npts&#39;: int representing number of points to keep</span>
+<span class="sd">            - For &#39;slice&#39;: slice object to apply directly</span>
+<span class="sd">        </span>
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; motion.trim(&#39;energy&#39;, (0.05, 0.95))  # Keep middle 90% of energy</span>
+<span class="sd">            &gt;&gt;&gt; motion.trim(&#39;npts&#39;, 1000)            # Keep first 1000 points</span>
+<span class="sd">            &gt;&gt;&gt; motion.trim(&#39;slice&#39;, slice(100, 500)) # Custom slice</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">option</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;energy&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Energy trimming requires a tuple of (start_fraction, end_fraction)&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">energy_slice</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="n">slicer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_slice</span>
+
+        <span class="k">elif</span> <span class="n">option</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;npts&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">npts</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of points must be a positive integer less than the current number of points&quot;</span><span class="p">)</span>
+            <span class="n">slicer</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        
+        <span class="k">elif</span> <span class="n">option</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;slice&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Slice option requires a Python slice object&quot;</span><span class="p">)</span>
+            <span class="n">slicer</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported trim option: &#39;</span><span class="si">{</span><span class="n">option</span><span class="si">}</span><span class="s2">&#39;. Use &#39;energy&#39;, &#39;npts&#39;, or &#39;slice&#39;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ac</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">[</span><span class="n">slicer</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">[</span><span class="n">slicer</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disp</span><span class="p">[</span><span class="n">slicer</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span>  <span class="c1"># auto clear cache</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="Motion.filter">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.filter">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bandpass_freqs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform a bandpass filtering using bandpass freqs as (lowcut, highcut) in Hz</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ac</span> <span class="o">=</span> <span class="n">signal_processing</span><span class="o">.</span><span class="n">bandpass_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">,</span> <span class="n">bandpass_freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bandpass_freqs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_integral</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disp</span> <span class="o">=</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_integral</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="Motion.resample">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.resample">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        resample the motion data to a new time step.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dt (float): The new time step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">npts_new</span><span class="p">,</span> <span class="n">dt_new</span><span class="p">,</span> <span class="n">ac_new</span> <span class="o">=</span> <span class="n">signal_processing</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ac</span> <span class="o">=</span> <span class="n">ac_new</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_integral</span><span class="p">(</span><span class="n">dt_new</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disp</span> <span class="o">=</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_integral</span><span class="p">(</span><span class="n">dt_new</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npts</span> <span class="o">=</span> <span class="n">npts_new</span>  <span class="c1"># auto clear cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt_new</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Motion.save_simulations">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.save_simulations">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_simulations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">x_var</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_vars</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        To save any related simulation data to a CSV file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename (str): Output file name.</span>
+<span class="sd">            x_var (str): Independent variable (e.g., &#39;tp&#39;, &#39;freq&#39;, &#39;t&#39;).</span>
+<span class="sd">            y_vars list[str]: Dependent variables (e.g., [&#39;sa&#39;, &#39;sv&#39;, &#39;sd&#39;]).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_var</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="n">y_data</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">y_vars</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">x_data</span><span class="p">,</span> <span class="o">*</span><span class="n">y_data</span><span class="p">))</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">y_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">y_data</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">x_var</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="si">}{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">y_vars</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="Motion.fas">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.fas">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_fas</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.fas_smooth">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.fas_smooth">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fas_smooth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_processing</span><span class="o">.</span><span class="n">moving_average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fas</span><span class="p">,</span> <span class="mi">9</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq_slice</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Motion.ce">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.ce">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_ce</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Motion.nce">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.nce">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">nce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_nce</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Motion.mle_ac">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.mle_ac">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mle_ac</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_mle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.mle_vel">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.mle_vel">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mle_vel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_mle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.mle_disp">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.mle_disp">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mle_disp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_mle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">disp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.mzc_ac">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.mzc_ac">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mzc_ac</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_mzc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.mzc_vel">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.mzc_vel">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mzc_vel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_mzc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.mzc_disp">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.mzc_disp">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mzc_disp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_mzc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">disp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.pmnm_ac">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.pmnm_ac">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pmnm_ac</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_pmnm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.pmnm_vel">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.pmnm_vel">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pmnm_vel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_pmnm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.pmnm_disp">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.pmnm_disp">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pmnm_disp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_pmnm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">disp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.spectra">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.spectra">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_spectra</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">period</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="p">,</span> <span class="n">zeta</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sa</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spectra</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spectra</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Motion.pga">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.pga">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pga</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_pgp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.pgv">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.pgv">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pgv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_pgp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Motion.pgd">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.pgd">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pgd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">get_pgp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">disp</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">energy_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_energy_slice&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_energy_slice</span> <span class="o">=</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">slice_energy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ce</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">))</span>  <span class="c1"># Default range</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_slice</span>
+
+    <span class="nd">@energy_slice</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">energy_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">energy_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_energy_slice</span> <span class="o">=</span> <span class="n">signal_analysis</span><span class="o">.</span><span class="n">slice_energy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac</span><span class="p">,</span> <span class="n">energy_range</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Motion.from_file">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.Motion.from_file">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a motion class from an accelergoram recording file.</span>
+
+<span class="sd">        file_path: path to the file or the filename in a zip</span>
+<span class="sd">        source:    source type (e.g., &#39;NGA&#39;)</span>
+<span class="sd">        kwargs:    additional keyword arguments for RecordReader (e.g., &#39;skiprows&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">RecordReader</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">npts</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">npts</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">ac</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">ac</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">vel</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">disp</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Sajad Hussaini.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

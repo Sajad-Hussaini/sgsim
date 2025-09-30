@@ -6,13 +6,29 @@ from .model_core import ModelCore
 
 class StochasticModel(ModelCore):
     """
-    This class allows to construct a stochastic simulation model
-    for calibrattion of model parameters and simulation of ground motions
+    Construct a stochastic simulation model for calibration of model parameters and simulation of ground motions.
+
+    Inherits from `ModelCore` and provides methods for simulating ground motions and summarizing or loading model parameters.
     """
     def simulate(self, n: int, seed: int = None):
         """
-        Simulate ground motions using the calibrated stochastic model
-            acceleration, velocity, displacement time series
+        Simulate ground motions using the calibrated stochastic model.
+
+        Parameters
+        ----------
+        n : int
+            Number of simulations to generate.
+        seed : int, optional
+            Random seed for reproducibility.
+
+        Returns
+        -------
+        ac : ndarray
+            Simulated acceleration time series, shape (n, npts).
+        vel : ndarray
+            Simulated velocity time series, shape (n, npts).
+        disp : ndarray
+            Simulated displacement time series, shape (n, npts).
         """
         self.stats
         n = int(n)
@@ -28,10 +44,19 @@ class StochasticModel(ModelCore):
 
     def summary(self, filename: str = None):
         """
-        Print all model parameters to the console.
-        Save all model parameters to a plain text file.
-        A stochastic model can be initiated from the saved file using the class method from_file.
-        filename: The name of the text file to save the data to.
+        Print all model parameters to the console and optionally save to a plain text file.
+
+        A stochastic model can be initiated from the saved file using the class method `from_file`.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the text file to save the data to. If None, only prints to console.
+
+        Returns
+        -------
+        self : StochasticModel
+            The StochasticModel instance (for chaining).
         """
         param_lines = {
             "Time Step (dt)": f"{self.dt}",
@@ -87,7 +112,16 @@ class StochasticModel(ModelCore):
     def from_file(cls, filename: str):
         """
         Construct a stochastic model using loaded model parameters from a plain text file.
-        filename: The name of the text file to load the data from.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the text file to load the data from.
+
+        Returns
+        -------
+        StochasticModel
+            An instance of StochasticModel initialized from the file.
         """
         params = {}
         with open(filename, 'r') as file:

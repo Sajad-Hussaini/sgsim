@@ -3,7 +3,9 @@ from .domain_config import DomainConfig
 
 class ModelConfig(DomainConfig):
     """
-    This class allows to configure time, frequency, and model parametric functions.
+    Configure time, frequency, and model parametric functions for simulation models.
+
+    Inherits from `DomainConfig` and provides properties for setting and retrieving model parameter functions and their values.
     """
     FAS, CE, NCE, VARIANCES, MLE_AC, MLE_VEL, MLE_DISP, MZC_AC, MZC_VEL, MZC_DISP, PMNM_AC, PMNM_VEL, PMNM_DISP = (1 << i for i in range(13))  # bit flags for dependent attributes
 
@@ -24,27 +26,49 @@ class ModelConfig(DomainConfig):
         self._fas = np.empty_like(self.freq)
     
     def _set_dirty_flag(self):
-        " Set a dirty flag on dependent attributes upon core attribute changes. "
+        """
+        Set a dirty flag on dependent attributes upon core attribute changes.
+        """
         self._dirty_flags = (1 << 13) - 1
 
     @property
     def mdl(self):
-        """ Modulating function using time as the clocking variable """
+        """
+        ndarray: Modulating function using time as the clocking variable.
+        """
         return self._mdl
 
     @mdl.setter
     def mdl(self, params):
+        """
+        Set the modulating function parameters.
+
+        Parameters
+        ----------
+        params : tuple
+            Parameters for the modulating function.
+        """
         self._mdl[:] = self.mdl_func(self.t, *params)
         self.mdl_params = tuple(p for p in params if np.isscalar(p))
         self._set_dirty_flag()
 
     @property
     def wu(self):
-        """ Upper dominant frequency using normalized cumulative energy as the clocking variable """
+        """
+        ndarray: Upper dominant frequency using normalized cumulative energy as the clocking variable.
+        """
         return self._wu
 
     @wu.setter
     def wu(self, params):
+        """
+        Set the upper dominant frequency parameters.
+
+        Parameters
+        ----------
+        params : tuple
+            Parameters for the upper frequency function.
+        """
         self._wu[:] = self.wu_func(self.nce, *params)
         self.wu_params = tuple(p for p in params if np.isscalar(p))
         self._wu *= 2 * np.pi  # Convert to angular frequency
@@ -52,11 +76,21 @@ class ModelConfig(DomainConfig):
 
     @property
     def wl(self):
-        """ Lower dominant frequency using normalized cumulative energy as the clocking variable """
+        """
+        ndarray: Lower dominant frequency using normalized cumulative energy as the clocking variable.
+        """
         return self._wl
 
     @wl.setter
     def wl(self, params):
+        """
+        Set the lower dominant frequency parameters.
+
+        Parameters
+        ----------
+        params : tuple
+            Parameters for the lower frequency function.
+        """
         self._wl[:] = self.wl_func(self.nce, *params)
         self.wl_params = tuple(p for p in params if np.isscalar(p))
         self._wl *= 2 * np.pi  # Convert to angular frequency
@@ -64,22 +98,42 @@ class ModelConfig(DomainConfig):
 
     @property
     def zu(self):
-        """ Upper damping ratio using normalized cumulative energy as the clocking variable """
+        """
+        ndarray: Upper damping ratio using normalized cumulative energy as the clocking variable.
+        """
         return self._zu
 
     @zu.setter
     def zu(self, params):
+        """
+        Set the upper damping ratio parameters.
+
+        Parameters
+        ----------
+        params : tuple
+            Parameters for the upper damping function.
+        """
         self._zu[:] = self.zu_func(self.nce, *params)
         self.zu_params = tuple(p for p in params if np.isscalar(p))
         self._set_dirty_flag()
 
     @property
     def zl(self):
-        """ Lower damping ratio using normalized cumulative energy as the clocking variable """
+        """
+        ndarray: Lower damping ratio using normalized cumulative energy as the clocking variable.
+        """
         return self._zl
 
     @zl.setter
     def zl(self, params):
+        """
+        Set the lower damping ratio parameters.
+
+        Parameters
+        ----------
+        params : tuple
+            Parameters for the lower damping function.
+        """
         self._zl[:] = self.zl_func(self.nce, *params)
         self.zl_params = tuple(p for p in params if np.isscalar(p))
         self._set_dirty_flag()

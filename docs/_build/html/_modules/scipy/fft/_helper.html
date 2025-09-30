@@ -1,0 +1,461 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scipy.fft._helper &mdash; SGSIM 1.0.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=0abd802e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SGSIM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/installation.html">Installation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/examples_index.html">Examples Gallery</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">sgsim</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SGSIM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scipy.fft._helper</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scipy.fft._helper</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">update_wrapper</span><span class="p">,</span> <span class="n">lru_cache</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._pocketfft</span><span class="w"> </span><span class="kn">import</span> <span class="n">helper</span> <span class="k">as</span> <span class="n">_helper</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy._lib._array_api</span><span class="w"> </span><span class="kn">import</span> <span class="n">array_namespace</span>
+
+
+<span class="n">_init_nd_shape_and_axes</span> <span class="o">=</span> <span class="n">_helper</span><span class="o">.</span><span class="n">_init_nd_shape_and_axes</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">next_fast_len</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">real</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the next fast size of input data to ``fft``, for zero-padding, etc.</span>
+
+<span class="sd">    SciPy&#39;s FFT algorithms gain their speed by a recursive divide and conquer</span>
+<span class="sd">    strategy. This relies on efficient functions for small prime factors of the</span>
+<span class="sd">    input length. Thus, the transforms are fastest when using composites of the</span>
+<span class="sd">    prime factors handled by the fft implementation. If there are efficient</span>
+<span class="sd">    functions for all radices &lt;= `n`, then the result will be a number `x`</span>
+<span class="sd">    &gt;= ``target`` with only prime factors &lt; `n`. (Also known as `n`-smooth</span>
+<span class="sd">    numbers)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : int</span>
+<span class="sd">        Length to start searching from. Must be a positive integer.</span>
+<span class="sd">    real : bool, optional</span>
+<span class="sd">        True if the FFT involves real input or output (e.g., `rfft` or `hfft`</span>
+<span class="sd">        but not `fft`). Defaults to False.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : int</span>
+<span class="sd">        The smallest fast length greater than or equal to ``target``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The result of this function may change in future as performance</span>
+<span class="sd">    considerations change, for example, if new prime factors are added.</span>
+
+<span class="sd">    Calling `fft` or `ifft` with real input data performs an ``&#39;R2C&#39;``</span>
+<span class="sd">    transform internally.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    On a particular machine, an FFT of prime length takes 11.4 ms:</span>
+
+<span class="sd">    &gt;&gt;&gt; from scipy import fft</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; rng = np.random.default_rng()</span>
+<span class="sd">    &gt;&gt;&gt; min_len = 93059  # prime length is worst case for speed</span>
+<span class="sd">    &gt;&gt;&gt; a = rng.standard_normal(min_len)</span>
+<span class="sd">    &gt;&gt;&gt; b = fft.fft(a)</span>
+
+<span class="sd">    Zero-padding to the next regular length reduces computation time to</span>
+<span class="sd">    1.6 ms, a speedup of 7.3 times:</span>
+
+<span class="sd">    &gt;&gt;&gt; fft.next_fast_len(min_len, real=True)</span>
+<span class="sd">    93312</span>
+<span class="sd">    &gt;&gt;&gt; b = fft.fft(a, 93312)</span>
+
+<span class="sd">    Rounding up to the next power of 2 is not optimal, taking 3.0 ms to</span>
+<span class="sd">    compute; 1.9 times longer than the size given by ``next_fast_len``:</span>
+
+<span class="sd">    &gt;&gt;&gt; b = fft.fft(a, 131072)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="c1"># Directly wrap the c-function good_size but take the docstring etc., from the</span>
+<span class="c1"># next_fast_len function above</span>
+<span class="n">_sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">next_fast_len</span><span class="p">)</span>
+<span class="n">next_fast_len</span> <span class="o">=</span> <span class="n">update_wrapper</span><span class="p">(</span><span class="n">lru_cache</span><span class="p">(</span><span class="n">_helper</span><span class="o">.</span><span class="n">good_size</span><span class="p">),</span> <span class="n">next_fast_len</span><span class="p">)</span>
+<span class="n">next_fast_len</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="n">_helper</span><span class="o">.</span><span class="n">good_size</span>
+<span class="n">next_fast_len</span><span class="o">.</span><span class="n">__signature__</span> <span class="o">=</span> <span class="n">_sig</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">prev_fast_len</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">real</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the previous fast size of input data to ``fft``.</span>
+<span class="sd">    Useful for discarding a minimal number of samples before FFT.</span>
+
+<span class="sd">    SciPy&#39;s FFT algorithms gain their speed by a recursive divide and conquer</span>
+<span class="sd">    strategy. This relies on efficient functions for small prime factors of the</span>
+<span class="sd">    input length. Thus, the transforms are fastest when using composites of the</span>
+<span class="sd">    prime factors handled by the fft implementation. If there are efficient</span>
+<span class="sd">    functions for all radices &lt;= `n`, then the result will be a number `x`</span>
+<span class="sd">    &lt;= ``target`` with only prime factors &lt;= `n`. (Also known as `n`-smooth</span>
+<span class="sd">    numbers)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : int</span>
+<span class="sd">        Maximum length to search until. Must be a positive integer.</span>
+<span class="sd">    real : bool, optional</span>
+<span class="sd">        True if the FFT involves real input or output (e.g., `rfft` or `hfft`</span>
+<span class="sd">        but not `fft`). Defaults to False.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : int</span>
+<span class="sd">        The largest fast length less than or equal to ``target``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The result of this function may change in future as performance</span>
+<span class="sd">    considerations change, for example, if new prime factors are added.</span>
+
+<span class="sd">    Calling `fft` or `ifft` with real input data performs an ``&#39;R2C&#39;``</span>
+<span class="sd">    transform internally.</span>
+
+<span class="sd">    In the current implementation, prev_fast_len assumes radices of</span>
+<span class="sd">    2,3,5,7,11 for complex FFT and 2,3,5 for real FFT.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    On a particular machine, an FFT of prime length takes 16.2 ms:</span>
+
+<span class="sd">    &gt;&gt;&gt; from scipy import fft</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; rng = np.random.default_rng()</span>
+<span class="sd">    &gt;&gt;&gt; max_len = 93059  # prime length is worst case for speed</span>
+<span class="sd">    &gt;&gt;&gt; a = rng.standard_normal(max_len)</span>
+<span class="sd">    &gt;&gt;&gt; b = fft.fft(a)</span>
+
+<span class="sd">    Performing FFT on the maximum fast length less than max_len</span>
+<span class="sd">    reduces the computation time to 1.5 ms, a speedup of 10.5 times:</span>
+
+<span class="sd">    &gt;&gt;&gt; fft.prev_fast_len(max_len, real=True)</span>
+<span class="sd">    92160</span>
+<span class="sd">    &gt;&gt;&gt; c = fft.fft(a[:92160]) # discard last 899 samples</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="c1"># Directly wrap the c-function prev_good_size but take the docstring etc.,</span>
+<span class="c1"># from the prev_fast_len function above</span>
+<span class="n">_sig_prev_fast_len</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">prev_fast_len</span><span class="p">)</span>
+<span class="n">prev_fast_len</span> <span class="o">=</span> <span class="n">update_wrapper</span><span class="p">(</span><span class="n">lru_cache</span><span class="p">()(</span><span class="n">_helper</span><span class="o">.</span><span class="n">prev_good_size</span><span class="p">),</span> <span class="n">prev_fast_len</span><span class="p">)</span>
+<span class="n">prev_fast_len</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="n">_helper</span><span class="o">.</span><span class="n">prev_good_size</span>
+<span class="n">prev_fast_len</span><span class="o">.</span><span class="n">__signature__</span> <span class="o">=</span> <span class="n">_sig_prev_fast_len</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">xp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the Discrete Fourier Transform sample frequencies.</span>
+
+<span class="sd">    The returned float array `f` contains the frequency bin centers in cycles</span>
+<span class="sd">    per unit of the sample spacing (with zero at the start).  For instance, if</span>
+<span class="sd">    the sample spacing is in seconds, then the frequency unit is cycles/second.</span>
+
+<span class="sd">    Given a window length `n` and a sample spacing `d`::</span>
+
+<span class="sd">      f = [0, 1, ...,   n/2-1,     -n/2, ..., -1] / (d*n)   if n is even</span>
+<span class="sd">      f = [0, 1, ..., (n-1)/2, -(n-1)/2, ..., -1] / (d*n)   if n is odd</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : int</span>
+<span class="sd">        Window length.</span>
+<span class="sd">    d : scalar, optional</span>
+<span class="sd">        Sample spacing (inverse of the sampling rate). Defaults to 1.</span>
+<span class="sd">    xp : array_namespace, optional</span>
+<span class="sd">        The namespace for the return array. Default is None, where NumPy is used.</span>
+<span class="sd">    device : device, optional</span>
+<span class="sd">        The device for the return array.</span>
+<span class="sd">        Only valid when `xp.fft.fftfreq` implements the device parameter.</span>
+<span class="sd">     </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    f : ndarray</span>
+<span class="sd">        Array of length `n` containing the sample frequencies.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; import scipy.fft</span>
+<span class="sd">    &gt;&gt;&gt; signal = np.array([-2, 8, 6, 4, 1, 0, 3, 5], dtype=float)</span>
+<span class="sd">    &gt;&gt;&gt; fourier = scipy.fft.fft(signal)</span>
+<span class="sd">    &gt;&gt;&gt; n = signal.size</span>
+<span class="sd">    &gt;&gt;&gt; timestep = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; freq = scipy.fft.fftfreq(n, d=timestep)</span>
+<span class="sd">    &gt;&gt;&gt; freq</span>
+<span class="sd">    array([ 0.  ,  1.25,  2.5 , ..., -3.75, -2.5 , -1.25])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xp</span> <span class="o">=</span> <span class="n">np</span> <span class="k">if</span> <span class="n">xp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">xp</span>
+    <span class="c1"># numpy does not yet support the `device` keyword</span>
+    <span class="c1"># `xp.__name__ != &#39;numpy&#39;` should be removed when numpy is compatible</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">xp</span><span class="p">,</span> <span class="s1">&#39;fft&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">xp</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">!=</span> <span class="s1">&#39;numpy&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;device parameter is not supported for input array type&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="rfftfreq">
+<a class="viewcode-back" href="../../../source/sgsim.motion.html#sgsim.motion.signal_analysis.rfftfreq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">xp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the Discrete Fourier Transform sample frequencies</span>
+<span class="sd">    (for usage with rfft, irfft).</span>
+
+<span class="sd">    The returned float array `f` contains the frequency bin centers in cycles</span>
+<span class="sd">    per unit of the sample spacing (with zero at the start).  For instance, if</span>
+<span class="sd">    the sample spacing is in seconds, then the frequency unit is cycles/second.</span>
+
+<span class="sd">    Given a window length `n` and a sample spacing `d`::</span>
+
+<span class="sd">      f = [0, 1, ...,     n/2-1,     n/2] / (d*n)   if n is even</span>
+<span class="sd">      f = [0, 1, ..., (n-1)/2-1, (n-1)/2] / (d*n)   if n is odd</span>
+
+<span class="sd">    Unlike `fftfreq` (but like `scipy.fftpack.rfftfreq`)</span>
+<span class="sd">    the Nyquist frequency component is considered to be positive.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : int</span>
+<span class="sd">        Window length.</span>
+<span class="sd">    d : scalar, optional</span>
+<span class="sd">        Sample spacing (inverse of the sampling rate). Defaults to 1.</span>
+<span class="sd">    xp : array_namespace, optional</span>
+<span class="sd">        The namespace for the return array. Default is None, where NumPy is used.</span>
+<span class="sd">    device : device, optional</span>
+<span class="sd">        The device for the return array.</span>
+<span class="sd">        Only valid when `xp.fft.rfftfreq` implements the device parameter.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    f : ndarray</span>
+<span class="sd">        Array of length ``n//2 + 1`` containing the sample frequencies.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; import scipy.fft</span>
+<span class="sd">    &gt;&gt;&gt; signal = np.array([-2, 8, 6, 4, 1, 0, 3, 5, -3, 4], dtype=float)</span>
+<span class="sd">    &gt;&gt;&gt; fourier = scipy.fft.rfft(signal)</span>
+<span class="sd">    &gt;&gt;&gt; n = signal.size</span>
+<span class="sd">    &gt;&gt;&gt; sample_rate = 100</span>
+<span class="sd">    &gt;&gt;&gt; freq = scipy.fft.fftfreq(n, d=1./sample_rate)</span>
+<span class="sd">    &gt;&gt;&gt; freq</span>
+<span class="sd">    array([  0.,  10.,  20., ..., -30., -20., -10.])</span>
+<span class="sd">    &gt;&gt;&gt; freq = scipy.fft.rfftfreq(n, d=1./sample_rate)</span>
+<span class="sd">    &gt;&gt;&gt; freq</span>
+<span class="sd">    array([  0.,  10.,  20.,  30.,  40.,  50.])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xp</span> <span class="o">=</span> <span class="n">np</span> <span class="k">if</span> <span class="n">xp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">xp</span>
+    <span class="c1"># numpy does not yet support the `device` keyword</span>
+    <span class="c1"># `xp.__name__ != &#39;numpy&#39;` should be removed when numpy is compatible</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">xp</span><span class="p">,</span> <span class="s1">&#39;fft&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">xp</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">!=</span> <span class="s1">&#39;numpy&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;device parameter is not supported for input array type&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fftshift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Shift the zero-frequency component to the center of the spectrum.</span>
+
+<span class="sd">    This function swaps half-spaces for all axes listed (defaults to all).</span>
+<span class="sd">    Note that ``y[0]`` is the Nyquist component only if ``len(x)`` is even.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : array_like</span>
+<span class="sd">        Input array.</span>
+<span class="sd">    axes : int or shape tuple, optional</span>
+<span class="sd">        Axes over which to shift.  Default is None, which shifts all axes.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    y : ndarray</span>
+<span class="sd">        The shifted array.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ifftshift : The inverse of `fftshift`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; freqs = np.fft.fftfreq(10, 0.1)</span>
+<span class="sd">    &gt;&gt;&gt; freqs</span>
+<span class="sd">    array([ 0.,  1.,  2., ..., -3., -2., -1.])</span>
+<span class="sd">    &gt;&gt;&gt; np.fft.fftshift(freqs)</span>
+<span class="sd">    array([-5., -4., -3., -2., -1.,  0.,  1.,  2.,  3.,  4.])</span>
+
+<span class="sd">    Shift the zero-frequency component only along the second axis:</span>
+
+<span class="sd">    &gt;&gt;&gt; freqs = np.fft.fftfreq(9, d=1./9).reshape(3, 3)</span>
+<span class="sd">    &gt;&gt;&gt; freqs</span>
+<span class="sd">    array([[ 0.,  1.,  2.],</span>
+<span class="sd">           [ 3.,  4., -4.],</span>
+<span class="sd">           [-3., -2., -1.]])</span>
+<span class="sd">    &gt;&gt;&gt; np.fft.fftshift(freqs, axes=(1,))</span>
+<span class="sd">    array([[ 2.,  0.,  1.],</span>
+<span class="sd">           [-4.,  3.,  4.],</span>
+<span class="sd">           [-1., -3., -2.]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xp</span> <span class="o">=</span> <span class="n">array_namespace</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">xp</span><span class="p">,</span> <span class="s1">&#39;fft&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">ifftshift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The inverse of `fftshift`. Although identical for even-length `x`, the</span>
+<span class="sd">    functions differ by one sample for odd-length `x`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : array_like</span>
+<span class="sd">        Input array.</span>
+<span class="sd">    axes : int or shape tuple, optional</span>
+<span class="sd">        Axes over which to calculate.  Defaults to None, which shifts all axes.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    y : ndarray</span>
+<span class="sd">        The shifted array.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    fftshift : Shift zero-frequency component to the center of the spectrum.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; freqs = np.fft.fftfreq(9, d=1./9).reshape(3, 3)</span>
+<span class="sd">    &gt;&gt;&gt; freqs</span>
+<span class="sd">    array([[ 0.,  1.,  2.],</span>
+<span class="sd">           [ 3.,  4., -4.],</span>
+<span class="sd">           [-3., -2., -1.]])</span>
+<span class="sd">    &gt;&gt;&gt; np.fft.ifftshift(np.fft.fftshift(freqs))</span>
+<span class="sd">    array([[ 0.,  1.,  2.],</span>
+<span class="sd">           [ 3.,  4., -4.],</span>
+<span class="sd">           [-3., -2., -1.]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xp</span> <span class="o">=</span> <span class="n">array_namespace</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">xp</span><span class="p">,</span> <span class="s1">&#39;fft&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Sajad Hussaini.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

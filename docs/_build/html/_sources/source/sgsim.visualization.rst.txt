@@ -1,0 +1,32 @@
+sgsim.visualization package
+===========================
+
+Submodules
+----------
+
+sgsim.visualization.model\_plot module
+--------------------------------------
+
+.. automodule:: sgsim.visualization.model_plot
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+sgsim.visualization.style module
+--------------------------------
+
+.. automodule:: sgsim.visualization.style
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+Module contents
+---------------
+
+.. automodule:: sgsim.visualization
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:

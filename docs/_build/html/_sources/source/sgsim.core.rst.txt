@@ -1,0 +1,68 @@
+sgsim.core package
+==================
+
+Submodules
+----------
+
+sgsim.core.domain\_config module
+--------------------------------
+
+.. automodule:: sgsim.core.domain_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+sgsim.core.model\_config module
+-------------------------------
+
+.. automodule:: sgsim.core.model_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+sgsim.core.model\_core module
+-----------------------------
+
+.. automodule:: sgsim.core.model_core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+sgsim.core.model\_engine module
+-------------------------------
+
+.. automodule:: sgsim.core.model_engine
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+sgsim.core.parametric\_functions module
+---------------------------------------
+
+.. automodule:: sgsim.core.parametric_functions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+sgsim.core.stochastic\_model module
+-----------------------------------
+
+.. automodule:: sgsim.core.stochastic_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+Module contents
+---------------
+
+.. automodule:: sgsim.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:

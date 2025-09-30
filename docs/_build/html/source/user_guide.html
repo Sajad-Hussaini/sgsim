@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SGSIM User Guide &mdash; SGSIM  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            SGSIM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">SGSIM User Guide</a><ul>
+<li><a class="reference internal" href="#Step-1:-Import-Libraries-and-Load-Real-Motion">Step 1: Import Libraries and Load Real Motion</a></li>
+<li><a class="reference internal" href="#Step-2:-Initialize-the-Stochastic-Model">Step 2: Initialize the Stochastic Model</a></li>
+<li><a class="reference internal" href="#Step-3:-Calibrate-the-Model">Step 3: Calibrate the Model</a></li>
+<li><a class="reference internal" href="#Step-4:-Simulate-Ground-Motions">Step 4: Simulate Ground Motions</a></li>
+<li><a class="reference internal" href="#Step-5:-Analyze-Simulated-Motions">Step 5: Analyze Simulated Motions</a></li>
+<li><a class="reference internal" href="#Step-6:-Plot-Results">Step 6: Plot Results</a></li>
+<li><a class="reference internal" href="#Wrap-Up">Wrap-Up</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SGSIM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">SGSIM User Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/user_guide.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="SGSIM-User-Guide">
+<h1>SGSIM User Guide<a class="headerlink" href="#SGSIM-User-Guide" title="Link to this heading"></a></h1>
+<p>Welcome to this interactive tutorial for getting started with SGSIM, a Python package designed for stochastic ground motion simulation! In this Jupyter Notebook, you will be guided through the key steps to:</p>
+<ul class="simple">
+<li><p>Load a target real earthquake motion.</p></li>
+<li><p>Build and calibrate a stochastic model.</p></li>
+<li><p>Simulate synthetic ground motions.</p></li>
+<li><p>Visualize and analyze the results.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">Each section includes detailed explanations and executable code cells. Feel free to modify parameters (such as file paths or simulation counts) to explore and experiment.</div>
+<div class="line"><strong>Prerequisites</strong>: Ensure you have <code class="docutils literal notranslate"><span class="pre">sgsim</span></code> installed and an accelerogram file (e.g., <code class="docutils literal notranslate"><span class="pre">Northridge.AT2</span></code>) ready.</div>
+</div>
+<section id="Step-1:-Import-Libraries-and-Load-Real-Motion">
+<h2>Step 1: Import Libraries and Load Real Motion<a class="headerlink" href="#Step-1:-Import-Libraries-and-Load-Real-Motion" title="Link to this heading"></a></h2>
+<p>First, we’ll import the necessary <code class="docutils literal notranslate"><span class="pre">sgsim</span></code> components and load a real earthquake motion from a file. This motion will serve as the target for our stochastic model.</p>
+<ul class="simple">
+<li><p>Replace the <code class="docutils literal notranslate"><span class="pre">file_path</span></code> with the location of your <code class="docutils literal notranslate"><span class="pre">.AT2</span></code> file (e.g., from the PEER NGA or ESM database).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">source</span></code> parameter specifies the file format (<code class="docutils literal notranslate"><span class="pre">'nga'</span></code> for NGA-style files, etc.).</p></li>
+<li><p>We’ll trim the motion to focus on the specified energy range (0.1% to 99.9%) to avoid flat tails.</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sgsim</span><span class="w"> </span><span class="kn">import</span> <span class="n">StochasticModel</span><span class="p">,</span> <span class="n">Motion</span><span class="p">,</span> <span class="n">calibrate</span><span class="p">,</span> <span class="n">ModelPlot</span><span class="p">,</span> <span class="n">functions</span>
+
+<span class="c1"># Update this path to your accelerogram file</span>
+<span class="n">file_path</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;C:\path\to\Northridge.AT2&#39;</span>  <span class="c1"># Example: r&quot;C:\Users\Me\Documents\Northridge.AT2&quot;</span>
+<span class="n">source</span> <span class="o">=</span> <span class="s1">&#39;nga&#39;</span>
+
+<span class="c1"># Load and prepare the real motion</span>
+<span class="n">real_motion</span> <span class="o">=</span> <span class="n">Motion</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+<span class="n">real_motion</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="n">option</span><span class="o">=</span><span class="s1">&#39;energy&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">))</span>
+
+<span class="c1"># Optional: Uncomment to apply a bandpass filter (e.g., 0.1–25 Hz)</span>
+<span class="c1"># real_motion.filter(bandpass_freqs=(0.1, 25.0))</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Real motion loaded with&quot;</span><span class="p">,</span> <span class="n">real_motion</span><span class="o">.</span><span class="n">npts</span><span class="p">,</span> <span class="s2">&quot;points and a time step of&quot;</span><span class="p">,</span> <span class="n">real_motion</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="s2">&quot;seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Step-2:-Initialize-the-Stochastic-Model">
+<h2>Step 2: Initialize the Stochastic Model<a class="headerlink" href="#Step-2:-Initialize-the-Stochastic-Model" title="Link to this heading"></a></h2>
+<p>Next, we’ll create a stochastic model to match the real motion. SGSIM uses parameters like:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">npts</span></code> and <code class="docutils literal notranslate"><span class="pre">dt</span></code>: Match the real motion’s time series properties.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">modulating</span></code>: Defines temporal non-stationarity and energy content (e.g., <code class="docutils literal notranslate"><span class="pre">beta_dual</span></code> for two strong phases).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">upper_frequency</span></code>, <code class="docutils literal notranslate"><span class="pre">upper_damping</span></code>, <code class="docutils literal notranslate"><span class="pre">lower_frequency</span></code>, and <code class="docutils literal notranslate"><span class="pre">lower_damping</span></code> defines spectral non-stationarity and frequency content</p></li>
+<li><p>Frequency and damping functions: Set to <code class="docutils literal notranslate"><span class="pre">linear</span></code> here, but you can explore <code class="docutils literal notranslate"><span class="pre">exponential</span></code>.</p></li>
+</ul>
+<p>This model will generate synthetic motions based on these settings.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the stochastic model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">StochasticModel</span><span class="p">(</span><span class="n">npts</span><span class="o">=</span><span class="n">real_motion</span><span class="o">.</span><span class="n">npts</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">real_motion</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
+                        <span class="n">modulating</span><span class="o">=</span><span class="n">functions</span><span class="o">.</span><span class="n">beta_dual</span><span class="p">,</span>
+                        <span class="n">upper_frequency</span><span class="o">=</span><span class="n">functions</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">upper_damping</span><span class="o">=</span><span class="n">functions</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span>
+                        <span class="n">lower_frequency</span><span class="o">=</span><span class="n">functions</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">lower_damping</span><span class="o">=</span><span class="n">functions</span><span class="o">.</span><span class="n">linear</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Stochastic model initialized with&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">npts</span><span class="p">,</span> <span class="s2">&quot;points.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Step-3:-Calibrate-the-Model">
+<h2>Step 3: Calibrate the Model<a class="headerlink" href="#Step-3:-Calibrate-the-Model" title="Link to this heading"></a></h2>
+<p>Now, we’ll calibrate the model to match the real motion’s characteristics. Calibration adjusts:</p>
+<ul class="simple">
+<li><p>Modulation (envelope).</p></li>
+<li><p>Frequency and damping parameters.</p></li>
+</ul>
+<p>We’ll use a sequential scheme (<code class="docutils literal notranslate"><span class="pre">modulating</span></code>, <code class="docutils literal notranslate"><span class="pre">frequency</span></code>, <code class="docutils literal notranslate"><span class="pre">damping</span></code>) and time the process. Note the order of calibration.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="n">scheme</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;modulating&#39;</span><span class="p">,</span> <span class="s1">&#39;frequency&#39;</span><span class="p">,</span> <span class="s1">&#39;damping&#39;</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="n">scheme</span><span class="p">:</span>
+    <span class="n">calibrate</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">real_motion</span><span class="p">,</span> <span class="n">initial_guess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lower_bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upper_bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Model calibration completed in </span><span class="si">{</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Step-4:-Simulate-Ground-Motions">
+<h2>Step 4: Simulate Ground Motions<a class="headerlink" href="#Step-4:-Simulate-Ground-Motions" title="Link to this heading"></a></h2>
+<p>With the model calibrated, we’ll simulate synthetic ground motions. You can:</p>
+<ul class="simple">
+<li><p>View / save the calibrated parameters with <code class="docutils literal notranslate"><span class="pre">parameters_summary()</span></code>.</p></li>
+<li><p>Generate <code class="docutils literal notranslate"><span class="pre">n</span></code> simulations (try changing <code class="docutils literal notranslate"><span class="pre">n</span></code> to 10 or 50!).</p></li>
+</ul>
+<p>Simulated data (acceleration, velocity, etc.) will be stored in <code class="docutils literal notranslate"><span class="pre">model.ac</span></code>, <code class="docutils literal notranslate"><span class="pre">model.vel</span></code>, etc.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Summary of calibrated parameters with an option to save them in a txt file</span>
+<span class="n">model</span><span class="o">.</span><span class="n">parameters_summary</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;C:\path\to\model_params.txt&quot;</span><span class="p">)</span>
+
+<span class="c1"># Simulate 25 ground motions (adjust n as desired)</span>
+<span class="n">ac</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">disp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Simulated </span><span class="si">{</span><span class="n">ac</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> motions.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Step-5:-Analyze-Simulated-Motions">
+<h2>Step 5: Analyze Simulated Motions<a class="headerlink" href="#Step-5:-Analyze-Simulated-Motions" title="Link to this heading"></a></h2>
+<div class="line-block">
+<div class="line">We’ll create a <code class="docutils literal notranslate"><span class="pre">Motion</span></code> object from the simulations to access properties like Fourier spectra (<code class="docutils literal notranslate"><span class="pre">fas</span></code>) or response spectra (<code class="docutils literal notranslate"><span class="pre">sa</span></code>).</div>
+<div class="line">You can also save results as columns to CSV files (update the paths to your preferred locations).</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create simulated motion object</span>
+<span class="n">sim_motion</span> <span class="o">=</span> <span class="n">Motion</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">npts</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">ac</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">disp</span><span class="p">)</span>
+
+<span class="c1"># Optional: Save simulation results (update paths)</span>
+<span class="n">sim_motion</span><span class="o">.</span><span class="n">save_simulations</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;C:\path\to\simulated_spectra.csv&quot;</span><span class="p">,</span> <span class="n">x_var</span><span class="o">=</span><span class="s2">&quot;tp&quot;</span><span class="p">,</span> <span class="n">y_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sa&quot;</span><span class="p">,</span> <span class="s2">&quot;sv&quot;</span><span class="p">,</span> <span class="s2">&quot;sd&quot;</span><span class="p">])</span>
+<span class="n">sim_motion</span><span class="o">.</span><span class="n">save_simulations</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;C:\path\to\simulated_motions.csv&quot;</span><span class="p">,</span> <span class="n">x_var</span><span class="o">=</span><span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="n">y_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ac&quot;</span><span class="p">,</span> <span class="s2">&quot;vel&quot;</span><span class="p">,</span> <span class="s2">&quot;disp&quot;</span><span class="p">])</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Simulated motion object created. Access properties like sim_motion.sa or sim_motion.fas.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Step-6:-Plot-Results">
+<h2>Step 6: Plot Results<a class="headerlink" href="#Step-6:-Plot-Results" title="Link to this heading"></a></h2>
+<p>Finally, let’s visualize the results using <code class="docutils literal notranslate"><span class="pre">ModelPlot</span></code>. This compares real and simulated motions with:</p>
+<ul class="simple">
+<li><p>Time series (acceleration, velocity, displacement).</p></li>
+<li><p>Cumulative energy, Fourier spectra, and response spectra.</p></li>
+<li><p>Error metrics (e.g., <code class="docutils literal notranslate"><span class="pre">mzc</span></code>, <code class="docutils literal notranslate"><span class="pre">mle</span></code>).</p></li>
+</ul>
+<p>Plots will display inline below each cell. Adjust <code class="docutils literal notranslate"><span class="pre">config</span></code> using <code class="docutils literal notranslate"><span class="pre">dict</span></code> of matplotlib rcparams (e.g., <code class="docutils literal notranslate"><span class="pre">'figure.figsize':</span> <span class="pre">(18/2.54,</span> <span class="pre">12/2.54)</span></code>) for customization.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize plotting tool</span>
+<span class="n">mp</span> <span class="o">=</span> <span class="n">ModelPlot</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">sim_motion</span><span class="p">,</span> <span class="n">real_motion</span><span class="p">)</span>
+<span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}</span>
+
+<span class="c1"># Plot time series</span>
+<span class="n">mp</span><span class="o">.</span><span class="n">plot_motions</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># Shows inline</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot additional metrics</span>
+<span class="n">mp</span><span class="o">.</span><span class="n">plot_ce</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># Cumulative energy</span>
+<span class="n">mp</span><span class="o">.</span><span class="n">plot_fas</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># Fourier amplitude spectrum</span>
+<span class="n">mp</span><span class="o">.</span><span class="n">plot_spectra</span><span class="p">(</span><span class="n">spectrum</span><span class="o">=</span><span class="s1">&#39;sa&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># Response spectrum (Sa)</span>
+<span class="n">mp</span><span class="o">.</span><span class="n">plot_feature</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="s1">&#39;mzc&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># Mean zero-crossing rate</span>
+<span class="n">mp</span><span class="o">.</span><span class="n">plot_feature</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="s1">&#39;pmnm&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># Mean zero-crossing rate</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Wrap-Up">
+<h2>Wrap-Up<a class="headerlink" href="#Wrap-Up" title="Link to this heading"></a></h2>
+<div class="line-block">
+<div class="line">You’ve successfully loaded real motion data, calibrated a stochastic model, simulated synthetic ground motions, and visualized the results—all within this notebook!</div>
+<div class="line">If you have any questions or need assistance, feel free to contact me at <a class="reference external" href="mailto:hussaini&#46;smsajad&#37;&#52;&#48;gmail&#46;com">hussaini<span>&#46;</span>smsajad<span>&#64;</span>gmail<span>&#46;</span>com</a>, with “SGSIM” in the subject line.</div>
+<div class="line">You can continue experimenting by:</div>
+</div>
+<ul class="simple">
+<li><p>Changing the input file or number of simulations.</p></li>
+<li><p>Tweaking plot configurations.</p></li>
+<li><p>Exploring other SGSIM features.</p></li>
+</ul>
+<p>Save this notebook to keep your work!</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Sajad Hussaini.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

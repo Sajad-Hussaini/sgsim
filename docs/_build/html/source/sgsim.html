@@ -1,0 +1,403 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SGSIM package &mdash; SGSIM 1.0.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=0abd802e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            SGSIM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples_index.html">Examples Gallery</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SGSIM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">SGSIM package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/sgsim.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="sgsim-package">
+<h1>SGSIM package<a class="headerlink" href="#sgsim-package" title="Link to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+<section id="module-sgsim">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-sgsim" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sgsim.GroundMotion">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sgsim.</span></span><span class="sig-name descname"><span class="pre">GroundMotion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">DomainConfig</span></code></p>
+<p>This class describes ground motions in terms of various proprties (e.g., spectra, peak motions, characteristics)</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.ce">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ce</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.ce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.ce" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.energy_slice">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">energy_slice</span></span><a class="headerlink" href="#sgsim.GroundMotion.energy_slice" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.fas">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fas</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.fas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.fas" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.fas_smooth">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fas_smooth</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.fas_smooth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.fas_smooth" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bandpass_freqs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.filter" title="Link to this definition"></a></dt>
+<dd><p>Perform a bandpass filtering using bandpass freqs as (lowcut, highcut) in Hz</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.from_file">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.from_file" title="Link to this definition"></a></dt>
+<dd><p>Construct a motion class from an accelergoram recording file.</p>
+<p>file_path: path to the file or the filename in a zip
+source:    source type (e.g., ‘NGA’)
+kwargs:    additional keyword arguments for RecordReader (e.g., ‘skiprows’)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.mle_ac">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mle_ac</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.mle_ac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.mle_ac" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.mle_disp">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mle_disp</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.mle_disp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.mle_disp" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.mle_vel">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mle_vel</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.mle_vel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.mle_vel" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.mzc_ac">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mzc_ac</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.mzc_ac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.mzc_ac" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.mzc_disp">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mzc_disp</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.mzc_disp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.mzc_disp" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.mzc_vel">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mzc_vel</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.mzc_vel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.mzc_vel" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.nce">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nce</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.nce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.nce" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.pga">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pga</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.pga"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.pga" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.pgd">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pgd</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.pgd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.pgd" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.pgv">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pgv</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.pgv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.pgv" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.pmnm_ac">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pmnm_ac</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.pmnm_ac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.pmnm_ac" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.pmnm_disp">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pmnm_disp</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.pmnm_disp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.pmnm_disp" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.pmnm_vel">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pmnm_vel</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.pmnm_vel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.pmnm_vel" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.resample">
+<span class="sig-name descname"><span class="pre">resample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.resample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.resample" title="Link to this definition"></a></dt>
+<dd><p>resample the motion data to a new time step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dt</strong> (<em>float</em>) – The new time step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.sa">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sa</span></span><a class="headerlink" href="#sgsim.GroundMotion.sa" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.save_simulations">
+<span class="sig-name descname"><span class="pre">save_simulations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_vars</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.save_simulations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.save_simulations" title="Link to this definition"></a></dt>
+<dd><p>To save any related simulation data to a CSV file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – Output file name.</p></li>
+<li><p><strong>x_var</strong> (<em>str</em>) – Independent variable (e.g., ‘tp’, ‘freq’, ‘t’).</p></li>
+<li><p><strong>list</strong><strong>[</strong><strong>str</strong><strong>]</strong> (<em>y_vars</em>) – Dependent variables (e.g., [‘sa’, ‘sv’, ‘sd’]).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.sd">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sd</span></span><a class="headerlink" href="#sgsim.GroundMotion.sd" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.spectra">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">spectra</span></span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.spectra" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.sv">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sv</span></span><a class="headerlink" href="#sgsim.GroundMotion.sv" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.GroundMotion.trim">
+<span class="sig-name descname"><span class="pre">trim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">slice</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/motion/ground_motion_model.html#GroundMotion.trim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.GroundMotion.trim" title="Link to this definition"></a></dt>
+<dd><p>Trim the ground motion data using specified criteria.</p>
+<dl class="simple">
+<dt>option (str): Trimming method:</dt><dd><ul class="simple">
+<li><p>‘energy’: Trim based on cumulative energy range (e.g., (0.001, 0.999))</p></li>
+<li><p>‘npts’: Keep specified number of points from beginning</p></li>
+<li><p>‘slice’: Apply a custom slice directly to the motion arrays</p></li>
+</ul>
+</dd>
+<dt>value: Parameters for the chosen option:</dt><dd><ul class="simple">
+<li><p>For ‘energy’: tuple[float, float] as (start_fraction, end_fraction)</p></li>
+<li><p>For ‘npts’: int representing number of points to keep</p></li>
+<li><p>For ‘slice’: slice object to apply directly</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">motion</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="s1">&#39;energy&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">))</span>  <span class="c1"># Keep middle 90% of energy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">motion</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="s1">&#39;npts&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>            <span class="c1"># Keep first 1000 points</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">motion</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="s1">&#39;slice&#39;</span><span class="p">,</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">))</span> <span class="c1"># Custom slice</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sgsim.ModelPlot">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sgsim.</span></span><span class="sig-name descname"><span class="pre">ModelPlot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulated_motion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">real_motion</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/visualization/model_plot.html#ModelPlot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.ModelPlot" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="simple">
+<dt>This class allows to</dt><dd><p>plot various simulation results and comparison with a target motion</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.errors">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">errors</span></span><a class="headerlink" href="#sgsim.ModelPlot.errors" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.goodness_of_fits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">goodness_of_fits</span></span><a class="headerlink" href="#sgsim.ModelPlot.goodness_of_fits" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.plot_ac_ce">
+<span class="sig-name descname"><span class="pre">plot_ac_ce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/visualization/model_plot.html#ModelPlot.plot_ac_ce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.ModelPlot.plot_ac_ce" title="Link to this definition"></a></dt>
+<dd><p>Comparing the cumulative energy and energy distribution
+of the record, model, and simulations</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.plot_ce">
+<span class="sig-name descname"><span class="pre">plot_ce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/visualization/model_plot.html#ModelPlot.plot_ce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.ModelPlot.plot_ce" title="Link to this definition"></a></dt>
+<dd><p>Cumulative energy plot of the record and simulations</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.plot_fas">
+<span class="sig-name descname"><span class="pre">plot_fas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/visualization/model_plot.html#ModelPlot.plot_fas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.ModelPlot.plot_fas" title="Link to this definition"></a></dt>
+<dd><p>FAS plot of the record and simulations</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.plot_feature">
+<span class="sig-name descname"><span class="pre">plot_feature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mzc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/visualization/model_plot.html#ModelPlot.plot_feature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.ModelPlot.plot_feature" title="Link to this definition"></a></dt>
+<dd><p>Comparing the indicated error of the record, model, and simulations
+mzc, mle, pmnm</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.plot_motions">
+<span class="sig-name descname"><span class="pre">plot_motions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/visualization/model_plot.html#ModelPlot.plot_motions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.ModelPlot.plot_motions" title="Link to this definition"></a></dt>
+<dd><p>plot ground motion time histories of acceleration, velocity, and displacement in a 3 by 3 grid</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.plot_spectra">
+<span class="sig-name descname"><span class="pre">plot_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spectrum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sa'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/visualization/model_plot.html#ModelPlot.plot_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.ModelPlot.plot_spectra" title="Link to this definition"></a></dt>
+<dd><p>Plot the specified type of spectrum (sa, sv, or sd) of the record and simulations</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.ModelPlot.show_metrics">
+<span class="sig-name descname"><span class="pre">show_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/visualization/model_plot.html#ModelPlot.show_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.ModelPlot.show_metrics" title="Link to this definition"></a></dt>
+<dd><p>Print metrics with optional saving.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sgsim.StochasticModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sgsim.</span></span><span class="sig-name descname"><span class="pre">StochasticModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modulating</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_frequency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_damping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_frequency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_damping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">callable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/core/stochastic_model.html#StochasticModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.StochasticModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ModelCore</span></code></p>
+<p>This class allows to construct a stochastic simulation model
+for calibrattion of model parameters and simulation of ground motions</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.StochasticModel.from_file">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/core/stochastic_model.html#StochasticModel.from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.StochasticModel.from_file" title="Link to this definition"></a></dt>
+<dd><p>Construct a stochastic model using loaded model parameters from a plain text file.
+filename: The name of the text file to load the data from.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.StochasticModel.simulate">
+<span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/core/stochastic_model.html#StochasticModel.simulate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.StochasticModel.simulate" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Simulate ground motions using the calibrated stochastic model</dt><dd><p>acceleration, velocity, displacement time series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sgsim.StochasticModel.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/core/stochastic_model.html#StochasticModel.summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.StochasticModel.summary" title="Link to this definition"></a></dt>
+<dd><p>Print all model parameters to the console.
+Save all model parameters to a plain text file.
+A stochastic model can be initiated from the saved file using the class method from_file.
+filename: The name of the text file to save the data to.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sgsim.calibrate">
+<span class="sig-prename descclassname"><span class="pre">sgsim.</span></span><span class="sig-name descname"><span class="pre">calibrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">motion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_guess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sgsim/optimization/model_calibrate.html#calibrate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sgsim.calibrate" title="Link to this definition"></a></dt>
+<dd><p>Fit the stochastic model to a target motion</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Sajad Hussaini.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

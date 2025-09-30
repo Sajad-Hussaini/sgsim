@@ -1,0 +1,22 @@
+SGSIM package
+=============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   sgsim.core
+   sgsim.file_reading
+   sgsim.motion
+   sgsim.optimization
+   sgsim.visualization
+
+Module contents
+---------------
+
+.. automodule:: sgsim
+   :members:
+   :undoc-members:
+   :show-inheritance:

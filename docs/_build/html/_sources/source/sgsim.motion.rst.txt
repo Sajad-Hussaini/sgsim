@@ -1,0 +1,41 @@
+sgsim.motion package
+====================
+
+Submodules
+----------
+
+sgsim.motion.ground\_motion\_model module
+-----------------------------------------
+
+.. automodule:: sgsim.motion.ground_motion_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+sgsim.motion.signal\_analysis module
+------------------------------------
+
+.. automodule:: sgsim.motion.signal_analysis
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+sgsim.motion.signal\_processing module
+--------------------------------------
+
+.. automodule:: sgsim.motion.signal_processing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+Module contents
+---------------
+
+.. automodule:: sgsim.motion
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:

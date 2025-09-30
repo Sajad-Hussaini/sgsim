@@ -33,13 +33,11 @@ def beta_single(t, p1, c1, et, tn):
     return np.sqrt(et * multi_mdl)
 
 def beta_dual(t, p1, c1, p2, c2, a1, et, tn):
-    """ Original formula:
-    mdl1 = 0.05 * (6 * (t * (tn - t)) / (tn ** 3))
-    mdl2 = a1 * ((t ** (c1 * p1) * (tn - t) ** (c1 * (1 - p1))) /
-                  (beta(1 + c1 * p1, 1 + c1 * (1 - p1)) * tn ** (1 + c1)))
-    mdl3 = (1 - 0.05 - a1) * ((t ** (c2 * p2) * (tn - t) ** (c2 * (1 - p2))) /
-                              (beta(1 + c2 * p2, 1 + c2 * (1 - p2)) * tn ** (1 + c2)))
-    multi_mdl = mdl1 + mdl2 + mdl3 """""
+    # Original formula:
+    # mdl1 = 0.05 * (6 * (t * (tn - t)) / (tn ** 3))
+    # mdl2 = a1 * ((t ** (c1 * p1) * (tn - t) ** (c1 * (1 - p1))) / (beta(1 + c1 * p1, 1 + c1 * (1 - p1)) * tn ** (1 + c1)))
+    # mdl3 = (1 - 0.05 - a1) * ((t ** (c2 * p2) * (tn - t) ** (c2 * (1 - p2))) / (beta(1 + c2 * p2, 1 + c2 * (1 - p2)) * tn ** (1 + c2)))
+    # multi_mdl = mdl1 + mdl2 + mdl3
     mdl1 = 0.05 * (6 * (t[1:-1] * (tn - t[1:-1])) / (tn ** 3))
     mdl2 = a1 * np.exp(
         (c1 * p1) * np.log(t[1:-1]) + (c1 * (1 - p1)) * np.log(tn - t[1:-1]) -
