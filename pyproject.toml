@@ -22,7 +22,11 @@ dependencies = [
     "numpy",
     "scipy",
     "matplotlib",
-    "numba",]
+    "numba",
+    sphinx,
+    sphinx_rtd_theme,
+    myst-parser,
+    nbsphinx]
 
 [project.urls]
 Homepage = "https://github.com/Sajad-Hussaini/sgsim"

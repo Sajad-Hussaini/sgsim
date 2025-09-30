@@ -10,4 +10,16 @@ build/
 venv/
 .env/
 .ipynb_checkpoints/
+# Sphinx build artifacts
+docs/_build/
+docs/_autosummary/
 
+# Coverage / testing
+.coverage
+htmlcov/
+
+# Jupyter
+*.nbconvert.ipynb
+
+# System
+Thumbs.db
