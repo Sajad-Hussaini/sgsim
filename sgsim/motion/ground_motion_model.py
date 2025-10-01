@@ -314,7 +314,7 @@ class GroundMotion(DomainConfig):
         energy_range : tuple of float
             (start_fraction, end_fraction) for cumulative energy.
         """
-        self._energy_slice = signal_analysis.slice_energy(self.dt, self.ac, energy_range)
+        self._energy_slice = signal_analysis.slice_energy(self.ce, energy_range)
 
     @classmethod
     def from_file(cls, file_path: str | tuple[str, str], source: str, **kwargs):
