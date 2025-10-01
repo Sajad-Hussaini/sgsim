@@ -17,16 +17,16 @@
 
 ## Features
 
-See the [full list of features in the documentation](https://readthedocs.org/projects/sgsim/badge/?version=latest).
+See the [Documentation](https://sgsim.readthedocs.io/en/latest/?badge=latest).
 
 
 ## Installation
 
-See the [full list of features in the documentation](https://readthedocs.org/projects/sgsim/badge/?version=latest).
+See the [Documentation](https://sgsim.readthedocs.io/en/latest/?badge=latest).
 
 ## User Guide
 
-The full documentation, including examples and the complete API reference, is available at [sgsim.readthedocs.io](https://www.google.com/search?q=https://sgsim.readthedocs.io/).
+The full documentation, including examples and the complete API reference, is available at [sgsim.readthedocs.io](https://sgsim.readthedocs.io/en/latest/?badge=latest).
 
 
 ## License
