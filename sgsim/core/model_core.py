@@ -1,6 +1,6 @@
 from . import model_engine
 from .model_config import ModelConfig
-from ..motion import signal_analysis
+from ..motion import signal_tools
 
 class ModelCore(ModelConfig):
     """
@@ -33,7 +33,7 @@ class ModelCore(ModelConfig):
         ndarray: The cumulative energy of the stochastic model.
         """
         if self._dirty_flags & self.CE:
-            self._ce[:] = signal_analysis.get_ce(self.dt, self.mdl)
+            self._ce[:] = signal_tools.get_ce(self.dt, self.mdl)
             self._dirty_flags &= ~self.CE
         return self._ce
     
@@ -43,7 +43,7 @@ class ModelCore(ModelConfig):
         ndarray: The normalized cumulative energy of the stochastic model.
         """
         if self._dirty_flags & self.NCE:
-            self._nce[:] = signal_analysis.get_nce(self.dt, self.mdl)
+            self._nce[:] = signal_tools.get_nce(self.dt, self.mdl)
             self._dirty_flags &= ~self.NCE
         return self._nce
     

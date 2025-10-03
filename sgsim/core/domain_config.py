@@ -1,6 +1,6 @@
 from functools import cached_property
 import numpy as np
-from ..motion import signal_analysis
+from ..motion import signal_tools
 
 class DomainConfig:
     """
@@ -58,14 +58,14 @@ class DomainConfig:
         """
         ndarray: Time array for the configured number of points and time step.
         """
-        return signal_analysis.get_time(self.npts, self.dt)
+        return signal_tools.get_time(self.npts, self.dt)
 
     @cached_property
     def freq(self):
         """
         ndarray: Frequency array for the configured number of points and time step.
         """
-        return signal_analysis.get_freq(self.npts, self.dt)
+        return signal_tools.get_freq(self.npts, self.dt)
     
     @cached_property
     def freq_sim(self):
@@ -73,7 +73,7 @@ class DomainConfig:
         ndarray: Frequency array for simulation (zero-padded to avoid aliasing).
         """
         npts_sim = int(2 ** np.ceil(np.log2(2 * self.npts)))
-        return signal_analysis.get_freq(npts_sim, self.dt)  # Nyquist freq to avoid aliasing in simulations
+        return signal_tools.get_freq(npts_sim, self.dt)  # Nyquist freq to avoid aliasing in simulations
 
     @property
     def freq_slice(self):
@@ -81,7 +81,7 @@ class DomainConfig:
         slice: Slice object corresponding to the specified frequency range.
         """
         if not hasattr(self, '_freq_slice'):
-            self._freq_slice = signal_analysis.slice_freq(self.freq, (0.1, 25.0))
+            self._freq_slice = signal_tools.slice_freq(self.freq, (0.1, 25.0))
         return self._freq_slice
 
     @freq_slice.setter
@@ -94,7 +94,7 @@ class DomainConfig:
         freq_range : tuple of float
             (start_freq, end_freq) for frequency range.
         """
-        self._freq_slice = signal_analysis.slice_freq(self.freq, freq_range)
+        self._freq_slice = signal_tools.slice_freq(self.freq, freq_range)
 
     @property
     def tp(self):

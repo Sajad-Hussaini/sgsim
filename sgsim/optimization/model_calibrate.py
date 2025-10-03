@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from ..core.stochastic_model import StochasticModel
-from ..motion.ground_motion_model import GroundMotion
+from ..motion.ground_motion import GroundMotion
 
 def calibrate(func: str, model: StochasticModel, motion: GroundMotion, initial_guess=None, lower_bounds=None, upper_bounds=None):
     """
