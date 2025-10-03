@@ -1,8 +1,103 @@
 import numpy as np
 from scipy.special import beta
 
+# class ParametricFunction:
+#     """
+#     Base class for parametric functions with fixed and free parameters.
+#     """
+#     _param_names = []
+
+#     def __init__(self, **known_params):
+#         """
+#         Initialize the function and set any known (fixed) parameters.
+
+#         Raises
+#         ------
+#         ValueError
+#             _description_
+#         """
+#         self.known_params = {}
+#         for key, value in known_params.items():
+#             if key not in self._param_names:
+#                 raise ValueError(f"'{key}' is not a valid parameter name for {self.__class__.__name__}.")
+#             self.known_params[key] = value
+
+#     @property
+#     def free_param_names(self):
+#         """Returns a list of parameters that are not fixed."""
+#         return [p for p in self._param_names if p not in self.known_params]
+
+#     def __call__(self, t, *free_param_values):
+#         """
+#         Evaluate the parametric function at given t with provided free parameter values.
+
+#         Parameters
+#         ----------
+#         t : array-like
+#             Input values at which to evaluate the function.
+#         *free_param_values : list
+#             Values for the free (unfixed) parameters.
+
+#         Returns
+#         -------
+#         result : array-like
+#             The evaluated function values.
+
+#         Raises
+#         ------
+#         ValueError
+#             If the number of free parameter values does not match the expected number.
+#         """
+#         params = self.known_params.copy()
+#         if len(self.free_param_names) != len(free_param_values):
+#             raise ValueError(f"Expected {len(self.free_param_names)} free parameters, but got {len(free_param_values)}.")
+            
+#         params.update(zip(self.free_param_names, free_param_values))
+
+#         return self._func(t, **params)
+
+#     def _func(self, t, **kwargs):
+#         """
+#         Abstract method to be implemented by subclasses.
+
+#         Parameters
+#         ----------
+#         t : array-like
+#             Input values at which to evaluate the function.
+#         **kwargs : dict
+#             Parameter values for the function.
+
+#         Raises
+#         ------
+#         NotImplementedError
+#             If the subclass does not implement this method.
+#         """
+#         raise NotImplementedError("Subclasses must implement the _func method.")
+
+#     def __repr__(self):
+#         """
+#         String representation of the ParametricFunction instance.
+
+#         Returns
+#         -------
+#         str
+#             A string showing the class name, fixed parameters, and free parameters.
+#         """
+#         fixed = ", ".join([f"{k}={v}" for k, v in self.known_params.items()])
+#         free = ", ".join(self.free_param_names)
+#         return f"{self.__class__.__name__}(Fixed: [{fixed if fixed else 'None'}], Free: [{free}])"
+
+# class Linear(ParametricFunction):
+#     _param_names = ['a', 'b']
+
+#     def _func(self, t, a, b):
+#         return a - (a - b) * (t / t[-1])
+
 def linear(t, p0, pn):
     return p0 - (p0 - pn) * (t / t[-1])
+
+def linear_peak_rate(t, p_peak, p_rate, t_peak):
+    return p_peak - p_rate * (t - t_peak)
 
 def constant(t, p0):
     return np.full(len(t), p0)
