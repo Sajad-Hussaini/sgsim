@@ -23,11 +23,12 @@ class GroundMotion(DomainConfig):
         """
     _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset({'ac', 'vel', 'disp'})
 
-    def __init__(self, npts, dt, ac, vel, disp):
+    def __init__(self, npts, dt, ac, vel, disp, tag=None):
         super().__init__(npts, dt)
         self.ac = ac
         self.vel = vel
         self.disp = disp
+        self.tag = tag
 
     def trim(self, method: str, value: tuple[float, float] | int | slice):
         """
@@ -311,7 +312,7 @@ class GroundMotion(DomainConfig):
         self._energy_slice = signal_tools.slice_energy(self.ce, energy_range)
 
     @classmethod
-    def load_from(cls, source: str, **kwargs):
+    def load_from(cls, source: str, tag=None, **kwargs):
         """
         Construct a GroundMotion instance from an accelerogram file/data.
 
@@ -319,7 +320,8 @@ class GroundMotion(DomainConfig):
         ----------
         source : str
             Source type (e.g., 'NGA', 'ESM', 'COL', 'RAW', 'COR', 'Array').
-        
+        tag : str, optional
+            Optional tag for the GroundMotion instance.
         **kwargs
             Additional keyword arguments depending on the source type:
             - file : str
@@ -343,4 +345,4 @@ class GroundMotion(DomainConfig):
             An instance of GroundMotion initialized from the file.
         """
         record = RecordReader(source, **kwargs)
-        return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp)
+        return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)
