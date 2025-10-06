@@ -21,7 +21,7 @@ class GroundMotion(DomainConfig):
         disp : ndarray
             Displacement array.
         """
-    _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset({'ac', 'vel', 'disp'})
+    _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset({'ac', 'vel', 'disp', 'tag'})
 
     def __init__(self, npts, dt, ac, vel, disp, tag=None):
         super().__init__(npts, dt)

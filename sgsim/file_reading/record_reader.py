@@ -77,8 +77,6 @@ class RecordReader:
         """
         Calculates time, velocity, and displacement from acceleration.
         """
-        if self.ac is None or self.dt is None:
-            raise ValueError("Acceleration ('ac') and time step ('dt') must be set by the parser.")
         self.npts = len(self.ac)
         self.t = get_time(self.npts, self.dt)
         self.vel = get_integral(self.dt, self.ac)
@@ -118,8 +116,8 @@ class RecordReader:
         """
         Reading data from a numpy array
         """
-        if not self.ac and not self.dt:
-            raise ValueError("For 'array' source, 'ac' and 'dt' must be provided in kwargs.")
+        if self.ac is None or self.dt is None:
+            raise ValueError("Acceleration ('ac') and time step ('dt') must be provided in kwargs.")
         return self
 
     def _parser_raw(self):

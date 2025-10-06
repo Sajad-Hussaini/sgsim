@@ -70,7 +70,6 @@ class ModelConfig(DomainConfig):
             Parameters for the upper frequency function.
         """
         self._wu[:] = self.wu_func(self.nce, *params)
-        self._wu[:] = np.clip(self._wu, 0.1, 30.0)
         self.wu_params = tuple(p for p in params if np.isscalar(p))
         self._wu *= 2 * np.pi  # Convert to angular frequency
         self._set_dirty_flag()
@@ -93,7 +92,6 @@ class ModelConfig(DomainConfig):
             Parameters for the lower frequency function.
         """
         self._wl[:] = self.wl_func(self.nce, *params)
-        self._wl[:] = np.clip(self._wl, 0.1, 10.0)
         self.wl_params = tuple(p for p in params if np.isscalar(p))
         self._wl *= 2 * np.pi  # Convert to angular frequency
         self._set_dirty_flag()
@@ -116,7 +114,6 @@ class ModelConfig(DomainConfig):
             Parameters for the upper damping function.
         """
         self._zu[:] = self.zu_func(self.nce, *params)
-        self._zu[:] = np.clip(self._zu, 0.1, 5.0)
         self.zu_params = tuple(p for p in params if np.isscalar(p))
         self._set_dirty_flag()
 
@@ -138,6 +135,5 @@ class ModelConfig(DomainConfig):
             Parameters for the lower damping function.
         """
         self._zl[:] = self.zl_func(self.nce, *params)
-        self._zl[:] = np.clip(self._zl, 0.1, 5.0)
         self.zl_params = tuple(p for p in params if np.isscalar(p))
         self._set_dirty_flag()

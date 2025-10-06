@@ -29,7 +29,7 @@ def calibrate(func: str, model: StochasticModel, motion: GroundMotion, initial_g
     """
     init_guess, lw_bounds, up_bounds = initialize_bounds(func, model, initial_guess, lower_bounds, upper_bounds)
     xdata, ydata, obj_func, sigmas = prepare_data(func, model, motion)
-    curve_fit(obj_func, xdata, ydata, p0=init_guess, bounds=(lw_bounds, up_bounds), sigma=sigmas, maxfev=10000)
+    curve_fit(obj_func, xdata, ydata, p0=init_guess, bounds=(lw_bounds, up_bounds), sigma=sigmas, maxfev=20000)
     return model
 
 def initialize_bounds(func, model, init_guess, lw_bounds, up_bounds):
@@ -89,10 +89,10 @@ def get_default_bounds(func: str, model):
         ('modulating', 'beta_single'): ((0.1, 20.0), (0.01, 1.0), (0.8, 1000.0)),
         ('frequency', 'linear'): frequency_common,
         ('frequency', 'exponential'): frequency_common,
-        ('frequency', 'linear_peak_rate'): ((5.0, 0.0, 1.0, 0.0), (0.0, -5.0, 0.1, -10.0), (30.0, 5.0, 10.0, 10.0)),
+        ('frequency', 'linear_peak_rate'): ((5.0, 0.0, 1.0, 0.0), (1.0, -10.0, 0.1, -10.0), (30.0, 10.0, 10.0, 10.0)),
         ('damping', 'linear'): damping_common,
         ('damping', 'exponential'): damping_common,
-        ('damping', 'linear_peak_rate'): ((0.25, 0.0, 0.25, 0.0), (0.1, -10.0, 0.1, -10.0), (5.0, 10.0, 5.0, 10.0))}
+        ('damping', 'linear_peak_rate'): ((0.25, 0.0, 0.25, 0.0), (0.1, -10.0, 0.1, -10.0), (10.0, 10.0, 10.0, 10.0))}
 
     if func == 'modulating':
         model_func_name = model.mdl_func.__name__
@@ -188,11 +188,12 @@ def prepare_frequency_data(model, motion):
     sigmas : ndarray
         Sigma values for weighting.
     """
-    mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 1)
+    # mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 1)
     ydata = np.concatenate((motion.mzc_ac, motion.mzc_disp))
     xdata = np.tile(motion.t, 2)
     obj_func = lambda _, *params: obj_freq(params, model=model)
-    sigmas = np.tile(mdl_norm, 2)
+    # sigmas = np.tile(mdl_norm, 2)
+    sigmas = None
     return xdata, ydata, obj_func, sigmas
 
 def prepare_damping_data(model, motion):
@@ -217,11 +218,12 @@ def prepare_damping_data(model, motion):
     sigmas : ndarray
         Sigma values for weighting.
     """
-    mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 1)
+    # mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 1)
     ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, motion.pmnm_vel, motion.pmnm_disp))
     xdata = np.tile(motion.t, 5)
     obj_func = lambda _, *params: obj_damping(params, model=model)
-    sigmas = np.tile(mdl_norm, 5)
+    # sigmas = np.tile(mdl_norm, 5)
+    sigmas = None
     return xdata, ydata, obj_func, sigmas
 
 def obj_mdl(params, model: StochasticModel, motion: GroundMotion):
