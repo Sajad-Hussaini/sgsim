@@ -3,6 +3,7 @@ from scipy.fft import irfft
 from . import model_engine
 from . import parametric_functions
 from .model_core import ModelCore
+from ..motion.ground_motion import GroundMotion
 
 class StochasticModel(ModelCore):
     """
@@ -40,7 +41,7 @@ class StochasticModel(ModelCore):
         # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
         vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
         disp = irfft(-fourier[..., 1:] / (self.freq_sim[1:] ** 2), workers=-1)[..., :self.npts]
-        return ac, vel, disp
+        return GroundMotion(self.npts, self.dt, ac, vel, disp)
 
     def summary(self, filename: str = None):
         """
