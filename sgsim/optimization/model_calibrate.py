@@ -141,7 +141,7 @@ def prepare_data(func, model, motion):
     else:
         raise ValueError('Unknown Calibration Function.')
 
-def prepare_modulating_data(model, motion):
+def prepare_modulating_data(model: StochasticModel, motion: GroundMotion):
     """
     Prepare data for modulating function calibration.
 
@@ -168,7 +168,7 @@ def prepare_modulating_data(model, motion):
     obj_func = lambda _, *params: obj_mdl(params, model=model, motion=motion)
     return xdata, ydata, obj_func, None
 
-def prepare_frequency_data(model, motion):
+def prepare_frequency_data(model: StochasticModel, motion: GroundMotion):
     """
     Prepare data for frequency function calibration.
 
@@ -190,13 +190,11 @@ def prepare_frequency_data(model, motion):
     sigmas : ndarray
         Sigma values for weighting.
     """
-    # mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 0.1)
-    mdl_norm = (model.mdl / np.max(model.mdl))
-    ydata = np.concatenate((motion.mzc_ac * mdl_norm, motion.mzc_disp * mdl_norm))
+    mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 0.1)
+    ydata = np.concatenate((motion.mzc_ac / motion.mzc_ac[-1], motion.mzc_disp / motion.mzc_disp[-1]))
     xdata = np.tile(motion.t, 2)
-    obj_func = lambda _, *params: obj_freq(params, model=model)
-    # sigmas = np.tile(mdl_norm, 2)
-    sigmas = None
+    obj_func = lambda _, *params: obj_freq(params, model=model, motion=motion)
+    sigmas = np.tile(mdl_norm, 2)
     return xdata, ydata, obj_func, sigmas
 
 def prepare_damping_data(model, motion):
@@ -221,12 +219,13 @@ def prepare_damping_data(model, motion):
     sigmas : ndarray
         Sigma values for weighting.
     """
-    mdl_norm = (model.mdl / np.max(model.mdl))
-    ydata = np.concatenate((motion.mzc_ac * mdl_norm, motion.mzc_vel * mdl_norm, motion.mzc_disp * mdl_norm, motion.pmnm_vel * mdl_norm, motion.pmnm_disp * mdl_norm))
+    mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 0.1)
+    ydata = np.concatenate((motion.mzc_ac / motion.mzc_ac[-1], motion.mzc_vel/ motion.mzc_vel[-1],
+                            motion.mzc_disp / motion.mzc_disp[-1], motion.pmnm_vel / motion.pmnm_vel[-1],
+                            motion.pmnm_disp / motion.pmnm_disp[-1]))
     xdata = np.tile(motion.t, 5)
-    obj_func = lambda _, *params: obj_damping(params, model=model)
-    # sigmas = np.tile(mdl_norm, 5)
-    sigmas = None
+    obj_func = lambda _, *params: obj_damping(params, model=model, motion=motion)
+    sigmas = np.tile(mdl_norm, 5)
     return xdata, ydata, obj_func, sigmas
 
 def obj_mdl(params, model: StochasticModel, motion: GroundMotion):
@@ -260,7 +259,7 @@ def obj_mdl(params, model: StochasticModel, motion: GroundMotion):
     model.mdl = params
     return model.ce
 
-def obj_freq(params, model: StochasticModel):
+def obj_freq(params, model: StochasticModel, motion: GroundMotion):
     """
     Frequency objective function in units of Hz.
 
@@ -295,12 +294,11 @@ def obj_freq(params, model: StochasticModel):
     model.wl = wl_param
 
     ang_coef = 2 * np.pi
-    wu_array = np.cumsum(model.wu / ang_coef) * model.dt
-    wl_array = np.cumsum(model.wl / ang_coef) * model.dt
-    mdl_norm = (model.mdl / np.max(model.mdl))
-    return np.concatenate((wu_array * mdl_norm, wl_array * mdl_norm))
+    mzc_ac = np.cumsum(model.wu / ang_coef) * model.dt
+    mzc_disp = np.cumsum(model.wl / ang_coef) * model.dt
+    return np.concatenate((mzc_ac / motion.mzc_ac[-1], mzc_disp / motion.mzc_disp[-1]))
 
-def obj_damping(params, model: StochasticModel):
+def obj_damping(params, model: StochasticModel, motion: GroundMotion):
     """
     The damping objective function.
 
@@ -329,5 +327,6 @@ def obj_damping(params, model: StochasticModel):
         zl_param = (*zl_param, E_peak)
     model.zu = zu_param
     model.zl = zl_param
-    mdl_norm = (model.mdl / np.max(model.mdl))
-    return np.concatenate((model.mzc_ac * mdl_norm, model.mzc_vel * mdl_norm, model.mzc_disp * mdl_norm, model.pmnm_vel * mdl_norm, model.pmnm_disp * mdl_norm))
+    return np.concatenate((model.mzc_ac / motion.mzc_ac[-1], model.mzc_vel / motion.mzc_vel[-1],
+                           model.mzc_disp / motion.mzc_disp[-1], model.pmnm_vel / motion.pmnm_vel[-1],
+                           model.pmnm_disp / motion.pmnm_disp[-1]))
