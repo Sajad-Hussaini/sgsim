@@ -29,7 +29,7 @@ def calibrate(func: str, model: StochasticModel, motion: GroundMotion, initial_g
     """
     init_guess, lw_bounds, up_bounds = initialize_bounds(func, model, initial_guess, lower_bounds, upper_bounds)
     xdata, ydata, obj_func, sigmas = prepare_data(func, model, motion)
-    curve_fit(obj_func, xdata, ydata, p0=init_guess, bounds=(lw_bounds, up_bounds), sigma=sigmas, maxfev=5000)
+    curve_fit(obj_func, xdata, ydata, p0=init_guess, bounds=(lw_bounds, up_bounds), sigma=sigmas)
     return model
 
 def initialize_bounds(func, model, init_guess, lw_bounds, up_bounds):
@@ -85,14 +85,16 @@ def get_default_bounds(func: str, model):
     frequency_common = ((5.0, 4.0, 1.0, 1.0), (0.0, 0.0, 0.1, 0.1), (25.0, 25.0, 10.0, 10.0))
     damping_common = ((0.5, 0.2, 0.1, 0.5), (0.1, 0.1, 0.1, 0.1), (5.0, 5.0, 5.0, 5.0))
     unified_bounds_config = {
-        ('modulating', 'beta_dual'): ((0.1, 20.0, 0.2, 10.0, 0.6), (0.01, 1.0, 0.0, 1.0, 0.0), (0.7, 200.0, 0.8, 200.0, 0.95)),
+        ('modulating', 'beta_dual'): ((0.1, 20.0, 0.2, 10.0, 0.6), (0.01, 1.0, 0.0, 1.0, 0.0), (0.7, 1000.0, 0.8, 1000.0, 0.95)),
         ('modulating', 'beta_single'): ((0.1, 20.0), (0.01, 1.0), (0.8, 1000.0)),
         ('frequency', 'linear'): frequency_common,
         ('frequency', 'exponential'): frequency_common,
-        ('frequency', 'linear_peak_rate'): ((5.0, 0.0, 1.0, 0.0), (1.0, -10.0, 0.1, -10.0), (30.0, 10.0, 10.0, 10.0)),
+        ('frequency', 'linear_slope'): ((5.0, 0.0, 1.0, 0.0), (1.0, -10.0, 0.1, -10.0), (30.0, 10.0, 10.0, 10.0)),
+        ('frequency', 'constant'): ((5.0, 1.0), (1.0, 0.1), (30.0, 10.0)),
         ('damping', 'linear'): damping_common,
         ('damping', 'exponential'): damping_common,
-        ('damping', 'linear_peak_rate'): ((0.3, 0.0, 0.2, 0.0), (0.1, -10.0, 0.1, -10.0), (10.0, 10.0, 10.0, 10.0))}
+        ('damping', 'linear_slope'): ((0.3, 0.0, 0.2, 0.0), (0.1, -10.0, 0.1, -10.0), (10.0, 10.0, 10.0, 10.0)),
+        ('damping', 'constant'): ((0.3, 0.2), (0.1, 0.1), (5.0, 5.0)),}
 
     if func == 'modulating':
         model_func_name = model.mdl_func.__name__
@@ -188,11 +190,13 @@ def prepare_frequency_data(model, motion):
     sigmas : ndarray
         Sigma values for weighting.
     """
-    mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 0.1)
-    ydata = np.concatenate((motion.mzc_ac, motion.mzc_disp))
+    # mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 0.1)
+    mdl_norm = (model.mdl / np.max(model.mdl))
+    ydata = np.concatenate((motion.mzc_ac * mdl_norm, motion.mzc_disp * mdl_norm))
     xdata = np.tile(motion.t, 2)
     obj_func = lambda _, *params: obj_freq(params, model=model)
-    sigmas = np.tile(mdl_norm, 2)
+    # sigmas = np.tile(mdl_norm, 2)
+    sigmas = None
     return xdata, ydata, obj_func, sigmas
 
 def prepare_damping_data(model, motion):
@@ -217,11 +221,12 @@ def prepare_damping_data(model, motion):
     sigmas : ndarray
         Sigma values for weighting.
     """
-    mdl_norm = 1 / ((model.mdl / np.max(model.mdl)) + 0.1)
-    ydata = np.concatenate((motion.mzc_ac, motion.mzc_vel, motion.mzc_disp, motion.pmnm_vel, motion.pmnm_disp))
+    mdl_norm = (model.mdl / np.max(model.mdl))
+    ydata = np.concatenate((motion.mzc_ac * mdl_norm, motion.mzc_vel * mdl_norm, motion.mzc_disp * mdl_norm, motion.pmnm_vel * mdl_norm, motion.pmnm_disp * mdl_norm))
     xdata = np.tile(motion.t, 5)
     obj_func = lambda _, *params: obj_damping(params, model=model)
-    sigmas = np.tile(mdl_norm, 5)
+    # sigmas = np.tile(mdl_norm, 5)
+    sigmas = None
     return xdata, ydata, obj_func, sigmas
 
 def obj_mdl(params, model: StochasticModel, motion: GroundMotion):
@@ -276,12 +281,15 @@ def obj_freq(params, model: StochasticModel):
     half_param = len(params) // 2
     wu_param, wl_param = params[:half_param], params[half_param:]
 
-    if model.wu_func.__name__ == "linear_peak_rate":
+    if model.wu_func.__name__ == "linear_slope":
+        wu_param = (wu_param[0] + wl_param[0], wu_param[1])
         t_peak = model.mdl_params[0] * model.t[-1]
         idx_peak = np.abs(model.t - t_peak).argmin()
         E_peak = model.nce[idx_peak]
         wu_param = (*wu_param, E_peak)
         wl_param = (*wl_param, E_peak)
+    if model.wu_func.__name__ == "linear":
+        wu_param = (wu_param[0] + wl_param[0], wu_param[1] + wl_param[1])
 
     model.wu = wu_param
     model.wl = wl_param
@@ -289,11 +297,8 @@ def obj_freq(params, model: StochasticModel):
     ang_coef = 2 * np.pi
     wu_array = np.cumsum(model.wu / ang_coef) * model.dt
     wl_array = np.cumsum(model.wl / ang_coef) * model.dt
-    
-    # Apply a penalty if the physical constraint wu >= wl is violated.
-    penalty = np.sum(np.maximum(0, model.wl - model.wu)) * 1e6
-    
-    return np.concatenate((wu_array, wl_array)) + penalty
+    mdl_norm = (model.mdl / np.max(model.mdl))
+    return np.concatenate((wu_array * mdl_norm, wl_array * mdl_norm))
 
 def obj_damping(params, model: StochasticModel):
     """
@@ -316,7 +321,7 @@ def obj_damping(params, model: StochasticModel):
     half_param = len(params) // 2
     zu_param = params[:half_param]
     zl_param = params[half_param:]
-    if model.zu_func.__name__ == "linear_peak_rate":
+    if model.zu_func.__name__ == "linear_slope":
         t_peak = model.mdl_params[0] * model.t[-1]
         idx_peak = np.abs(model.t - t_peak).argmin()
         E_peak = model.nce[idx_peak]
@@ -324,4 +329,5 @@ def obj_damping(params, model: StochasticModel):
         zl_param = (*zl_param, E_peak)
     model.zu = zu_param
     model.zl = zl_param
-    return np.concatenate((model.mzc_ac, model.mzc_vel, model.mzc_disp, model.pmnm_vel, model.pmnm_disp))
+    mdl_norm = (model.mdl / np.max(model.mdl))
+    return np.concatenate((model.mzc_ac * mdl_norm, model.mzc_vel * mdl_norm, model.mzc_disp * mdl_norm, model.pmnm_vel * mdl_norm, model.pmnm_disp * mdl_norm))

@@ -20,6 +20,8 @@ class GroundMotion(DomainConfig):
             Velocity array.
         disp : ndarray
             Displacement array.
+        tag : str, optional
+            Optional tag for the ground motion.
         """
     _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset({'ac', 'vel', 'disp', 'tag'})
 
