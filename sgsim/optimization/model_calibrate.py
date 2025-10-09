@@ -82,8 +82,8 @@ def get_default_bounds(func: str, model):
         (initial_guess, lower_bounds, upper_bounds) for the parameters.
     """
     # Tuple-based lookup: (calibration function, model function name)
-    frequency_common = ((5.0, 4.0, 1.0, 1.0), (0.0, 0.0, 0.1, 0.1), (25.0, 25.0, 10.0, 10.0))
-    damping_common = ((0.5, 0.2, 0.1, 0.5), (0.1, 0.1, 0.1, 0.1), (5.0, 5.0, 5.0, 5.0))
+    frequency_common = ((3.0, 2.0, 0.2, 0.5), (0.0, 0.0, 0.1, 0.0), (25.0, 25.0, 10.0, 10.0))
+    damping_common = ((0.1, 0.1, 0.1, 0.1), (0.1, 0.0, 0.1, 0.0), (5.0, 5.0, 5.0, 5.0))
     unified_bounds_config = {
         ('modulating', 'beta_dual'): ((0.1, 20.0, 0.2, 10.0, 0.6), (0.01, 1.0, 0.0, 1.0, 0.0), (0.7, 1000.0, 0.8, 1000.0, 0.95)),
         ('modulating', 'beta_single'): ((0.1, 20.0), (0.01, 1.0), (0.8, 1000.0)),
@@ -288,7 +288,8 @@ def obj_freq(params, model: StochasticModel, motion: GroundMotion):
         wu_param = (*wu_param, E_peak)
         wl_param = (*wl_param, E_peak)
     if model.wu_func.__name__ == "linear":
-        wu_param = (wu_param[0] + wl_param[0], wu_param[1] + wl_param[1])
+        wl_param = (wl_param[0], wl_param[0] + wl_param[1])
+        wu_param = (wu_param[0] + wu_param[1] + wl_param[1], wu_param[1] + wl_param[1])
 
     model.wu = wu_param
     model.wl = wl_param
@@ -325,6 +326,9 @@ def obj_damping(params, model: StochasticModel, motion: GroundMotion):
         E_peak = model.nce[idx_peak]
         zu_param = (*zu_param, E_peak)
         zl_param = (*zl_param, E_peak)
+    if model.zu_func.__name__ == "linear":
+        zl_param = (zl_param[0], zl_param[0] + zl_param[1])
+        zu_param = (zu_param[0], zu_param[0] + zu_param[1])
     model.zu = zu_param
     model.zl = zl_param
     return np.concatenate((model.mzc_ac / motion.mzc_ac[-1], model.mzc_vel / motion.mzc_vel[-1],

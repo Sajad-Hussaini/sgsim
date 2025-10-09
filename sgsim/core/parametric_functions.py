@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import beta
 
 def linear(t, start, end):
-    return start - (start - end) * (t / t[-1])
+    return start + (end - start) * (t / np.max(t))
 
 def linear_slope(t, peak, rate, t_peak):
     return peak - rate * (t - t_peak)
