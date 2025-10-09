@@ -93,7 +93,7 @@ def get_mle(rec):
     return np.cumsum(mle_vec, axis=-1)
 
 @njit('void(int64, float64, float64[:, :], int64, float64[:], float64, float64, float64[:, :, :, :])', fastmath=True, parallel=True, cache=True)
-def sdof_lin_model(npts, dt, rec, n_sdf, period, zeta, mass, out_responses):
+def run_sdof_linear(npts, dt, rec, n_sdf, period, zeta, mass, out_responses):
     """
     linear analysis of a SDOF model using newmark method
     It parallelizes the computation across different SDOF periods
@@ -178,7 +178,7 @@ def get_spectra(dt: float, rec, period, zeta: float=0.05, chunk_size: int=10):
         end = min(start + chunk_size, n_rec)
         rec_chunk = rec[start:end]
         sdf_responses_chunk = np.empty((4, end - start, npts, n_period), order='F')
-        sdof_lin_model(npts, dt, rec_chunk, n_period, period, zeta, 1.0, sdf_responses_chunk)
+        run_sdof_linear(npts, dt, rec_chunk, n_period, period, zeta, 1.0, sdf_responses_chunk)
 
         np.abs(sdf_responses_chunk, out=sdf_responses_chunk)
         np.max(sdf_responses_chunk[0], axis=1, out=sd[start:end])
@@ -213,13 +213,6 @@ def get_ce(dt: float, rec):
     """
     return np.cumsum(rec ** 2, axis=-1) * dt
 
-def get_nce(dt: float, rec):
-    """
-    Compute the normalized cumulative energy
-    """
-    ce = get_ce(dt, rec)
-    return ce / ce[-1]
-
 def get_integral(dt: float, rec):
     """
     Compute the velocity of an acceleration input
@@ -233,7 +226,7 @@ def get_integral_detrend(dt: float, rec):
     uvec = get_integral(dt, rec)
     return uvec - np.linspace(0.0, uvec[-1], len(uvec))
 
-def get_pgp(rec):
+def get_peak_param(rec):
     " Peak ground motion parameter"
     return np.max(np.abs(rec), axis=-1)
 
@@ -253,28 +246,28 @@ def get_time(npts, dt):
     " time array "
     return np.linspace(0, (npts - 1) * dt, npts)
 
-def get_magnitude(rec_x, rec_y):
+def get_magnitude(rec1, rec2):
     " magnitude of a vector that is indepednent of coordinate system"
-    return np.sqrt(np.abs(rec_x) ** 2 + np.abs(rec_y) ** 2)
+    return np.sqrt(np.abs(rec1) ** 2 + np.abs(rec2) ** 2)
 
-def get_angle(rec_x, rec_y):
+def get_angle(rec1, rec2):
     " angle of a vector that is depednent on coordinate system"
-    return np.unwrap(np.arctan2(rec_y, rec_x))
+    return np.unwrap(np.arctan2(rec2, rec1))
 
-def turning_rate(dt, rec_x, rec_y):
+def get_turning_rate(dt, rec1, rec2):
     " turning rate or angular velocity of a vector that is indepednent of coordinate system"
-    anlges = get_angle(rec_x, rec_y)
+    anlges = get_angle(rec1, rec2)
     if len(anlges.shape) == 1:
         return np.diff(anlges, prepend=anlges[0]) / dt
     else:
         return np.diff(anlges, prepend=anlges[..., 0][:, None]) / dt
 
-def rotate_xy(rec_x, rec_y, angle):
+def rotate_records(rec1, rec2, angle):
     " rotated components in the new coordinate system"
-    xr = rec_x * np.cos(angle) - rec_y * np.sin(angle)
-    yr = rec_x * np.sin(angle) + rec_y * np.cos(angle)
+    xr = rec1 * np.cos(angle) - rec2 * np.sin(angle)
+    yr = rec1 * np.sin(angle) + rec2 * np.cos(angle)
     return xr, yr
 
-def correlation_xy(rec_x, rec_y):
+def get_correlation(rec1, rec2):
     " correlation between two signals"
-    return np.sum(rec_x * rec_y) / np.sqrt(np.sum(rec_x ** 2) * np.sum(rec_y ** 2))
+    return np.sum(rec1 * rec2) / np.sqrt(np.sum(rec1 ** 2) * np.sum(rec2 ** 2))

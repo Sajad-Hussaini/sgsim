@@ -33,7 +33,7 @@ class DomainConfig:
     def npts(self, value: int):
         if value != self._npts:
             self._npts = value
-            self.clear_cache()
+            self._clear_cache()
 
     @property
     def dt(self):
@@ -43,9 +43,9 @@ class DomainConfig:
     def dt(self, value: float):
         if value != self._dt:
             self._dt = value
-            self.clear_cache()
+            self._clear_cache()
 
-    def clear_cache(self):
+    def _clear_cache(self):
         """
         Clear cached properties, preserving core attributes.
         """
@@ -76,16 +76,14 @@ class DomainConfig:
         return signal_tools.get_freq(npts_sim, self.dt)  # Nyquist freq to avoid aliasing in simulations
 
     @property
-    def freq_slice(self):
+    def freq_slicer(self):
         """
         slice: Slice object corresponding to the specified frequency range.
         """
-        if not hasattr(self, '_freq_slice'):
-            self._freq_slice = signal_tools.slice_freq(self.freq, (0.1, 25.0))
-        return self._freq_slice
+        return self._freq_slicer
 
-    @freq_slice.setter
-    def freq_slice(self, freq_range: tuple[float, float]):
+    @freq_slicer.setter
+    def freq_slicer(self, freq_range: tuple[float, float]):
         """
         Set the frequency slice range.
 
@@ -94,14 +92,14 @@ class DomainConfig:
         freq_range : tuple of float
             (start_freq, end_freq) for frequency range.
         """
-        self._freq_slice = signal_tools.slice_freq(self.freq, freq_range)
+        self._freq_slicer = signal_tools.slice_freq(self.freq, freq_range)
 
     @property
     def tp(self):
         """
-        ndarray: Period array for response spectra (default: 0.04 to 10.0 s).
+        ndarray: Period array for response spectra.
         """
-        return self._tp if hasattr(self, '_tp') else np.arange(0.04, 10.01, 0.01)
+        return self._tp
 
     @tp.setter
     def tp(self, period_range: tuple[float, float, float]):

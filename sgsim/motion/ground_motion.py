@@ -1,28 +1,29 @@
 from functools import cached_property
 import numpy as np
+import csv
 from . import signal_tools
 from ..file_reading.record_reader import RecordReader
 from ..core.domain_config import DomainConfig
 
 class GroundMotion(DomainConfig):
     """
-    A class for handling ground motion data.
+    Ground motion data container
 
-        Parameters
-        ----------
-        npts : int
-            Number of data points (array length).
-        dt : float
-            Time step.
-        ac : ndarray
-            Acceleration array.
-        vel : ndarray
-            Velocity array.
-        disp : ndarray
-            Displacement array.
-        tag : str, optional
-            Optional tag for the ground motion.
-        """
+    Parameters
+    ----------
+    npts : int
+        Number of time points in the record.
+    dt : float
+        Time step interval in seconds.
+    ac : ndarray
+        Acceleration time series.
+    vel : ndarray
+        Velocity time series.
+    disp : ndarray
+        Displacement time series.
+    tag : str, optional
+        Identifier for the ground motion record.
+    """
     _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset({'ac', 'vel', 'disp', 'tag'})
 
     def __init__(self, npts, dt, ac, vel, disp, tag=None):
@@ -34,37 +35,33 @@ class GroundMotion(DomainConfig):
 
     def trim(self, method: str, value: tuple[float, float] | int | slice):
         """
-        Trim the ground motion data using the specified method.
+        Trim ground motion time series.
 
         Parameters
         ----------
         method : {'energy', 'npts', 'slice'}
-            Trimming method:
-            - 'energy': Trim based on cumulative energy range (e.g., (0.001, 0.999)).
-            - 'npts': Keep specified number of points from beginning.
-            - 'slice': Apply a custom slice directly to the motion arrays.
+            Trimming approach. 'energy' trims by cumulative energy fraction,
+            'npts' keeps first N points, 'slice' applies custom indexing.
         value : tuple of float, int, or slice
-            Parameters for the chosen method:
-            - For 'energy': tuple of (start_fraction, end_fraction).
-            - For 'npts': int, number of points to keep.
-            - For 'slice': slice object to apply directly.
+            Trim parameters. For 'energy': (start, end) fractions (e.g., 0.05, 0.95).
+            For 'npts': number of points. For 'slice': slice object.
 
         Returns
         -------
-        self : GroundMotion
-            The trimmed GroundMotion instance.
+        self
+            Modified GroundMotion instance for method chaining.
 
         Examples
         --------
-        >>> motion.trim('energy', (0.05, 0.95))  # Keep middle 90% of energy
-        >>> motion.trim('npts', 1000)            # Keep first 1000 points
-        >>> motion.trim('slice', slice(100, 500)) # Custom slice
+        >>> motion.trim('energy', (0.05, 0.95))
+        >>> motion.trim('npts', 1000)
+        >>> motion.trim('slice', slice(100, 500))
         """
         if method.lower() == 'energy':
             if not isinstance(value, tuple) or len(value) != 2:
                 raise ValueError("Energy trimming requires a tuple of (start_fraction, end_fraction)")
-            self.energy_slice = value
-            slicer = self.energy_slice
+            self.energy_slicer = value
+            slicer = self.energy_slicer
 
         elif method.lower() == 'npts':
             if not isinstance(value, int) or value <= 0 or value > self.npts:
@@ -86,17 +83,17 @@ class GroundMotion(DomainConfig):
     
     def filter(self, bandpass_freqs: tuple[float, float]):
         """
-        Perform a bandpass filter on the acceleration data.
+        Apply bandpass filter to ground motion.
 
         Parameters
         ----------
         bandpass_freqs : tuple of float
-            Bandpass frequencies as (lowcut, highcut) in Hz.
+            Lower and upper cutoff frequencies (Hz) as (f_low, f_high).
 
         Returns
         -------
-        self : GroundMotion
-            The filtered GroundMotion instance.
+        self
+            Modified GroundMotion instance for method chaining.
         """
         self.ac = signal_tools.bandpass_filter(self.dt, self.ac, bandpass_freqs[0], bandpass_freqs[1])
         self.vel = signal_tools.get_integral(self.dt, self.ac)
@@ -106,17 +103,17 @@ class GroundMotion(DomainConfig):
     
     def resample(self, dt: float):
         """
-        Resample the motion data to a new time step.
+        Resample ground motion to new time step.
 
         Parameters
         ----------
         dt : float
-            The new time step.
+            Target time step in seconds.
 
         Returns
         -------
-        self : GroundMotion
-            The resampled GroundMotion instance.
+        self
+            Modified GroundMotion instance for method chaining.
         """
         npts_new, dt_new, ac_new = signal_tools.resample(self.dt, dt, self.ac)
         self.ac = ac_new
@@ -125,226 +122,331 @@ class GroundMotion(DomainConfig):
         self.npts = npts_new  # auto clear cache
         self.dt = dt_new
         return self
-
-    def save_simulations(self, filename: str, x_var: str, y_vars: list[str]):
+    
+    @property
+    def fas(self):
         """
-        Save simulation data to a CSV file.
-
-        Parameters
-        ----------
-        filename : str
-            Output file name.
-        x_var : str
-            Independent variable (e.g., 'tp', 'freq', 't').
-        y_vars : list of str
-            Dependent variables (e.g., ['sa', 'sv', 'sd']).
+        Fourier amplitude spectrum of acceleration.
 
         Returns
         -------
-        self : GroundMotion
-            The GroundMotion instance (for chaining).
-        """
-        x_data = getattr(self, x_var.lower())
-        y_data = [getattr(self, var.lower()).T for var in y_vars]
-        data = np.column_stack((x_data, *y_data))
-        n = y_data[0].shape[1] if y_data else 0
-        header = x_var + "," + ",".join([f"{var}{i+1}" for var in y_vars for i in range(n)])
-        np.savetxt(filename, data, delimiter=",", header=header, comments="")
-        return self
-    
-    @cached_property
-    def fas(self):
-        """
-        ndarray: Fourier amplitude spectrum of the acceleration.
+        ndarray
+            Fourier amplitude spectrum.
         """
         return signal_tools.get_fas(self.npts, self.ac)
 
-    @cached_property
-    def fas_smooth(self):
+    def smooth_fas(self, window: int = 9):
         """
-        ndarray: Smoothed Fourier amplitude spectrum.
-        """
-        return signal_tools.moving_average(self.fas, 9)[..., self.freq_slice]
+        Smoothed Fourier amplitude spectrum.
 
-    @cached_property
+        Parameters
+        ----------
+        window : int, optional
+            Moving average window size. Default is 9.
+
+        Returns
+        -------
+        ndarray
+            Smoothed Fourier amplitude spectrum.
+        """
+        return signal_tools.moving_average(self.fas, window)
+
+    @property
     def ce(self):
         """
-        ndarray: Cumulative energy of the acceleration.
+        Cumulative energy of acceleration time series.
+
+        Returns
+        -------
+        ndarray
+            Cumulative energy array.
         """
         return signal_tools.get_ce(self.dt, self.ac)
     
-    @cached_property
-    def nce(self):
-        """
-        ndarray: Normalized cumulative energy of the acceleration.
-        """
-        return signal_tools.get_nce(self.dt, self.ac)
-    
-    @cached_property
+    @property
     def mle_ac(self):
         """
-        float: Mean log energy of the acceleration.
+        Mean local extrema of acceleration.
+
+        Returns
+        -------
+        float
+            Average of local peak values.
         """
         return signal_tools.get_mle(self.ac)
 
-    @cached_property
+    @property
     def mle_vel(self):
         """
-        float: Mean log energy of the velocity.
+        Mean local extrema of velocity.
+
+        Returns
+        -------
+        float
+            Average of local peak values.
         """
         return signal_tools.get_mle(self.vel)
 
-    @cached_property
+    @property
     def mle_disp(self):
         """
-        float: Mean log energy of the displacement.
+        Mean local extrema of displacement.
+
+        Returns
+        -------
+        float
+            Average of local peak values.
         """
         return signal_tools.get_mle(self.disp)
 
-    @cached_property
+    @property
     def mzc_ac(self):
         """
-        float: Mean zero crossing rate of the acceleration.
+        Mean zero-crossing of acceleration.
+
+        Returns
+        -------
+        float
+            Zero-crossings per unit time.
         """
         return signal_tools.get_mzc(self.ac)
 
-    @cached_property
+    @property
     def mzc_vel(self):
         """
-        float: Mean zero crossing rate of the velocity.
+        Mean zero-crossing of velocity.
+
+        Returns
+        -------
+        float
+            Zero-crossings per unit time.
         """
         return signal_tools.get_mzc(self.vel)
 
-    @cached_property
+    @property
     def mzc_disp(self):
         """
-        float: Mean zero crossing rate of the displacement.
+        Mean zero-crossing of displacement.
+
+        Returns
+        -------
+        float
+            Zero-crossings per unit time.
         """
         return signal_tools.get_mzc(self.disp)
 
-    @cached_property
+    @property
     def pmnm_ac(self):
         """
-        float: Peak mean normalized motion of the acceleration.
+        Positive-minima and negative-maxima of acceleration.
+
+        Returns
+        -------
+        float
+            Ratio of peak to mean absolute value.
         """
         return signal_tools.get_pmnm(self.ac)
 
-    @cached_property
+    @property
     def pmnm_vel(self):
         """
-        float: Peak mean normalized motion of the velocity.
+        Positive-minima and negative-maxima of velocity.
+
+        Returns
+        -------
+        float
+            Ratio of peak to mean absolute value.
         """
         return signal_tools.get_pmnm(self.vel)
 
-    @cached_property
+    @property
     def pmnm_disp(self):
         """
-        float: Peak mean normalized motion of the displacement.
+        Positive-minima and negative-maxima of displacement.
+
+        Returns
+        -------
+        float
+            Ratio of peak to mean absolute value.
         """
         return signal_tools.get_pmnm(self.disp)
 
     @cached_property
     def spectra(self):
         """
-        ndarray: Response spectra (displacement, velocity, acceleration).
+        Response spectra at 5% damping.
+
+        Returns
+        -------
+        ndarray
+            Array of shape (3, n_periods) with [Sd, Sv, Sa].
         """
+        if not hasattr(self, 'tp'):
+            raise AttributeError("Set 'tp' attribute (periods) before accessing spectra")
         return signal_tools.get_spectra(self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=self.tp, zeta=0.05)
 
     @property
     def sa(self):
         """
-        ndarray: Spectral acceleration.
+        Spectral acceleration response.
+
+        Returns
+        -------
+        ndarray
+            Sa values at periods defined by tp.
         """
         return self.spectra[2]
 
     @property
     def sv(self):
         """
-        ndarray: Spectral velocity.
+        Spectral velocity response.
+
+        Returns
+        -------
+        ndarray
+            Sv values at periods defined by tp.
         """
         return self.spectra[1]
 
     @property
     def sd(self):
         """
-        ndarray: Spectral displacement.
+        Spectral displacement response.
+
+        Returns
+        -------
+        ndarray
+            Sd values at periods defined by tp.
         """
         return self.spectra[0]
 
-    @cached_property
+    @property
     def pga(self):
         """
-        float: Peak ground acceleration.
-        """
-        return signal_tools.get_pgp(self.ac)
+        Peak ground acceleration.
 
-    @cached_property
-    def pgv(self):
+        Returns
+        -------
+        float
+            Maximum absolute acceleration value.
         """
-        float: Peak ground velocity.
-        """
-        return signal_tools.get_pgp(self.vel)
-
-    @cached_property
-    def pgd(self):
-        """
-        float: Peak ground displacement.
-        """
-        return signal_tools.get_pgp(self.disp)
+        return signal_tools.get_peak_param(self.ac)
 
     @property
-    def energy_slice(self):
+    def pgv(self):
         """
-        slice: Slice object corresponding to the specified cumulative energy range.
-        """
-        if not hasattr(self, '_energy_slice'):
-            self._energy_slice = signal_tools.slice_energy(self.ce, (0.001, 0.999))  # Default range
-        return self._energy_slice
+        Peak ground velocity.
 
-    @energy_slice.setter
-    def energy_slice(self, energy_range: tuple[float, float]):
+        Returns
+        -------
+        float
+            Maximum absolute velocity value.
         """
-        Set the energy slice range.
+        return signal_tools.get_peak_param(self.vel)
+
+    @property
+    def pgd(self):
+        """
+        Peak ground displacement.
+
+        Returns
+        -------
+        float
+            Maximum absolute displacement value.
+        """
+        return signal_tools.get_peak_param(self.disp)
+
+    @property
+    def energy_slicer(self):
+        """
+        Slice indices for cumulative energy range.
+
+        Returns
+        -------
+        slice
+            Index slice for energy-based trimming.
+        """
+        return self._energy_slicer
+
+    @energy_slicer.setter
+    def energy_slicer(self, energy_range: tuple[float, float]):
+        """
+        Set energy slice range.
 
         Parameters
         ----------
         energy_range : tuple of float
-            (start_fraction, end_fraction) for cumulative energy.
+            Start and end fractions of cumulative energy (e.g., 0.05, 0.95).
         """
-        self._energy_slice = signal_tools.slice_energy(self.ce, energy_range)
+        self._energy_slicer = signal_tools.slice_energy(self.ce, energy_range)
+    
+    def to_csv(self, filename: str, features: list[str]):
+        """
+        Export selected features to CSV.
+
+        Parameters
+        ----------
+        filename : str
+            Output CSV file path.
+        features : list of str
+            List of feature names to export.
+        """
+        header = []
+        row = []
+        for feature in features:
+            feature_l = feature.lower()
+            attr = getattr(self, feature_l)
+
+            # Spectral arrays (sa, sv, sd)
+            if feature_l in ("sa", "sv", "sd"):
+                if not hasattr(self, "tp"):
+                    raise AttributeError("Set 'tp' attribute (periods) before accessing spectra.")
+                for i, val in enumerate(attr.T):
+                    header.append(f"{feature_l}_{self.tp[i]:.3f}")
+                    row.append(val)
+            # FAS (Fourier amplitude spectrum)
+            elif feature_l == "fas":
+                if not hasattr(self, "freq"):
+                    raise AttributeError("Set 'freq' attribute (frequencies) before accessing spectra")
+                for i, val in enumerate(attr.T):
+                    header.append(f"fas_{self.freq[i] / (2*np.pi):.3f}")
+                    row.append(val)
+            else:
+                header.append(feature_l)
+                row.append(attr)
+
+        with open(filename, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(header)
+            writer.writerow(row)
 
     @classmethod
     def load_from(cls, source: str, tag=None, **kwargs):
         """
-        Construct a GroundMotion instance from an accelerogram file/data.
+        Load ground motion from file or array.
 
         Parameters
         ----------
         source : str
-            Source type (e.g., 'NGA', 'ESM', 'COL', 'RAW', 'COR', 'Array').
+            Data source format: 'NGA', 'ESM', 'COL', 'RAW', 'COR', or 'Array'.
         tag : str, optional
-            Optional tag for the GroundMotion instance.
+            Record identifier.
         **kwargs
-            Additional keyword arguments depending on the source type:
-            - file : str
-                Path to the file.
-            - filename : str
-                Filename inside the zip archive (for zip files).
-            - zip_file : str
-                Path to the zip file containing filename (for zip files).
-            - dt : float
-                Time step (required for 'Array' source).
-            - ac : np.ndarray
-                Acceleration data (required for 'Array' source).
-            - skiprows : int
-                Number of rows to skip at the beginning of the file (default is 1).
-            - scale : float
-                Scaling factor for the acceleration data (default is 1).
+            Source-specific arguments:
+            
+            For file sources: file, filename, zip_file, skiprows, scale
+            For 'Array' source: dt (float), ac (ndarray)
 
         Returns
         -------
         GroundMotion
-            An instance of GroundMotion initialized from the file.
+            Loaded ground motion instance.
+
+        Examples
+        --------
+        >>> gm = GroundMotion.load_from('NGA', file='record.AT2')
+        >>> gm = GroundMotion.load_from('Array', dt=0.01, ac=acc_array)
         """
         record = RecordReader(source, **kwargs)
         return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)

@@ -66,15 +66,15 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, variance, vari
         variance_bar[i] = var_bar
         variance_2bar[i] = var_2bar
 
-@njit('void(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:])', fastmath=True, cache=True)
-def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, fas):
+@njit('void(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:])', fastmath=True, cache=True)
+def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, fas):
     """
     The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
     """
     fas.fill(0.0)
     for i in range(len(wu)):
         psd_i = get_psd(wu[i], zu[i], wl[i], zl[i], freq_p2, freq_p4)
-        scale = mdl[i] ** 2 / np.sum(psd_i)
+        scale = mdl[i] ** 2 / variance[i]
         fas += scale * psd_i
     fas[:] = np.sqrt(fas)
 
@@ -84,15 +84,16 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
     The Fourier series of n number of simulations
     """
     fourier = np.zeros((n, len(freq_sim)), dtype=np.complex128)
+    _j_freq_sim = -1j * freq_sim
+    scales = mdl / np.sqrt(variance * 2.0 / npts)
     for i in range(npts):
         frf_i = get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim, freq_sim_p2)
-        exp_i = np.exp(-1j * freq_sim * t[i])
-        scale_i = mdl[i] / np.sqrt(variance[i] * 2.0 / npts)
-        term_vector_i = frf_i * exp_i * scale_i
+        exp_i = np.exp(_j_freq_sim * t[i])
+        expected_vector_i = frf_i * exp_i * scales[i]
 
         for sim in prange(n):
-            fourier[sim, :] += term_vector_i * white_noise[sim, i]
-            
+            fourier[sim, :] += expected_vector_i * white_noise[sim, i]
+
     return fourier
 
 @njit('void(float64, float64[:], float64[:], float64[:])', fastmath=True, cache=True)
