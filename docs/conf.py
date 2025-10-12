@@ -1,7 +1,7 @@
 project = 'SGSIM'
 copyright = '2025, Sajad Hussaini'
 author = 'Sajad Hussaini'
-release = '1.0.9'
+release = '1.1.0'
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -18,3 +18,5 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+autodoc_typehints = "none"

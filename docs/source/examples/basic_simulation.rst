@@ -1,7 +1,7 @@
 .. _example_basic_simulation:
 
-Basic Simulation Example
-==========================
+Quick Start: Basic Simulation Example
+======================================
 
 Creating a Ground Motion instance from a record file
 -----------------------------------------------------
@@ -20,7 +20,6 @@ Creating a Ground Motion instance from a record file
    # If necessary, trim to 0.1% - 99.9% cumulative energy
    # If necessary, apply a bandpass filter (e.g., 0.1–25 Hz)
    ground_motion.trim("energy", (0.001, 0.999)).filter((0.1, 25.0))
-   ground_motion.freq_slicer = (0.1, 25.0)
 
 
 Creating a Stochastic Model instance
@@ -37,18 +36,17 @@ Creating a Stochastic Model instance
                         lower_frequency=functions.Linear(), lower_damping=functions.Linear())
 
 
-Calibrating the Stochastic Model based on Target Ground Motion
+Fitting the Stochastic Model to a Target Ground Motion
 ---------------------------------------------------------------
 
 .. code-block:: python
-
 
    for func in ['modulating', 'frequency']:
     model.fit(func, ground_motion)
 
    model.summary()
 
-Simulating Ground Motions and Creating Ground Motion Instances for Analysis
+Simulating Ground Motions
 -----------------------------------------------------------------------------
 
 .. code-block:: python
@@ -58,7 +56,7 @@ Simulating Ground Motions and Creating Ground Motion Instances for Analysis
    print(f"number of samples in each time series : {simulated_motion.ac.shape[1]}")
 
 
-Visualizing the Results and Comparing Set of Simulations with Real Record
+Visualizing the Results
 ----------------------------------------------------------------------------
 
 .. code-block:: python
@@ -79,6 +77,7 @@ Visualizing the Results and Comparing Set of Simulations with Real Record
    mp.plot_ac_ce()
    mp.plot_ce()
    mp.plot_fas()
+   # additional plotting functions
    mp.plot_spectra(spectrum='sa')
    mp.plot_feature(feature='mzc')
    mp.plot_feature(feature='pmnm')

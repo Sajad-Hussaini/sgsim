@@ -6,6 +6,6 @@ Examples Gallery
 This section provides a gallery of examples using SGSIM.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    examples/basic_simulation

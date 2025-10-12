@@ -3,14 +3,12 @@
 Welcome to SGSIM's Documentation!
 ==================================
 
-SGSIM is a Python library for Stochastic Ground Motion Simulation and Analysis.
+SGSIM is a Python package for:
 
-SGSIM provides tools for:
+* Stochastic simulation and modeling of earthquake ground motions
+* Ground motion analysis
 
-* Stochastic Simulation and Modeling of Earthquake Ground Motions
-* Ground Motion Analysis
-
-This documentation provides installation, examples, and a comprehensive public API reference.
+This documentation provides installation, examples, and a practical public API reference.
 
 .. toctree::
    :maxdepth: 1
@@ -25,7 +23,7 @@ This documentation provides installation, examples, and a comprehensive public A
    source/examples_index
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: API Reference
 
    source/api

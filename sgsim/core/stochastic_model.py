@@ -10,11 +10,7 @@ class StochasticModel(ModelConfig):
     """
     Stochastic ground motion simulation model.
 
-    This class provides methods to simulate ground motions using calibrated
-    stochastic parameters, save/load model configurations, and generate
-    model summaries.
-
-    Attributes
+    Parameters
     ----------
     npts : int
         Number of time points in the simulation.
@@ -30,11 +26,6 @@ class StochasticModel(ModelConfig):
         Lower frequency parameter function.
     lower_damping : ParametricFunction
         Lower damping parameter function.
-
-    See Also
-    --------
-    ModelConfig : Base configuration class
-    GroundMotion : Ground motion container class
     """
 
     def simulate(self, n, seed=None):
@@ -46,29 +37,12 @@ class StochasticModel(ModelConfig):
         n : int
             Number of simulations to generate.
         seed : int, optional
-            Random seed for reproducibility. If None, the random number
-            generator is not seeded.
+            Random seed for reproducibility.
 
         Returns
         -------
         GroundMotion
-            An instance of GroundMotion containing the simulated ground motions
-            with acceleration, velocity, and displacement time series.
-
-        Notes
-        -----
-        The simulation process involves:
-        1. Generating white noise samples
-        2. Computing Fourier series with stochastic model parameters
-        3. Applying inverse FFT to obtain time-domain signals
-        4. Integrating in frequency domain for velocity and displacement
-
-        Examples
-        --------
-        >>> model = StochasticModel(npts=1000, dt=0.01, ...)
-        >>> gm = model.simulate(n=100, seed=42)
-        >>> gm.acceleration.shape
-        (100, 1000)
+            Simulated ground motions with acceleration, velocity, and displacement.
         """
         self._stats
         n = int(n)
@@ -87,26 +61,25 @@ class StochasticModel(ModelConfig):
         """
         Fit stochastic model parameters to match target motion.
 
-        This method acts as a wrapper around the calibration logic defined
-        in the optimization module.
-
         Parameters
         ----------
         component : str
             Component to fit ('modulating', 'frequency', or 'damping').
         motion : GroundMotion
             The target ground motion.
+        fit_range : tuple, optional
+            Fitting range as (min, max).
         initial_guess : array-like, optional
-            Initial parameter values. If None, uses defaults.
+            Initial parameter values.
         bounds : list of tuples, optional
-            Parameter bounds as [(min1, max1), (min2, max2), ...]. If None, uses defaults.
+            Parameter bounds.
         method : str, optional
-            Optimization method. Default is 'L-BFGS-B'.
+            Optimization method.
 
         Returns
         -------
-        result : OptimizeResult
-            Optimization result with success status, final parameters, etc.
+        StochasticModel
+            Self for method chaining.
         """
         from ..optimization import model_fit
         model_fit.fit(component=component, model=self, motion=motion, fit_range=fit_range,
@@ -117,41 +90,15 @@ class StochasticModel(ModelConfig):
         """
         Print model parameters and optionally save to JSON file.
 
-        Displays a formatted summary of the stochastic model configuration
-        including time step, number of points, and all parametric functions.
-        Optionally saves the complete model configuration to a JSON file
-        for later reconstruction.
-
         Parameters
         ----------
         filename : str, optional
-            Path to JSON file for saving model data (e.g., 'model.json'). 
-            If None, only prints to console without saving.
+            Path to JSON file for saving model data.
 
         Returns
         -------
-        self : StochasticModel
-            The StochasticModel instance for method chaining.
-
-        See Also
-        --------
-        load_from : Load a model from JSON file
-
-        Notes
-        -----
-        The saved JSON file contains:
-        - Time discretization parameters (npts, dt)
-        - Function types for all parametric components
-        - Parameter values for each function
-
-        A stochastic model can be reconstructed from the saved file using
-        the `load_from` class method.
-
-        Examples
-        --------
-        >>> model = StochasticModel(npts=1000, dt=0.01, ...)
-        >>> model.summary()  # Print only
-        >>> model.summary('my_model.json')  # Print and save
+        StochasticModel
+            Self for method chaining.
         """
         title = "Stochastic Model Summary " + "=" * 30
         print(title)
@@ -200,59 +147,19 @@ class StochasticModel(ModelConfig):
         """
         Construct a stochastic model from a JSON file.
 
-        Loads a previously saved stochastic model configuration from a JSON
-        file and reconstructs the complete model with all parametric functions
-        and their calibrated parameters.
-
         Parameters
         ----------
         filename : str
-            Path to JSON file containing model data (e.g., 'model.json').
-            The file should have been created using the `summary` method
-            with a filename argument.
+            Path to JSON file containing model data.
 
         Returns
         -------
         StochasticModel
-            An instance of StochasticModel initialized from the file with
-            all parametric functions and parameters restored.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the specified file does not exist.
-        json.JSONDecodeError
-            If the file is not valid JSON.
-        AttributeError
-            If the parametric function types specified in the file are not
-            found in the parametric_functions module.
-
-        See Also
-        --------
-        summary : Save a model to JSON file
-
-        Examples
-        --------
-        >>> # Save a model
-        >>> model = StochasticModel(npts=1000, dt=0.01, ...)
-        >>> model.summary('my_model.json')
-        
-        >>> # Load it back
-        >>> loaded_model = StochasticModel.load_from('my_model.json')
-        >>> loaded_model.npts
-        1000
-
-        Notes
-        -----
-        The method performs the following steps:
-        1. Loads JSON data from file
-        2. Creates a model instance with function types
-        3. Restores all parameter values by calling each function
+            Loaded stochastic model instance.
         """
         with open(filename, 'r') as file:
             data = json.load(file)
         
-        # Create model with function types
         model = cls(
             npts=data['npts'],
             dt=data['dt'],
@@ -260,10 +167,8 @@ class StochasticModel(ModelConfig):
             upper_frequency=getattr(parametric_functions, data['upper_frequency']['func']),
             upper_damping=getattr(parametric_functions, data['upper_damping']['func']),
             lower_frequency=getattr(parametric_functions, data['lower_frequency']['func']),
-            lower_damping=getattr(parametric_functions, data['lower_damping']['func'])
-        )
+            lower_damping=getattr(parametric_functions, data['lower_damping']['func']))
         
-        # Set parameters using the stored param dicts
         model.modulating(model.t, **data['modulating']['params'])
         model.upper_frequency(model.t, **data['upper_frequency']['params'])
         model.upper_damping(model.t, **data['upper_damping']['params'])

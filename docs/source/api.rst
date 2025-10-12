@@ -1,12 +1,14 @@
 .. _api_reference:
 
 API Reference
-=============
+===============
 
-This is the official API documentation for the ``sgsim`` package.
-Only public classes and functions are listed here.
+Official API documentation for the ``sgsim`` package. This lists only public classes and functions.
 
-.. automodule:: sgsim
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. toctree::
+   :maxdepth: 1
+
+   groundmotion
+   stochasticmodel
+   parametricfunction
+   modelplot

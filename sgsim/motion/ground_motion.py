@@ -40,8 +40,7 @@ class GroundMotion(DomainConfig):
         Parameters
         ----------
         method : {'energy', 'npts', 'slice'}
-            Trimming approach. 'energy' trims by cumulative energy fraction,
-            'npts' keeps first N points, 'slice' applies custom indexing.
+            Trimming method to use.
         value : tuple of float, int, or slice
             Trim parameters. For 'energy': (start, end) fractions (e.g., 0.05, 0.95).
             For 'npts': number of points. For 'slice': slice object.
@@ -49,13 +48,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         self
-            Modified GroundMotion instance for method chaining.
-
-        Examples
-        --------
-        >>> motion.trim('energy', (0.05, 0.95))
-        >>> motion.trim('npts', 1000)
-        >>> motion.trim('slice', slice(100, 500))
+            Modified GroundMotion instance.
         """
         if method.lower() == 'energy':
             if not isinstance(value, tuple) or len(value) != 2:
@@ -88,12 +81,12 @@ class GroundMotion(DomainConfig):
         Parameters
         ----------
         bandpass_freqs : tuple of float
-            Lower and upper cutoff frequencies (Hz) as (f_low, f_high).
+            Lower and upper cutoff frequencies in Hz.
 
         Returns
         -------
         self
-            Modified GroundMotion instance for method chaining.
+            Modified GroundMotion instance.
         """
         self.ac = signal_tools.bandpass_filter(self.dt, self.ac, bandpass_freqs[0], bandpass_freqs[1])
         self.vel = signal_tools.get_integral(self.dt, self.ac)
@@ -113,7 +106,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         self
-            Modified GroundMotion instance for method chaining.
+            Modified GroundMotion instance.
         """
         npts_new, dt_new, ac_new = signal_tools.resample(self.dt, dt, self.ac)
         self.ac = ac_new
@@ -142,7 +135,7 @@ class GroundMotion(DomainConfig):
         Parameters
         ----------
         window : int, optional
-            Moving average window size. Default is 9.
+            Moving average window size.
 
         Returns
         -------
@@ -171,7 +164,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Average of local peak values.
+            Mean local extrema value.
         """
         return signal_tools.get_mle(self.ac)
 
@@ -183,7 +176,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Average of local peak values.
+            Mean local extrema value.
         """
         return signal_tools.get_mle(self.vel)
 
@@ -195,7 +188,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Average of local peak values.
+            Mean local extrema value.
         """
         return signal_tools.get_mle(self.disp)
 
@@ -207,7 +200,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Zero-crossings per unit time.
+            Zero-crossing.
         """
         return signal_tools.get_mzc(self.ac)
 
@@ -219,7 +212,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Zero-crossings per unit time.
+            Zero-crossing.
         """
         return signal_tools.get_mzc(self.vel)
 
@@ -231,7 +224,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Zero-crossings per unit time.
+            Zero-crossing.
         """
         return signal_tools.get_mzc(self.disp)
 
@@ -243,7 +236,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Ratio of peak to mean absolute value.
+            PMNM.
         """
         return signal_tools.get_pmnm(self.ac)
 
@@ -255,7 +248,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Ratio of peak to mean absolute value.
+            PMNM.
         """
         return signal_tools.get_pmnm(self.vel)
 
@@ -267,7 +260,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Ratio of peak to mean absolute value.
+            PMNM.
         """
         return signal_tools.get_pmnm(self.disp)
 
@@ -279,7 +272,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         ndarray
-            Array of shape (3, n_periods) with [Sd, Sv, Sa].
+            Response spectra array with shape (3, n_periods).
         """
         if not hasattr(self, 'tp'):
             raise AttributeError("Set 'tp' attribute (periods) before accessing spectra")
@@ -293,7 +286,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         ndarray
-            Sa values at periods defined by tp.
+            Spectral acceleration values.
         """
         return self.spectra[2]
 
@@ -305,7 +298,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         ndarray
-            Sv values at periods defined by tp.
+            Spectral velocity values.
         """
         return self.spectra[1]
 
@@ -317,7 +310,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         ndarray
-            Sd values at periods defined by tp.
+            Spectral displacement values.
         """
         return self.spectra[0]
 
@@ -329,7 +322,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Maximum absolute acceleration value.
+            Peak ground acceleration value.
         """
         return signal_tools.get_peak_param(self.ac)
 
@@ -341,7 +334,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Maximum absolute velocity value.
+            Peak ground velocity value.
         """
         return signal_tools.get_peak_param(self.vel)
 
@@ -353,7 +346,7 @@ class GroundMotion(DomainConfig):
         Returns
         -------
         float
-            Maximum absolute displacement value.
+            Peak ground displacement value.
         """
         return signal_tools.get_peak_param(self.disp)
 
@@ -377,7 +370,7 @@ class GroundMotion(DomainConfig):
         Parameters
         ----------
         energy_range : tuple of float
-            Start and end fractions of cumulative energy (e.g., 0.05, 0.95).
+            Start and end fractions of cumulative energy.
         """
         self._energy_slicer = signal_tools.slice_energy(self.ce, energy_range)
     
@@ -433,20 +426,12 @@ class GroundMotion(DomainConfig):
         tag : str, optional
             Record identifier.
         **kwargs
-            Source-specific arguments:
-            
-            For file sources: file, filename, zip_file, skiprows, scale
-            For 'Array' source: dt (float), ac (ndarray)
+            Source-specific arguments.
 
         Returns
         -------
         GroundMotion
             Loaded ground motion instance.
-
-        Examples
-        --------
-        >>> gm = GroundMotion.load_from('NGA', file='record.AT2')
-        >>> gm = GroundMotion.load_from('Array', dt=0.01, ac=acc_array)
         """
         record = RecordReader(source, **kwargs)
         return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)
