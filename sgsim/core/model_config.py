@@ -54,7 +54,7 @@ class ModelConfig(DomainConfig):
     def _stats(self):
         """Compute and store the variances for internal use."""
         if self._dirty_flags & self._VARIANCE:  # check bit flag
-            model_engine.get_stats(self.upper_frequency.values, self.upper_damping.values, self.lower_frequency.values, self.lower_damping.values,
+            model_engine.get_stats(self.upper_frequency.values * 2 * np.pi, self.upper_damping.values, self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
                                    self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4,
                                    self._variance, self._variance_dot, self._variance_2dot, self._variance_bar, self._variance_2bar)
             self._dirty_flags &= ~self._VARIANCE  # clear bit flag (set to 0)
@@ -70,8 +70,8 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if self._dirty_flags & self._FAS:
-            model_engine.get_fas(self.modulating.values, self.upper_frequency.values, self.upper_damping.values,
-                                 self.lower_frequency.values, self.lower_damping.values, self.freq_p2, self.freq_p4, self._variance, self._fas)
+            model_engine.get_fas(self.modulating.values, self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
+                                 self.lower_frequency.values * 2 * np.pi, self.lower_damping.values, self.freq_p2, self.freq_p4, self._variance, self._fas)
             self._dirty_flags &= ~self._FAS
         return self._fas
     

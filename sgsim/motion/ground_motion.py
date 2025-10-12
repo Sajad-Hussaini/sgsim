@@ -98,7 +98,7 @@ class GroundMotion(DomainConfig):
         self.ac = signal_tools.bandpass_filter(self.dt, self.ac, bandpass_freqs[0], bandpass_freqs[1])
         self.vel = signal_tools.get_integral(self.dt, self.ac)
         self.disp = signal_tools.get_integral(self.dt, self.vel)
-        self.clear_cache()
+        self._clear_cache()
         return self
     
     def resample(self, dt: float):

@@ -75,7 +75,7 @@ class ModelPlot:
         with style(config):
             fig, ax = plt.subplots()
             self._plot_mean_std(self.real.freq / (2 * np.pi), self.sim.fas, self.real.fas, ax)
-            ax.set_ylim(np.min(self.real.fas[self.real.freq_slice]), 2 * np.max(self.real.fas[self.real.freq_slice]))
+            ax.set_ylim(np.min(self.real.fas[self.real.freq_slicer]), 2 * np.max(self.real.fas[self.real.freq_slicer]))
             ax.set_xlim([0.1, 25.0])
             ax.set_xscale('log')
             if log_scale:
@@ -117,8 +117,8 @@ class ModelPlot:
         with style(config):
             fig, axes = plt.subplots(1, 2, sharex=True, sharey=False)
             axes[0].plot(self.real.t, self.real.ac, c='tab:blue')
-            axes[0].plot(self.model.t, self.model.mdl, c='tab:orange', ls='--')
-            axes[0].plot(self.model.t, -self.model.mdl, c='tab:orange', ls='--')
+            axes[0].plot(self.model.t, self.model.modulating.values, c='tab:orange', ls='--')
+            axes[0].plot(self.model.t, -self.model.modulating.values, c='tab:orange', ls='--')
             axes[0].axhline(y=0, color='k', ls='--', lw=0.1, zorder=0)
             axes[0].set_ylabel(r'Acceleration (cm/$s^2$)')
             axes[0].set_xlabel('Time (s)')

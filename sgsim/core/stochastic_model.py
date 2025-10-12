@@ -74,13 +74,44 @@ class StochasticModel(ModelConfig):
         n = int(n)
         white_noise = np.random.default_rng(seed).standard_normal((n, self.npts))
         fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2,
-                                                        self.modulating.values, self.upper_frequency.values, self.upper_damping.values,
-                                                        self.lower_frequency.values, self.lower_damping.values, self._variance, white_noise)
+                                                        self.modulating.values, self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
+                                                        self.lower_frequency.values * 2 * np.pi, self.lower_damping.values, self._variance, white_noise)
         ac = irfft(fourier, workers=-1)[..., :self.npts]  # anti-aliasing
         # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
         vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
         disp = irfft(-fourier[..., 1:] / (self.freq_sim_p2[1:]), workers=-1)[..., :self.npts]
         return GroundMotion(self.npts, self.dt, ac, vel, disp)
+
+    def fit(self, component: str, motion: GroundMotion, fit_range: tuple = (0.01, 0.99),
+                  initial_guess=None, bounds=None, method='L-BFGS-B'):
+        """
+        Fit stochastic model parameters to match target motion.
+
+        This method acts as a wrapper around the calibration logic defined
+        in the optimization module.
+
+        Parameters
+        ----------
+        component : str
+            Component to fit ('modulating', 'frequency', or 'damping').
+        motion : GroundMotion
+            The target ground motion.
+        initial_guess : array-like, optional
+            Initial parameter values. If None, uses defaults.
+        bounds : list of tuples, optional
+            Parameter bounds as [(min1, max1), (min2, max2), ...]. If None, uses defaults.
+        method : str, optional
+            Optimization method. Default is 'L-BFGS-B'.
+
+        Returns
+        -------
+        result : OptimizeResult
+            Optimization result with success status, final parameters, etc.
+        """
+        from ..optimization import model_fit
+        model_fit.fit(component=component, model=self, motion=motion, fit_range=fit_range,
+                      initial_guess=initial_guess, bounds=bounds, method=method)
+        return self
 
     def summary(self, filename=None):
         """
