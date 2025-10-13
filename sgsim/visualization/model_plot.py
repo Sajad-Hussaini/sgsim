@@ -1,22 +1,43 @@
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 from .style import style
-from ..optimization.fit_eval import find_error, goodness_of_fit
 
 class ModelPlot:
     """
-    This class allows to
-        plot various simulation results and comparison with a target motion
+    Visualization and comparison of simulation results with a target ground motion.
+
+    Provides methods to plot time histories, spectra, cumulative energy, and feature metrics
+    for both simulated and real ground motions, as well as the underlying model.
     """
     def __init__(self, model, simulated_motion, real_motion):
+        """
+        Initialize ModelPlot with model, simulated, and real ground motion data.
+
+        Parameters
+        ----------
+        model : object
+            The model object containing fitted model.
+        simulated_motion : object
+            Simulated ground motion object (ensemble or single simulation).
+        real_motion : object
+            Real (target) ground motion object.
+        """
         self.model = model
         self.sim = simulated_motion
         self.real = real_motion
 
     def plot_motions(self, id1, id2, config=None):
         """
-        plot ground motion time histories of acceleration, velocity, and displacement in a 3 by 3 grid
+        Plot ground motion time histories (acceleration, velocity, displacement) in a 3x3 grid.
+
+        Parameters
+        ----------
+        id1 : int
+            Index of the first simulation to plot.
+        id2 : int
+            Index of the second simulation to plot.
+        config : dict or None, optional
+            Plot style configuration.
         """
         if not hasattr(self.sim, 'ac'):
             raise ValueError("No simulations available.")
@@ -53,7 +74,12 @@ class ModelPlot:
 
     def plot_ce(self, config=None):
         """
-        Cumulative energy plot of the record and simulations
+        Plot cumulative energy (CE) of the record and simulations.
+
+        Parameters
+        ----------
+        config : dict or None, optional
+            Plot style configuration.
         """
         if not hasattr(self.sim, 'ce'):
             raise ValueError("""No simulations available.""")
@@ -68,7 +94,14 @@ class ModelPlot:
 
     def plot_fas(self, log_scale=True, config=None):
         """
-        FAS plot of the record and simulations
+        Plot Fourier Amplitude Spectrum (FAS) of the record and simulations.
+
+        Parameters
+        ----------
+        log_scale : bool, default=True
+            Whether to use logarithmic scale for y-axis.
+        config : dict or None, optional
+            Plot style configuration.
         """
         if not hasattr(self.sim, 'fas'):
             raise ValueError("""No simulations available.""")
@@ -90,7 +123,16 @@ class ModelPlot:
 
     def plot_spectra(self, spectrum='sa', log_scale=True, config=None):
         """
-        Plot the specified type of spectrum (sa, sv, or sd) of the record and simulations
+        Plot the specified type of response spectrum (sa, sv, or sd) for record and simulations.
+
+        Parameters
+        ----------
+        spectrum : {'sa', 'sv', 'sd'}, default='sa'
+            Type of spectrum to plot: 'sa' (acceleration), 'sv' (velocity), or 'sd' (displacement).
+        log_scale : bool, default=True
+            Whether to use logarithmic scale for y-axis.
+        config : dict or None, optional
+            Plot style configuration.
         """
         labels = {'sa': r'acceleration (cm/$s^2$)', 'sv': 'velocity (cm/s)', 'sd': 'displacement (cm)'}
         if not hasattr(self.sim, spectrum):
@@ -111,8 +153,12 @@ class ModelPlot:
 
     def plot_ac_ce(self, config=None):
         """
-        Comparing the cumulative energy and energy distribution
-        of the record, model, and simulations
+        Compare cumulative energy and energy distribution of the record and model.
+
+        Parameters
+        ----------
+        config : dict or None, optional
+            Plot style configuration.
         """
         with style(config):
             fig, axes = plt.subplots(1, 2, sharex=True, sharey=False)
@@ -137,8 +183,19 @@ class ModelPlot:
 
     def plot_feature(self, feature='mzc', model_plot=True, sim_plot=False, config=None):
         """
-        Comparing the indicated error of the record, model, and simulations
-        mzc, mle, pmnm
+        Compare a specific feature (error metric) of the record, model, and simulations.
+
+        Parameters
+        ----------
+        feature : {'mzc', 'mle', 'pmnm'}, default='mzc'
+            Feature to plot: 'mzc' (mean zero crossing), 'mle' (mean local extrema),
+            or 'pmnm' (positive-minima/negative-maxima).
+        model_plot : bool, default=True
+            Whether to plot the model feature.
+        sim_plot : bool, default=False
+            Whether to plot simulation features.
+        config : dict or None, optional
+            Plot style configuration.
         """
         if not hasattr(self.sim, 'ac'):
             raise ValueError("""No simulations available.""")
@@ -178,7 +235,18 @@ class ModelPlot:
     @staticmethod
     def _plot_mean_std(t, sims, rec, ax=None):
         """
-        Plot the common part of ce_plot and fas_plot
+        Plot mean, standard deviation, and all simulations versus the target.
+
+        Parameters
+        ----------
+        t : array-like
+            Time or frequency axis.
+        sims : array-like
+            Simulated ensemble (2D: n_sim, n_points).
+        rec : array-like
+            Target (real) record (1D).
+        ax : matplotlib.axes.Axes or None, optional
+            Axis to plot on. If None, uses current axis.
         """
         if ax is None:
             ax = plt.gca()
@@ -191,49 +259,3 @@ class ModelPlot:
         ax.plot(t, sims[:-1].T, c='tab:gray', lw=0.15, zorder=1)
         ax.plot(t, sims[-1], c='tab:gray', lw=0.15, label="Simulations", zorder=1)
         ax.minorticks_on()
-    
-    def _compute_metrics(self, metric_func):
-        """Compute metrics for model and simulation parameters."""
-        model_params = ['ce', 'fas', 'mzc_ac', 'mzc_vel', 'mzc_disp', 'pmnm_vel', 'pmnm_disp']
-        sim_params = ['ce', 'fas', 'sa', 'sv', 'sd', 'mzc_ac', 'mzc_vel', 'mzc_disp', 'pmnm_vel', 'pmnm_disp']
-        
-        return (
-            {param: metric_func(np.log(getattr(self.real, param)+1e-10), np.log(getattr(self.model, param)+1e-10)) 
-              if param in ['fas', 'sa', 'sv', 'sd'] else 
-              metric_func(getattr(self.real, param), getattr(self.model, param))
-              for param in model_params},
-            {param: metric_func(np.log(getattr(self.real, param)+1e-10), np.log(getattr(self.sim, param)+1e-10)) 
-              if param in ['fas', 'sa', 'sv', 'sd'] else 
-              metric_func(getattr(self.real, param), getattr(self.sim, param))
-              for param in sim_params}
-             )
-
-    @property
-    def errors(self):
-        return self._compute_metrics(find_error)
-
-    @property
-    def goodness_of_fits(self):
-        return self._compute_metrics(goodness_of_fit)
-
-    def show_metrics(self, metric_type, save_path=None):
-        """Print metrics with optional saving."""
-        if metric_type.lower() not in ['errors', 'gof']:
-            raise ValueError("metric_type must be 'errors' or 'gof'")
-        
-        name = "Errors" if metric_type.lower() == 'errors' else "Goodness of Fit"
-        model_metrics, sim_metrics = self.errors if metric_type.lower() == 'errors' else self.goodness_of_fits
-        
-        output = [
-            f"{name} for Model:",
-            *[f"  {p}: {v}" for p, v in model_metrics.items()],
-            f"\n{name} for Simulations:",
-            *[f"  {p}: {v}" for p, v in sim_metrics.items()]
-            ]
-        print("\n".join(output))
-        
-        if save_path:
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            with open(save_path, 'w') as f:
-                f.write("\n".join(output))
-            print(f"Saving {name}: Done.")

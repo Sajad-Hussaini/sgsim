@@ -6,4 +6,5 @@ functions
 .. automodule:: sgsim.functions
    :members:
    :undoc-members:
-   :exclude-members: ParametricFunction
+   :imported-members:
+   :exclude-members: ParametricFunction, abstractmethod, ABC

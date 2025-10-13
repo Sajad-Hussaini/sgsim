@@ -3,7 +3,9 @@ from scipy.special import beta
 from abc import ABC, abstractmethod
 
 class ParametricFunction(ABC):
-    """Abstract base class for parametric functions."""
+    """
+    Abstract base class for parametric functions.
+    """
     def _trigger_callback(self):
         """Trigger callback if it exists."""
         if hasattr(self, 'callback'):
@@ -39,8 +41,8 @@ class BetaSingle(ParametricFunction):
 
     References
     ----------  
-    .. [1] Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake.
-    Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
+    - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
+
     """
     def __call__(self, t, peak, concentration, energy, duration):
         self.values = self.compute(t, peak, concentration, energy, duration)
@@ -81,8 +83,8 @@ class BetaDual(ParametricFunction):
 
     References
     ----------  
-    .. [1] Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake.
-    Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
+    - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
+
     """
     def __call__(self, t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):
         self.values = self.compute(t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration)
@@ -128,8 +130,8 @@ class BetaBasic(ParametricFunction):
 
     References
     ----------  
-    .. [1] Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake.
-    Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
+    - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
+
     """
     def __call__(self, t, peak, concentration, energy, duration):
         self.values = self.compute(t, peak, concentration, energy, duration)

@@ -3,6 +3,6 @@
 StochasticModel
 ================
 
-.. automodule:: sgsim.StochasticModel
+.. autoclass:: sgsim.StochasticModel
    :members:
    :undoc-members:

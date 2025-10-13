@@ -3,6 +3,6 @@
 ModelPlot
 ===========
 
-.. automodule:: sgsim.ModelPlot
+.. autoclass:: sgsim.ModelPlot
    :members:
    :undoc-members:

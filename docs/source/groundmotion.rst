@@ -3,6 +3,6 @@
 GroundMotion
 ===============
 
-.. automodule:: sgsim.GroundMotion
+.. autoclass:: sgsim.GroundMotion
    :members:
    :undoc-members:

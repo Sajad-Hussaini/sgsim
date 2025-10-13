@@ -4,6 +4,7 @@ import csv
 from . import signal_tools
 from ..file_reading.record_reader import RecordReader
 from ..core.domain_config import DomainConfig
+from ..optimization.fit_eval import relative_error, goodness_of_fit
 
 class GroundMotion(DomainConfig):
     """
@@ -413,6 +414,50 @@ class GroundMotion(DomainConfig):
             writer = csv.writer(f)
             writer.writerow(header)
             writer.writerow(row)
+    
+    def compare_with(self, component, metrics: list[str], method: str, transform: callable = None):
+        """
+        Compare selected metrics between this GroundMotion instance and another component.
+
+        This method computes similarity or error metrics (e.g., goodness-of-fit, relative error)
+        for specified attributes (such as 'sa', 'sv', 'fas', etc.) between the current ground motion
+        and another GroundMotion or FittedModel instance.
+
+        Parameters
+        ----------
+        component : GroundMotion or FittedModel
+            The instance to compare against.
+        metrics : list of str
+            Names of attributes (e.g., 'sa', 'sv', 'fas') to compare.
+        method : {'gof', 're'}
+            Comparison metric: 'gof' for goodness-of-fit, 're' for relative error.
+        transform : callable, optional
+            Function to apply to both attribute values before comparison (e.g., np.log).
+
+        Returns
+        -------
+        dict
+            Dictionary mapping each metric name to its computed comparison value.
+
+        Raises
+        ------
+        ValueError
+            If an unsupported method is provided.
+
+        """
+        result = {}
+        criterion_map = {'gof': goodness_of_fit, 're': relative_error}
+        method = criterion_map.get(method.lower())
+        if method is None:
+            raise ValueError(f"Unknown method: {method}. Supported: {list(criterion_map.keys())}")
+        for metric in metrics:
+            self_attr = getattr(self, metric)
+            comp_attr = getattr(component, metric)
+            if transform is not None:
+                self_attr = transform(self_attr)
+                comp_attr = transform(comp_attr)
+            result[metric] = method(self_attr, comp_attr)
+        return result
 
     @classmethod
     def load_from(cls, source: str, tag=None, **kwargs):

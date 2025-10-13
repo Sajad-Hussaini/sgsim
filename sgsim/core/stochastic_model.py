@@ -5,6 +5,7 @@ from . import model_engine
 from . import parametric_functions
 from .model_config import ModelConfig
 from ..motion.ground_motion import GroundMotion
+from ..optimization.fit_eval import goodness_of_fit
 
 class StochasticModel(ModelConfig):
     """
@@ -27,34 +28,6 @@ class StochasticModel(ModelConfig):
     lower_damping : ParametricFunction
         Lower damping parameter function.
     """
-
-    def simulate(self, n, seed=None):
-        """
-        Simulate ground motions using the calibrated stochastic model.
-
-        Parameters
-        ----------
-        n : int
-            Number of simulations to generate.
-        seed : int, optional
-            Random seed for reproducibility.
-
-        Returns
-        -------
-        GroundMotion
-            Simulated ground motions with acceleration, velocity, and displacement.
-        """
-        self._stats
-        n = int(n)
-        white_noise = np.random.default_rng(seed).standard_normal((n, self.npts))
-        fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2,
-                                                        self.modulating.values, self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
-                                                        self.lower_frequency.values * 2 * np.pi, self.lower_damping.values, self._variance, white_noise)
-        ac = irfft(fourier, workers=-1)[..., :self.npts]  # anti-aliasing
-        # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
-        vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
-        disp = irfft(-fourier[..., 1:] / (self.freq_sim_p2[1:]), workers=-1)[..., :self.npts]
-        return GroundMotion(self.npts, self.dt, ac, vel, disp)
 
     def fit(self, component: str, motion: GroundMotion, fit_range: tuple = (0.01, 0.99),
                   initial_guess=None, bounds=None, method='L-BFGS-B'):
@@ -85,6 +58,80 @@ class StochasticModel(ModelConfig):
         model_fit.fit(component=component, model=self, motion=motion, fit_range=fit_range,
                       initial_guess=initial_guess, bounds=bounds, method=method)
         return self
+
+    def simulate(self, n, tag=None, seed=None):
+        """
+        Simulate ground motions using the calibrated stochastic model.
+
+        Parameters
+        ----------
+        n : int
+            Number of simulations to generate.
+        seed : int, optional
+            Random seed for reproducibility.
+
+        Returns
+        -------
+        GroundMotion
+            Simulated ground motions with acceleration, velocity, and displacement.
+        """
+        self._stats
+        n = int(n)
+        white_noise = np.random.default_rng(seed).standard_normal((n, self.npts))
+        fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2,
+                                                        self.modulating.values, self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
+                                                        self.lower_frequency.values * 2 * np.pi, self.lower_damping.values, self._variance, white_noise)
+        ac = irfft(fourier, workers=-1)[..., :self.npts]  # anti-aliasing
+        # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
+        vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
+        disp = irfft(-fourier[..., 1:] / (self.freq_sim_p2[1:]), workers=-1)[..., :self.npts]
+        return GroundMotion(self.npts, self.dt, ac, vel, disp, tag=tag)
+
+    def simulate_conditional(self, n: int, target: GroundMotion, metrics: dict, max_iter: int = 100):
+        """
+        Conditionally simulate ground motions until all GoF metrics conditions are met or exceed their thresholds.
+
+        Parameters
+        ----------
+        n : int
+            Number of simulations to generate.
+        target : GroundMotion
+            The target ground motion to compare against.
+        metrics : dict
+            Conditioning metrics with GoF thresholds, e.g., {'sa': 0.9, 'sv': 0.85}.
+        max_iter : int, optional
+            Maximum number of simulation attempts.
+
+        Returns
+        -------
+        GroundMotion
+            Simulated ground motions meeting all GoF thresholds.
+
+        Raises
+        ------
+        RuntimeError
+            If not enough simulations meet the thresholds within max_iter * n attempts.
+        """
+        successful = []
+        attempts = 0
+        while len(successful) < n and attempts < max_iter * n:
+            simulated = self.simulate(1, tag=attempts)
+            gof_scores = {}
+            for metric in metrics:
+                sim_attr = getattr(simulated, metric)
+                target_attr = getattr(target, metric)
+                gof_scores[metric] = goodness_of_fit(sim_attr, target_attr)
+            if all(gof_scores[m] >= metrics[m] for m in metrics):
+                successful.append(simulated)
+            attempts += 1
+
+        if len(successful) < n:
+            raise RuntimeError(f"Only {len(successful)} simulations met all GoF thresholds after {attempts} attempts.")
+
+        ac = np.concatenate([gm.ac for gm in successful], axis=0)
+        vel = np.concatenate([gm.vel for gm in successful], axis=0)
+        disp = np.concatenate([gm.disp for gm in successful], axis=0)
+        return GroundMotion(self.npts, self.dt, ac, vel, disp, tag=len(successful))
 
     def summary(self, filename=None):
         """
