@@ -1,11 +1,11 @@
 project = 'SGSIM'
 copyright = '2025, Sajad Hussaini'
 author = 'Sajad Hussaini'
-release = '1.1.0'
+from sgsim import __version__ as release
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',  # To understand NumPy style docstrings
+    'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'myst_parser',
     'nbsphinx']
@@ -17,6 +17,5 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'sphinx_rtd_theme'
-# html_static_path = ['_static']
 
 autodoc_typehints = "none"

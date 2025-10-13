@@ -1,6 +1,6 @@
 # SGSIM - Stochastic Ground Motion Simulation Model
 
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![PyPI](https://img.shields.io/pypi/v/sgsim.svg)](https://pypi.org/project/sgsim)
 [![Documentation Status](https://readthedocs.org/projects/sgsim/badge/?version=latest)](https://sgsim.readthedocs.io/en/latest/?badge=latest)
