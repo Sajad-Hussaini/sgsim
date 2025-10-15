@@ -1,26 +1,23 @@
-# SGSIM - Stochastic Ground Motion Simulation Model
+# SGSIM: Python Package for Simulation and Analysis of Ground Motions
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![PyPI](https://img.shields.io/pypi/v/sgsim.svg)](https://pypi.org/project/sgsim)
 [![Documentation Status](https://readthedocs.org/projects/sgsim/badge/?version=latest)](https://sgsim.readthedocs.io/en/latest/?badge=latest)
 
-**SGSIM** is a Python package for simulating earthquake ground motions using a site-compatible stochastic model [1]. It also provides tools for ground motion processing and analysis.  
+**SGSIM** is a Python package that provides two main capabilities:  
+> 1. **Simulation** of earthquake ground motions using a site-compatible stochastic method [[1]](#references).  
+> 2. **Ground motion processing and analysis** for recorded or simulated data.
+
 
 ## Table of Contents
-- [Features](#features)
-- [Installation](#installation)
-- [User Guide](#User-Guide)
+- [Features and Installation](#features-and-installation)
+- [User Guide](#user-guide)
 - [License](#license)
 - [Contact](#contact)
 - [References](#references)
 
-## Features
-
-See the [Documentation](https://sgsim.readthedocs.io/en/latest/?badge=latest).
-
-
-## Installation
+## Features and Installation
 
 See the [Documentation](https://sgsim.readthedocs.io/en/latest/?badge=latest).
 
@@ -55,8 +52,9 @@ Please cite the following references for any formal study:
 
 **[1] Primary Reference**  
 *BROADBAND STOCHASTIC SIMULATION OF EARTHQUAKE GROUND MOTIONS WITH MULTIPLE STRONG PHASES WITH AN APPLICATION TO THE 2023 KAHRAMANMARAS, TURKEY (TÜRKIYE), EARTHQUAKE*  
-*DOI: https://doi.org/10.1177/87552930251331981 (journal of Earthquake Spectra)
+*DOI: https://doi.org/10.1177/87552930251331981*  
+(Journal of Earthquake Spectra)
 
-**[2] SGSIM Package** 
-*SGSIM: Stochastic Ground Motion Simulation Model*
+**[2] SGSIM Package**  
+*SGSIM: Python Package for Simulation and Analysis of Ground Motions*  
 *DOI: https://doi.org/10.5281/zenodo.14565922*
