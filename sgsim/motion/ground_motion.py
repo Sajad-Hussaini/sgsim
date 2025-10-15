@@ -480,3 +480,25 @@ class GroundMotion(DomainConfig):
         """
         record = RecordReader(source, **kwargs)
         return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)
+
+    @classmethod
+    def available_IMs(cls):
+        """
+        List all available intensity measures (IMs) and properties
+        
+        Note
+        ----
+        Feel free to contact the developer (via Hussaini.smsajad@gmail.com) to add or include new IMs.
+
+        Returns
+        -------
+        list of str
+            List of feature names.
+        """
+        features = ['ac', 'vel', 'disp', 'fas', 'ce',
+                    't', 'tp', 'freq',
+                    'pga', 'pgv', 'pgd', 'sa', 'sv', 'sd',
+                    'mle_ac', 'mle_vel', 'mle_disp',
+                    'mzc_ac', 'mzc_vel', 'mzc_disp',
+                    'pmnm_ac', 'pmnm_vel', 'pmnm_disp']
+        return features

@@ -92,8 +92,8 @@ def get_mle(rec):
     mle_vec[..., -1] = mle_vec[..., -2]
     return np.cumsum(mle_vec, axis=-1)
 
-@njit('void(int64, float64, float64[:, :], int64, float64[:], float64, float64, float64[:, :, :, :])', fastmath=True, parallel=True, cache=True)
-def run_sdof_linear(npts, dt, rec, n_sdf, period, zeta, mass, out_responses):
+@njit('float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64)', fastmath=True, parallel=True, cache=True)
+def run_sdof_linear(dt, rec, period, zeta, mass):
     """
     linear analysis of a SDOF model using newmark method
     It parallelizes the computation across different SDOF periods
@@ -120,6 +120,11 @@ def run_sdof_linear(npts, dt, rec, n_sdf, period, zeta, mass, out_responses):
     sdf_responses : 4d-array (response_type, n_rec, npts, n_period)
         response_type corresponds to disp, vel, ac, ac_tot
     """
+    n_rec = rec.shape[0]
+    npts = rec.shape[1]
+    n_sdf = len(period)
+    
+    out_responses = np.empty((4, n_rec, npts, n_sdf))
     p = -mass * rec
 
     wn = 2 * np.pi / period
@@ -162,8 +167,9 @@ def run_sdof_linear(npts, dt, rec, n_sdf, period, zeta, mass, out_responses):
                              vel[:, i] / (beta_j * dt) -
                              acc[:, i] * (1 / (2 * beta_j) - 1))
             acc_tot[:, i + 1] = acc[:, i + 1] + rec[:, i + 1]
+    return out_responses    
 
-def get_spectra(dt: float, rec, period, zeta: float=0.05, chunk_size: int=10):
+def get_spectra(dt: float, rec: np.ndarray, period: np.ndarray, zeta: float = 0.05, chunk_size: int = 10):
     """
     Calculates displacement, velocity, and total acceleration response spectra (SD, SV, SA)
     """
@@ -177,8 +183,7 @@ def get_spectra(dt: float, rec, period, zeta: float=0.05, chunk_size: int=10):
     for start in range(0, n_rec, chunk_size):
         end = min(start + chunk_size, n_rec)
         rec_chunk = rec[start:end]
-        sdf_responses_chunk = np.empty((4, end - start, npts, n_period), order='F')
-        run_sdof_linear(npts, dt, rec_chunk, n_period, period, zeta, 1.0, sdf_responses_chunk)
+        sdf_responses_chunk = run_sdof_linear(dt, rec_chunk, period, zeta, 1.0)
 
         np.abs(sdf_responses_chunk, out=sdf_responses_chunk)
         np.max(sdf_responses_chunk[0], axis=1, out=sd[start:end])
@@ -187,50 +192,50 @@ def get_spectra(dt: float, rec, period, zeta: float=0.05, chunk_size: int=10):
 
     return sd, sv, sa
 
-def slice_energy(ce: np.ndarray, target_range: tuple[float, float]=(0.001, 0.999)):
+def slice_energy(ce: np.ndarray, target_range: tuple[float, float] = (0.001, 0.999)):
     " A slicer of the input motion using a target cumulative energy range (as a fraction of total energy) "
     total_energy = ce[-1]
     start_idx = np.searchsorted(ce, target_range[0] * total_energy)
     end_idx = np.searchsorted(ce, target_range[1] * total_energy)
     return slice(start_idx, end_idx + 1)
 
-def slice_amplitude(rec, threshold: float):
+def slice_amplitude(rec: np.ndarray, threshold: float):
     " A slicer of the input motion using an amplitude threshold. "
     indices = np.nonzero(np.abs(rec) > threshold)[0]
     if len(indices) == 0:
         raise ValueError("No values exceed the threshold. Consider using a lower threshold value.")
     return slice(indices[0], indices[-1] + 1)
 
-def slice_freq(freq, target_range: tuple[float, float]=(0.1, 25.0)):
+def slice_freq(freq: np.ndarray, target_range: tuple[float, float] = (0.1, 25.0)):
     " A slicer of the frequencies using a frequency range in Hz"
     start_idx = np.searchsorted(freq, target_range[0] * 2 * np.pi)
     end_idx = np.searchsorted(freq, target_range[1] * 2 * np.pi)
     return slice(start_idx, end_idx + 1)
 
-def get_ce(dt: float, rec):
+def get_ce(dt: float, rec: np.ndarray):
     """
     Compute the cumulative energy
     """
     return np.cumsum(rec ** 2, axis=-1) * dt
 
-def get_integral(dt: float, rec):
+def get_integral(dt: float, rec: np.ndarray):
     """
     Compute the velocity of an acceleration input
     """
     return np.cumsum(rec, axis=-1) * dt
 
-def get_integral_detrend(dt: float, rec):
+def get_integral_detrend(dt: float, rec: np.ndarray):
     """
     Compute the integral with linear detrending
     """
     uvec = get_integral(dt, rec)
     return uvec - np.linspace(0.0, uvec[-1], len(uvec))
 
-def get_peak_param(rec):
+def get_peak_param(rec: np.ndarray):
     " Peak ground motion parameter"
     return np.max(np.abs(rec), axis=-1)
 
-def get_cav(dt: float, rec):
+def get_cav(dt: float, rec: np.ndarray):
     " Cumulative absolute velocity"
     return np.sum(np.abs(rec), axis=-1) * dt
 

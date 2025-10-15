@@ -31,7 +31,6 @@ class DomainConfig:
 
     @npts.setter
     def npts(self, value: int):
-        if value != self._npts:
             self._npts = value
             self._clear_cache()
 
@@ -41,7 +40,6 @@ class DomainConfig:
 
     @dt.setter
     def dt(self, value: float):
-        if value != self._dt:
             self._dt = value
             self._clear_cache()
 
@@ -49,7 +47,7 @@ class DomainConfig:
         """
         Clear cached properties, preserving core attributes.
         """
-        core_values = {attr: getattr(self, attr) for attr in self._CORE_ATTRS}
+        core_values = {attr: getattr(self, attr, None) for attr in self._CORE_ATTRS}
         self.__dict__.clear()
         self.__dict__.update(core_values)
 
@@ -102,16 +100,20 @@ class DomainConfig:
         return self._tp
 
     @tp.setter
-    def tp(self, period_range: tuple[float, float, float]):
+    def tp(self, period_range: tuple[float, float, float] | np.ndarray):
         """
         Set the period array for response spectra.
 
         Parameters
         ----------
-        period_range : tuple of float
+        period_range : tuple of float or ndarray
+            Either an array of periods or a tuple
             (start, stop, step) for period array.
         """
-        self._tp = np.arange(*period_range)
+        if len(period_range) == 3:
+            self._tp = np.arange(*period_range)
+        else:
+            self._tp = np.asarray(period_range)
 
     @cached_property
     def freq_sim_p2(self):

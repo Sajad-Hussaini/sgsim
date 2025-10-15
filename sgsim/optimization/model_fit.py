@@ -3,7 +3,7 @@ from scipy.optimize import minimize
 from ..core.stochastic_model import StochasticModel
 from ..motion.ground_motion import GroundMotion
 
-def fit(component: str, model: StochasticModel, motion: GroundMotion, fit_range: tuple = (0.01, 0.99),
+def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.99),
         initial_guess=None, bounds=None, method='L-BFGS-B'):
     """
     Fit stochastic model parameters to match target motion.

@@ -3,7 +3,7 @@
 Quick Start: Basic Simulation Example
 ======================================
 
-Creating a Ground Motion instance from a record file
+Loading a Ground Motion from a record file
 -----------------------------------------------------
 
 .. code-block:: python
@@ -14,70 +14,53 @@ Creating a Ground Motion instance from a record file
    file = 'path/to/your/motion.AT2'
    source = 'nga'
 
-   # Create a GroundMotion instance by loading a record file
-   ground_motion = GroundMotion.load_from(source=source, file=file)
+   # Create a GroundMotion (gm) instance by loading a record file
+   gm = GroundMotion.load_from(source=source, file=file)
 
    # If necessary, trim to 0.1% - 99.9% cumulative energy
    # If necessary, apply a bandpass filter (e.g., 0.1–25 Hz)
-   ground_motion.trim("energy", (0.001, 0.999)).filter((0.1, 25.0))
+   gm.trim("energy", (0.001, 0.999)).filter((0.1, 25.0))
 
 
-Creating a Stochastic Model instance
---------------------------------------
+Creating and Fitting a Stochastic Model to the Target Ground Motion
+-------------------------------------------------------------------------------------------------
 
 .. code-block:: python
 
    from sgsim import StochasticModel, functions
 
-   # Create a StochasticModel instance by specifying functional forms and basic parameters npts and dt   
-   model = StochasticModel(npts=ground_motion.npts, dt=ground_motion.dt,
-                        modulating=functions.BetaSingle(),
+   # Specify model's array data and functional forms
+   model = StochasticModel(modulating=functions.BetaSingle(),
                         upper_frequency=functions.Linear(), upper_damping=functions.Linear(),
                         lower_frequency=functions.Linear(), lower_damping=functions.Linear())
 
 
-Fitting the Stochastic Model to a Target Ground Motion
----------------------------------------------------------------
+   model.fit(gm)  # Default fitting procedure
 
-.. code-block:: python
+   model.summary()  # Summary of fitted model
 
-   for func in ['modulating', 'frequency']:
-    model.fit(func, ground_motion)
 
-   model.summary()
-
-Simulating Ground Motions
+Simulating Ground Motions and Visualizing the Results
 -----------------------------------------------------------------------------
-
-.. code-block:: python
-
-   simulated_motion = model.simulate(n=10)
-   print(f"number of acceleration time series : {simulated_motion.ac.shape[0]}")
-   print(f"number of samples in each time series : {simulated_motion.ac.shape[1]}")
-
-
-Visualizing the Results
-----------------------------------------------------------------------------
 
 .. code-block:: python
 
    from sgsim import ModelPlot
 
-   # if necessary create period tp arrays for spectral plots
-   # e.g., from 0.05s to 10s with increment of 0.05s
-   sm.tp = (0.05, 10.05, 0.05)
-   gm.tp = (0.05, 10.05, 0.05)
+   # 10 simulated ground motions (sm) based on the fitted model
+   sm = model.simulate(n=10)
 
-   # create a ModelPlot instance
-   mp = ModelPlot(model, simulated_motion, ground_motion)
+   sm.available_IMs()  # List available IMs
 
-   # index first and last simulated motion to visualize (0, -1)
+   # Create a ModelPlot for visualizations
+   mp = ModelPlot(model, sm, gm)
+
+   gm.tp = sm.tp = (0.1, 10.1, 0.1)  # Set periods for response spectra or set to an array value
+
+   # Index first and last simulated motion to visualize (0, -1)
    mp.plot_motions(0, -1)
-   # additional plotting functions
-   mp.plot_ac_ce()
-   mp.plot_ce()
    mp.plot_fas()
-   # additional plotting functions
+   mp.plot_ac_ce()
    mp.plot_spectra(spectrum='sa')
    mp.plot_feature(feature='mzc')
    mp.plot_feature(feature='pmnm')

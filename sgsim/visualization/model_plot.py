@@ -82,7 +82,7 @@ class ModelPlot:
             Plot style configuration.
         """
         if not hasattr(self.sim, 'ce'):
-            raise ValueError("""No simulations available.""")
+            raise ValueError("""No cumulative energy available.""")
         with style(config):
             fig, ax = plt.subplots()
             self._plot_mean_std(self.real.t, self.sim.ce, self.real.ce, ax)
@@ -92,7 +92,7 @@ class ModelPlot:
             ax.set_ylabel(r'Cumulative energy ($cm^2/s^3$)')
             plt.show()
 
-    def plot_fas(self, log_scale=True, config=None):
+    def plot_fas(self, log_scale=True, plot_range=(0.1, 25.5), config=None):
         """
         Plot Fourier Amplitude Spectrum (FAS) of the record and simulations.
 
@@ -104,7 +104,8 @@ class ModelPlot:
             Plot style configuration.
         """
         if not hasattr(self.sim, 'fas'):
-            raise ValueError("""No simulations available.""")
+            raise ValueError("""No Fourier spectrum available.""")
+        self.real.freq_slicer = plot_range
         with style(config):
             fig, ax = plt.subplots()
             self._plot_mean_std(self.real.freq / (2 * np.pi), self.sim.fas, self.real.fas, ax)
@@ -121,7 +122,7 @@ class ModelPlot:
             ax.set_ylabel(r'Fourier amplitude spectrum (cm/$s^2$)')
             plt.show()
 
-    def plot_spectra(self, spectrum='sa', log_scale=True, config=None):
+    def plot_spectra(self, spectrum='sa', log_scale=True, plot_range=(0.1, 25.5), config=None):
         """
         Plot the specified type of response spectrum (sa, sv, or sd) for record and simulations.
 
@@ -136,7 +137,7 @@ class ModelPlot:
         """
         labels = {'sa': r'acceleration (cm/$s^2$)', 'sv': 'velocity (cm/s)', 'sd': 'displacement (cm)'}
         if not hasattr(self.sim, spectrum):
-            raise ValueError("""No simulations available.""")
+            raise ValueError("""No response spectra available.""")
         with style(config):
             fig, ax = plt.subplots()
             self._plot_mean_std(self.real.tp, getattr(self.sim, spectrum), getattr(self.real, spectrum), ax)
@@ -198,7 +199,7 @@ class ModelPlot:
             Plot style configuration.
         """
         if not hasattr(self.sim, 'ac'):
-            raise ValueError("""No simulations available.""")
+            raise ValueError("""No characteristics available.""")
         with style(config):
             plt.plot(self.real.t, getattr(self.real, f"{feature}_ac"), label="Target acceleration",
                      c='tab:blue', zorder=2) if feature == 'mzc' else None
