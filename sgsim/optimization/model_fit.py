@@ -51,7 +51,7 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
         def objective(params):
             model_ce = update_modulating(params, model, motion)
             target_ce = motion.ce
-            return np.mean((model_ce - target_ce)**2)
+            return np.sum(np.square(model_ce - target_ce))
 
     elif component == 'frequency':
         motion.energy_slicer = fit_range
@@ -59,7 +59,7 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
             model_output = update_frequency(params, model, motion)
             target = np.concatenate((motion.mzc_ac[motion.energy_slicer], motion.mzc_vel[motion.energy_slicer], motion.mzc_disp[motion.energy_slicer],
                                      motion.pmnm_vel[motion.energy_slicer], motion.pmnm_disp[motion.energy_slicer]))
-            return np.mean((model_output - target)**2)
+            return np.sum(np.square(model_output - target))
     
     else:
         raise ValueError(f"Unknown component: {component}")
@@ -93,10 +93,7 @@ def update_frequency(params, model: StochasticModel, motion: GroundMotion):
     
     freq_type = type(model.upper_frequency).__name__
     if freq_type == "Linear":
-        # wl_param = (wl_param[0], wl_param[0] + wl_param[1])
-        # wu_param = (wu_param[0] + wu_param[1] + wl_param[1], wu_param[1] + wl_param[1])
-        # zl_param = (zl_param[0], zl_param[0] + zl_param[1])
-        # zu_param = (zu_param[0], zu_param[0] + zu_param[1])
+        zu_param = (zu_param[0] + zl_param[0], zu_param[1] + zl_param[1])
         wu_param = (wu_param[0] + wl_param[0], wu_param[1] + wl_param[1])
     
     model.upper_frequency(motion.t, *wu_param)

@@ -25,7 +25,7 @@ class ModelConfig(DomainConfig):
     lower_damping : ParametricFunction
         Lower damping parameter function.
     """
-    _CORE_ATTRS = frozenset(['_npts', '_dt', 'modulating', 'upper_frequency', 'upper_damping', 'lower_frequency', 'lower_damping'])
+    _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset(['modulating', 'upper_frequency', 'upper_damping', 'lower_frequency', 'lower_damping'])
 
     def __init__(self, modulating: ParametricFunction,
                  upper_frequency: ParametricFunction, upper_damping: ParametricFunction,
