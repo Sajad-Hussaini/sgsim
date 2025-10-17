@@ -57,7 +57,7 @@ class BetaSingle(ParametricFunction):
                              (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
                              np.log(beta(1 + concentration * peak, 1 + concentration * (1 - peak))) -
                              (1 + concentration) * np.log(duration))
-        multi_mdl = np.zeros_like(t)
+        multi_mdl = np.zeros(len(t))
         multi_mdl[1:-1] = mdl1 + mdl2
         return np.sqrt(energy * multi_mdl)
 
@@ -110,7 +110,7 @@ class BetaDual(ParametricFunction):
                                               (concentration_2 * (1 - peak_2)) * np.log(duration - t[1:-1]) -
                                               np.log(beta(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2))) -
                                               (1 + concentration_2) * np.log(duration))
-        multi_mdl = np.zeros_like(t)
+        multi_mdl = np.zeros(len(t))
         multi_mdl[1:-1] = mdl1 + mdl2 + mdl3
         return np.sqrt(energy * multi_mdl)
 
@@ -195,6 +195,26 @@ class Housner(ParametricFunction):
                             [lambda t_val: amplitude * (t_val / tp) ** 2, amplitude,
                              lambda t_val: amplitude * np.exp(-decay * ((t_val - td) ** shape))])
 
+class Rayleigh(ParametricFunction):
+    """Rayleigh function.
+
+    Parameters
+    ----------
+    a : float
+        The mass-proportional damping coefficient value.
+    b : float
+        The stiffness-proportional damping coefficient value.
+    """
+    def __call__(self, t, a, b):
+        self.values = self.compute(t, a, b)
+        self.params = dict(a=a, b=b)
+        self._trigger_callback()
+        return self.values
+    
+    @staticmethod
+    def compute(t, a, b):
+        return (a * t + b / t) / 2
+
 class Linear(ParametricFunction):
     """Linear function.
 
@@ -277,4 +297,4 @@ class Constant(ParametricFunction):
     
     @staticmethod
     def compute(t, value):
-        return np.full_like(t, value)
+        return np.full(len(t), value)

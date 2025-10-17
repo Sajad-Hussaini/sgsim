@@ -63,7 +63,7 @@ def get_mzc(rec):
     The mean cumulative number of zero up and down crossings
     """
     cross_mask = rec[..., :-1] * rec[..., 1:] < 0
-    cross_vec = np.empty_like(rec)
+    cross_vec = np.empty_like(rec, dtype=np.float64)
     cross_vec[..., :-1] = cross_mask * 0.5
     cross_vec[..., -1] = cross_vec[..., -2]
     return np.cumsum(cross_vec, axis=-1)
@@ -74,7 +74,7 @@ def get_pmnm(rec):
     """
     pmnm_mask =((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) & (rec[..., 1:-1] < 0) |
                (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]) & (rec[..., 1:-1] > 0))
-    pmnm_vec = np.empty_like(rec)
+    pmnm_vec = np.empty_like(rec, dtype=np.float64)
     pmnm_vec[..., 1:-1] = pmnm_mask * 0.5
     pmnm_vec[..., 0] = pmnm_vec[..., 1]
     pmnm_vec[..., -1] = pmnm_vec[..., -2]
@@ -86,7 +86,7 @@ def get_mle(rec):
     """
     mle_mask = ((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) |
                 (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]))
-    mle_vec = np.empty_like(rec)
+    mle_vec = np.empty_like(rec, dtype=np.float64)
     mle_vec[..., 1:-1] = mle_mask * 0.5
     mle_vec[..., 0] = mle_vec[..., 1]
     mle_vec[..., -1] = mle_vec[..., -2]
@@ -249,7 +249,7 @@ def get_freq(npts, dt):
 
 def get_time(npts, dt):
     " time array "
-    return np.linspace(0, (npts - 1) * dt, npts)
+    return np.linspace(0, (npts - 1) * dt, npts, dtype=np.float64)
 
 def get_magnitude(rec1, rec2):
     " magnitude of a vector that is indepednent of coordinate system"

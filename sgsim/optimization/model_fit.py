@@ -4,7 +4,7 @@ from ..core.stochastic_model import StochasticModel
 from ..motion.ground_motion import GroundMotion
 
 def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.99),
-        initial_guess=None, bounds=None, method='L-BFGS-B'):
+        initial_guess=None, bounds=None, method='L-BFGS-B', jac="3-point"):
     """
     Fit stochastic model parameters to match target motion.
 
@@ -40,7 +40,7 @@ def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range:
 
     objective_func = get_objective_function(component, model, motion, fit_range)
 
-    result = minimize(objective_func, initial_guess, bounds=bounds, method=method)
+    result = minimize(objective_func, initial_guess, bounds=bounds, method=method, jac=jac)
 
     if result.success:
         objective_func(result.x)
@@ -51,7 +51,7 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
         def objective(params):
             model_ce = update_modulating(params, model, motion)
             target_ce = motion.ce
-            return np.sum(np.square(model_ce - target_ce))
+            return np.sum(np.square((model_ce - target_ce) / target_ce.max()))
 
     elif component == 'frequency':
         motion.energy_slicer = fit_range
@@ -59,7 +59,7 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
             model_output = update_frequency(params, model, motion)
             target = np.concatenate((motion.mzc_ac[motion.energy_slicer], motion.mzc_vel[motion.energy_slicer], motion.mzc_disp[motion.energy_slicer],
                                      motion.pmnm_vel[motion.energy_slicer], motion.pmnm_disp[motion.energy_slicer]))
-            return np.sum(np.square(model_output - target))
+            return np.sum(np.square((model_output - target) / target.max()))
     
     else:
         raise ValueError(f"Unknown component: {component}")
@@ -96,10 +96,15 @@ def update_frequency(params, model: StochasticModel, motion: GroundMotion):
         zu_param = (zu_param[0] + zl_param[0], zu_param[1] + zl_param[1])
         wu_param = (wu_param[0] + wl_param[0], wu_param[1] + wl_param[1])
     
-    model.upper_frequency(motion.t, *wu_param)
-    model.lower_frequency(motion.t, *wl_param)
-    model.upper_damping(motion.t, *zu_param)
-    model.lower_damping(motion.t, *zl_param)
+    nce = motion.ce / motion.ce.max()
+    # model.upper_frequency(motion.t, *wu_param)
+    # model.lower_frequency(motion.t, *wl_param)
+    # model.upper_damping(motion.t, *zu_param)
+    # model.lower_damping(motion.t, *zl_param)
+    model.upper_frequency(nce, *wu_param)
+    model.lower_frequency(nce, *wl_param)
+    model.upper_damping(model.upper_frequency.values, *zu_param)
+    model.lower_damping(model.lower_frequency.values, *zl_param)
     
     return np.concatenate((model.mzc_ac[motion.energy_slicer], model.mzc_vel[motion.energy_slicer], model.mzc_disp[motion.energy_slicer],
                            model.pmnm_vel[motion.energy_slicer], model.pmnm_disp[motion.energy_slicer]))
@@ -124,15 +129,15 @@ def get_default_parameters(component: str, model: StochasticModel):
         ),
         ('frequency', 'Linear'): (
             [3.0, 2.0, 0.2, 0.5, 0.1, 0.1, 0.1, 0.1],
-            [(0.1, 30.0), (0.1, 30.0), (0.1, 10.0), (0.1, 10.0), (0.05, 5.0), (0.05, 5.0), (0.05, 5.0), (0.05, 5.0)]
+            [(0.1, 30.0), (0.1, 30.0), (0.1, 10.0), (0.1, 10.0), (0.05, 8.0), (0.05, 8.0), (0.05, 8.0), (0.05, 8.0)]
         ),
         ('frequency', 'Exponential'): (
             [3.0, 2.0, 0.2, 0.5, 0.1, 0.1, 0.1, 0.1],
-            [(0.1, 30.0), (0.1, 30.0), (0.1, 10.0), (0.1, 10.0), (0.05, 5.0), (0.05, 5.0), (0.05, 5.0), (0.05, 5.0)]
+            [(0.1, 30.0), (0.1, 30.0), (0.1, 10.0), (0.1, 10.0), (0.05, 8.0), (0.05, 8.0), (0.05, 8.0), (0.05, 8.0)]
         ),
         ('frequency', 'Constant'): (
             [5.0, 1.0, 0.3, 0.2],
-            [(0.1, 30.0), (0.1, 10.0), (0.05, 5.0), (0.05, 5.0)]
+            [(0.1, 30.0), (0.1, 10.0), (0.05, 8.0), (0.05, 8.0)]
         ),
     }
     

@@ -29,9 +29,9 @@ class GroundMotion(DomainConfig):
 
     def __init__(self, npts, dt, ac, vel, disp, tag=None):
         super().__init__(npts, dt)
-        self.ac = ac
-        self.vel = vel
-        self.disp = disp
+        self.ac = ac.astype(np.float64, copy=False)
+        self.vel = vel.astype(np.float64, copy=False)
+        self.disp = disp.astype(np.float64, copy=False)
         self.tag = tag
 
     def trim(self, method: str, value: tuple[float, float] | int | slice):

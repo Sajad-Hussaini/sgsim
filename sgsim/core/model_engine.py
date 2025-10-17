@@ -73,7 +73,7 @@ def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance):
     """
     The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
     """
-    fas = np.zeros_like(freq_p2)
+    fas = np.zeros_like(freq_p2, dtype=np.float64)
     for i in range(len(wu)):
         psd_i = get_psd(wu[i], zu[i], wl[i], zl[i], freq_p2, freq_p4)
         scale = mdl[i] ** 2 / variance[i]
@@ -102,7 +102,7 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
 def cumulative_rate(dt, numerator, denominator):
     scale = dt / (2 * np.pi)
     cumsum = 0.0
-    out = np.empty_like(numerator)
+    out = np.empty_like(numerator, dtype=np.float64)
     for i in range(len(numerator)):
         cumsum += np.sqrt(numerator[i] / denominator[i]) * scale
         out[i] = cumsum
@@ -112,7 +112,7 @@ def cumulative_rate(dt, numerator, denominator):
 def pmnm_rate(dt, first, middle, last):
     scale = dt / (4 * np.pi)
     cumsum = 0.0
-    out = np.empty_like(first)
+    out = np.empty_like(first, dtype=np.float64)
     for i in range(len(first)):
         cumsum += (np.sqrt(first[i] / middle[i]) - np.sqrt(middle[i] / last[i])) * scale
         out[i] = cumsum

@@ -53,7 +53,7 @@ class RecordReader:
         self.ac = kwargs.get('ac')
 
         self.skiprows = kwargs.get('skiprows', 1)
-        self.scale = kwargs.get('scale', 1)
+        self.scale = kwargs.get('scale', 1.0)
 
         self._read_file()
 
@@ -77,6 +77,7 @@ class RecordReader:
         """
         Calculates time, velocity, and displacement from acceleration.
         """
+        self.ac = self.ac.astype(np.float64, copy=False)
         self.npts = len(self.ac)
         self.t = get_time(self.npts, self.dt)
         self.vel = get_integral(self.dt, self.ac)
