@@ -6,6 +6,9 @@ class ParametricFunction(ABC):
     """
     Abstract base class for parametric functions.
     """
+    def __init__(self):
+        self.params = {k: None for k in self._pnames}
+
     def _trigger_callback(self):
         """Trigger callback if it exists."""
         if hasattr(self, 'callback'):
@@ -26,6 +29,7 @@ class ParametricFunction(ABC):
         return f"{self.__class__.__name__}({param_str})"
 
 class BetaSingle(ParametricFunction):
+    _pnames = ['peak', 'concentration', 'energy', 'duration']
     """Beta single modulating function.
 
     Parameters
@@ -62,6 +66,7 @@ class BetaSingle(ParametricFunction):
         return np.sqrt(energy * multi_mdl)
 
 class BetaDual(ParametricFunction):
+    _pnames = ['peak', 'concentration', 'peak_2', 'concentration_2', 'energy_ratio', 'energy', 'duration']
     """Beta dual modulating function.
 
     Parameters
@@ -115,6 +120,7 @@ class BetaDual(ParametricFunction):
         return np.sqrt(energy * multi_mdl)
 
 class BetaBasic(ParametricFunction):
+    _pnames = ['peak', 'concentration', 'energy', 'duration']
     """Basic Beta modulating function.
 
     Parameters
@@ -146,6 +152,7 @@ class BetaBasic(ParametricFunction):
         return np.sqrt(energy * mdl)
 
 class Gamma(ParametricFunction):
+    _pnames = ['scale', 'shape', 'decay']
     """Gamma modulating function.
 
     Parameters
@@ -168,6 +175,7 @@ class Gamma(ParametricFunction):
         return scale * t ** shape * np.exp(-decay * t)
 
 class Housner(ParametricFunction):
+    _pnames = ['amplitude', 'decay', 'shape', 'tp', 'td']
     """Housner modulating function.
 
     Parameters
@@ -196,6 +204,7 @@ class Housner(ParametricFunction):
                              lambda t_val: amplitude * np.exp(-decay * ((t_val - td) ** shape))])
 
 class Rayleigh(ParametricFunction):
+    _pnames = ['a', 'b',]
     """Rayleigh function.
 
     Parameters
@@ -216,6 +225,7 @@ class Rayleigh(ParametricFunction):
         return (a * t + b / t) / 2
 
 class Linear(ParametricFunction):
+    _pnames = ['start', 'end']
     """Linear function.
 
     Parameters
@@ -236,6 +246,7 @@ class Linear(ParametricFunction):
         return start + (end - start) * (t / t.max())
 
 class Bilinear(ParametricFunction):
+    _pnames = ['start', 'mid', 'end', 't_mid']
     """Bilinear function.
 
     Parameters
@@ -262,6 +273,7 @@ class Bilinear(ParametricFunction):
                              lambda t_val: mid - (mid - end) * (t_val - t_mid) / (t.max() - t_mid)])
 
 class Exponential(ParametricFunction):
+    _pnames = ['start', 'end']
     """Exponential function.
 
     Parameters
@@ -282,6 +294,7 @@ class Exponential(ParametricFunction):
         return start * np.exp(np.log(end / start) * (t / t.max()))
 
 class Constant(ParametricFunction):
+    _pnames = ['value']
     """Constant function.
 
     Parameters

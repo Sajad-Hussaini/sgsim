@@ -57,8 +57,12 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
         motion.energy_slicer = fit_range
         def objective(params):
             model_output = update_frequency(params, model, motion)
-            target = np.concatenate((motion.mzc_ac[motion.energy_slicer], motion.mzc_vel[motion.energy_slicer], motion.mzc_disp[motion.energy_slicer],
-                                     motion.pmnm_vel[motion.energy_slicer], motion.pmnm_disp[motion.energy_slicer]))
+            target = np.concatenate((motion.mzc_ac[motion.energy_slicer],
+                                     motion.mzc_vel[motion.energy_slicer],
+                                     motion.mzc_disp[motion.energy_slicer],
+                                     motion.pmnm_vel[motion.energy_slicer],
+                                     motion.pmnm_disp[motion.energy_slicer]))
+
             return np.sum(np.square((model_output - target) / target.max()))
     
     else:
@@ -69,7 +73,7 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
 def update_modulating(params, model: StochasticModel, motion: GroundMotion):
     """Update modulating function and return model cumulative energy."""
     modulating_type = type(model.modulating).__name__
-    et, tn = motion.ce[-1], motion.t[-1]
+    et, tn = motion.ce.max(), motion.t.max()
     
     if modulating_type == 'BetaDual':
         p1, c1, dp2, c2, a1 = params
@@ -81,33 +85,29 @@ def update_modulating(params, model: StochasticModel, motion: GroundMotion):
         raise ValueError(f"Unknown modulating type: {modulating_type}")
     
     model.modulating(motion.t, *model_params)
+
     return model.ce
 
 def update_frequency(params, model: StochasticModel, motion: GroundMotion):
     """Update damping functions and return statistics."""
-    quarter_param = len(params) // 4
-    wu_param = params[:quarter_param]
-    wl_param = params[quarter_param:quarter_param*2]
-    zu_param = params[quarter_param*2:quarter_param*3]
-    zl_param = params[quarter_param*3:]
-    
-    freq_type = type(model.upper_frequency).__name__
-    if freq_type == "Linear":
-        zu_param = (zu_param[0] + zl_param[0], zu_param[1] + zl_param[1])
-        wu_param = (wu_param[0] + wl_param[0], wu_param[1] + wl_param[1])
-    
-    nce = motion.ce / motion.ce.max()
-    # model.upper_frequency(motion.t, *wu_param)
-    # model.lower_frequency(motion.t, *wl_param)
-    # model.upper_damping(motion.t, *zu_param)
-    # model.lower_damping(motion.t, *zl_param)
-    model.upper_frequency(nce, *wu_param)
-    model.lower_frequency(nce, *wl_param)
-    model.upper_damping(model.upper_frequency.values, *zu_param)
-    model.lower_damping(model.lower_frequency.values, *zl_param)
-    
-    return np.concatenate((model.mzc_ac[motion.energy_slicer], model.mzc_vel[motion.energy_slicer], model.mzc_disp[motion.energy_slicer],
-                           model.pmnm_vel[motion.energy_slicer], model.pmnm_disp[motion.energy_slicer]))
+    fitables = [model.upper_frequency, model.lower_frequency, model.upper_damping, model.lower_damping]
+    param_counts = [len(f.params) for f in fitables]
+    param_slices = np.cumsum([0] + param_counts)
+    fitable_params = [params[param_slices[i]:param_slices[i+1]] for i in range(len(fitables))]
+
+    if (type(model.upper_frequency).__name__ in ("Linear", "Exponential") and
+        type(model.lower_frequency).__name__ in ("Linear", "Exponential")):
+        fitable_params[0] = [fitable_params[0][0] + fitable_params[1][0], fitable_params[0][1] + fitable_params[1][1]]
+        fitable_params[1] = fitable_params[1]
+
+    for freq_model, model_params in zip(fitables, fitable_params):
+        freq_model(motion.t, *model_params)
+
+    return np.concatenate((model.mzc_ac[motion.energy_slicer],
+                           model.mzc_vel[motion.energy_slicer],
+                           model.mzc_disp[motion.energy_slicer],
+                           model.pmnm_vel[motion.energy_slicer],
+                           model.pmnm_disp[motion.energy_slicer]))
 
 def get_default_parameters(component: str, model: StochasticModel):
     """Get default initial guess and bounds for parameters."""
