@@ -45,7 +45,7 @@ _rc_config = {
     'grid.linewidth': 0.2,
     'grid.alpha': 1.0,
 
-    'figure.dpi': 1000,
+    'figure.dpi': 300,
     'figure.figsize': (15/2.54, 10/2.54),
     'figure.constrained_layout.use': True,
 
