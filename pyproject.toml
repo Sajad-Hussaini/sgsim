@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,12 +8,11 @@ version = "1.1.7"
 authors = [{name = "Sajad Hussaini", email = "hussaini.smsajad@gmail.com"}]
 description = "Python Package for Simulation and Analysis of Ground Motions"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
 requires-python = ">=3.10"
 keywords = ['sgsim', 'stochastic ground motion simulation', 'ground motion analysis', 'earthquake engineering']
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering",]
