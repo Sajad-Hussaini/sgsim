@@ -77,7 +77,7 @@ class RecordReader:
         """
         Calculates time, velocity, and displacement from acceleration.
         """
-        self.ac = self.ac.astype(np.float64, copy=False)
+        self.ac = self.ac.astype(np.float64, copy=False) * self.scale
         self.npts = len(self.ac)
         self.t = get_time(self.npts, self.dt)
         self.vel = get_integral(self.dt, self.ac)
@@ -92,7 +92,7 @@ class RecordReader:
 
         dt_key = 'dt=' if 'dt=' in recInfo else 'DT='
         self.dt = round(float(recInfo[recInfo.index(dt_key) + 1].rstrip('SEC,')), 3)
-        self.ac = np.loadtxt(recData).flatten() * self.scale
+        self.ac = np.loadtxt(recData).flatten()
         return self
 
     def _parser_esm(self):
@@ -101,7 +101,7 @@ class RecordReader:
         """
         recData = self.contents[64:-1]
         self.dt = round(float(self.contents[28].split()[1]), 3)
-        self.ac = np.loadtxt(recData).flatten() * self.scale
+        self.ac = np.loadtxt(recData).flatten()
         return self
 
     def _parser_col(self):
@@ -110,7 +110,7 @@ class RecordReader:
         """
         col_data = np.loadtxt(self.contents, skiprows=self.skiprows)
         self.dt = round(col_data[1, 0] - col_data[0, 0], 3)
-        self.ac = col_data[:, 1] * self.scale
+        self.ac = col_data[:, 1]
         return self
     
     def _parser_array(self):
@@ -128,7 +128,7 @@ class RecordReader:
         recInfo = self.contents[16].split()
         recData = self.contents[25:-2]
         self.dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
-        self.ac = np.loadtxt(recData).flatten() * self.scale
+        self.ac = np.loadtxt(recData).flatten()
         return self
 
     def _parser_cor(self):
@@ -140,5 +140,5 @@ class RecordReader:
         endline = recData.index('-> corrected velocity time histories\n') - 2
         recData = recData[0:endline]
         self.dt = round(float(recInfo[recInfo.index('period:') + 1].rstrip('s,')), 3)
-        self.ac = np.loadtxt(recData).flatten() * self.scale
+        self.ac = np.loadtxt(recData).flatten()
         return self

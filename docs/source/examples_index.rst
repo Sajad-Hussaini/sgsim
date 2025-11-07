@@ -9,3 +9,4 @@ This section provides a gallery of examples using SGSIM.
    :maxdepth: 1
 
    examples/basic_simulation
+   examples/basic_groundmotion

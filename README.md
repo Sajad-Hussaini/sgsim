@@ -7,7 +7,7 @@
 
 **SGSIM** is a Python package that provides two main capabilities:  
 > 1. **Simulation** of earthquake ground motions using a site-compatible stochastic method [[1]](#references).  
-> 2. **Ground motion processing and analysis** for recorded or simulated data.
+> 2. **Processing and analysis** of ground motions, including filtering, trimming, and calculating various intensity measures (e.g., PGA, SA, FAS, etc.).
 
 
 ## Table of Contents
@@ -32,8 +32,7 @@ SGSIM is released under the [MIT License](https://opensource.org/licenses/MIT).
 See the [LICENSE](LICENSE) file for the full text.
 
 ## Contact
-
-For questions or assistance, please feelfree to contact:
+For any questions, assistance, suggestions, or requests to implement additional Intensity Measures (IMs), please feel free to contact:
 
 **S.M. Sajad Hussaini**  
 📧 [hussaini.smsajad@gmail.com](mailto:hussaini.smsajad@gmail.com)

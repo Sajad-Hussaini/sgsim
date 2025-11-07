@@ -502,3 +502,25 @@ class GroundMotion(DomainConfig):
                     'mzc_ac', 'mzc_vel', 'mzc_disp',
                     'pmnm_ac', 'pmnm_vel', 'pmnm_disp']
         return features
+
+class GroundMotion3D:
+    def __init__(self, gm1, gm2, gm3):
+        self.gm1 = gm1
+        self.gm2 = gm2
+        self.gm3 = gm3
+        self.t = gm1.t
+        self.dt = gm1.dt
+        self.npts = gm1.npts
+
+    @property
+    def ce(self):
+        """
+        Cumulative energy of the net three component of acceleration time series.
+
+        Returns
+        -------
+        ndarray
+            Cumulative energy array.
+        """
+        return self.gm1.ce + self.gm2.ce + self.gm3.ce
+

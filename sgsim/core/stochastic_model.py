@@ -33,7 +33,7 @@ class StochasticModel(ModelConfig):
     Changes to `npts` or `dt` persist until explicitly changed again.
     """
 
-    def fit(self, target_motion: GroundMotion, component: list[str] = ['modulating', 'frequency'], 
+    def fit(self, target_motion: GroundMotion, component: list[str] = ['modulating', 'frequency-fas'], 
             fit_range: tuple = (0.01, 0.99), initial_guess=None, bounds=None, method='L-BFGS-B'):
         """
         Fit stochastic model parameters to match target motion.
@@ -45,11 +45,14 @@ class StochasticModel(ModelConfig):
         target_motion : GroundMotion
             The target ground motion.
         component : list[str]
-            Components to fit ['modulating', 'frequency'].
+            Components to fit:
+            - 'modulating': Fit modulating function.
+            - 'frequency-fas': Fit frequency and damping functions using Fourier Amplitude Spectrum.
+            - 'frequency-zc': Fit frequency and damping functions using zero-crossing statistics (instead of fas).
         fit_range : tuple, optional
-            Fitting range as (min, max).
+            Fitting range as (min, max) used only for 'frequency-zc'.
         initial_guess : array-like, optional
-            Initial parameter values.
+            Initial parameter values used for fitting single component per fit call.
         bounds : list of tuples, optional
             Parameter bounds.
         method : str, optional

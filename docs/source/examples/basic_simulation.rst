@@ -50,7 +50,7 @@ Simulating Ground Motions and Visualizing the Results
    # 10 simulated ground motions (sm) based on the fitted model
    sm = model.simulate(n=10)
 
-   sm.available_IMs()  # List available IMs
+   sm.available_IMs()  # List available IMs (more IM will be added gradually or by user)
 
    # Create a ModelPlot for visualizations
    mp = ModelPlot(model, sm, gm)
@@ -62,5 +62,5 @@ Simulating Ground Motions and Visualizing the Results
    mp.plot_fas()
    mp.plot_ac_ce()
    mp.plot_spectra(spectrum='sa')
-   mp.plot_feature(feature='mzc')
+   mp.plot_feature(feature='mzc')  # the slope of curves should match than the number of cumualtive counts, alternatively fitting to FAS is better to be checked
    mp.plot_feature(feature='pmnm')
