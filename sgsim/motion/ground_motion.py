@@ -350,6 +350,74 @@ class GroundMotion(DomainConfig):
             Peak ground displacement value.
         """
         return signal_tools.get_peak_param(self.disp)
+    
+    @property
+    def cav(self):
+        """
+        Cumulative absolute velocity.
+
+        Returns
+        -------
+        float
+            CAV value.
+        """
+        return signal_tools.get_cav(self.dt, self.ac)
+    
+    @cached_property
+    def spectrum_intensity(self):
+        """
+        spectrum intensity over period 0.1 to 2.5 seconds.
+
+        Returns
+        -------
+        float
+            VSI value.
+        """
+        vsi_tp = np.arange(0.1, 2.5, 0.05)
+        sd, sv, sa = signal_tools.get_spectra(self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=vsi_tp, zeta=0.05)
+        dsi = signal_tools.get_integral(0.05, sd)[..., -1]
+        vsi = signal_tools.get_integral(0.05, sv)[..., -1]
+        asi = signal_tools.get_integral(0.05, sa)[..., -1]
+        return dsi, vsi, asi
+    
+    @property
+    def vsi(self):
+        """
+        Velocity spectrum intensity.
+
+        Returns
+        -------
+        float
+            VSI value.
+        """
+        
+        return self.spectrum_intensity[1]
+    
+    @property
+    def asi(self):
+        """
+        Acceleration spectrum intensity.
+
+        Returns
+        -------
+        float
+            ASI value.
+        """
+        
+        return self.spectrum_intensity[2]
+    
+    @property
+    def dsi(self):
+        """
+        Displacement spectrum intensity.
+
+        Returns
+        -------
+        float
+            DSI value.
+        """
+        
+        return self.spectrum_intensity[0]
 
     @property
     def energy_slicer(self):

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sgsim"
-version = "1.1.7"
+version = "1.1.8"
 authors = [{name = "Sajad Hussaini", email = "hussaini.smsajad@gmail.com"}]
 description = "Python Package for Simulation and Analysis of Ground Motions"
 readme = "README.md"
