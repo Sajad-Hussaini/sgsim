@@ -36,6 +36,8 @@ Creating and Fitting a Stochastic Model to the Target Ground Motion
 
 
    model.fit(gm)  # Default fitting procedure
+   # model.fit(gm, component=["modulating", "frequency"])  # This is the Default fitting procedure
+   # model.fit(gm, component=["modulating", "fas"])  # Alternativey, This uses FAS only to optimize frequency filter parameters
 
    model.summary()  # Summary of fitted model
 
@@ -62,5 +64,11 @@ Simulating Ground Motions and Visualizing the Results
    mp.plot_fas()
    mp.plot_ac_ce()
    mp.plot_spectra(spectrum='sa')
-   mp.plot_feature(feature='mzc')  # the slope of curves should match than the number of cumualtive counts, alternatively fitting to FAS is better to be checked
+
+   # the slope of below curves should match than the number of cumualtive counts, however these characteristics are more prone to noise so perfit fit is not recommended
+   mp.plot_feature(feature='mzc')
    mp.plot_feature(feature='pmnm')
+
+
+   # To export selected IMs of simulated motions to CSV files
+   sm.to_csv('output_ground_motion.csv', ims=['pga', 'pgv', 'sa', 'fas'])

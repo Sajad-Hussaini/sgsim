@@ -443,51 +443,95 @@ class GroundMotion(DomainConfig):
         """
         self._energy_slicer = signal_tools.slice_energy(self.ce, energy_range)
     
-    def to_csv(self, filename: str, features: list[str]):
+    def to_csv(self, filename: str, ims: list[str]):
         """
-        Export selected features to CSV.
+        Export selected intensity measures (ims) to CSV.
 
         Parameters
         ----------
         filename : str
             Output CSV file path.
-        features : list of str
-            List of feature names to export.
+        ims : list of str
+            List of ims to export.
+        
+        Notes
+        -----
+        For multi-record data (e.g., self.ac with shape (n_records, npts)),
+        each record will be saved as a separate row in the CSV.
         """
         header = []
-        row = []
-        for feature in features:
-            feature_l = feature.lower()
-            attr = getattr(self, feature_l)
-
+        rows = []
+        
+        # Determine number of records
+        if self.ac.ndim == 1:
+            n_records = 1
+        else:
+            n_records = self.ac.shape[0]
+        
+        # Build header
+        for im in ims:
+            im_l = im.lower()
+            
             # Spectral arrays (sa, sv, sd)
-            if feature_l in ("sa", "sv", "sd"):
+            if im_l in ("sa", "sv", "sd"):
                 if not hasattr(self, "tp"):
                     raise AttributeError("Set 'tp' attribute (periods) before accessing spectra.")
-                for i, val in enumerate(attr.T):
-                    header.append(f"{feature_l}_{self.tp[i]:.3f}")
-                    row.append(val)
+                for period in self.tp:
+                    header.append(f"{im_l}_{period:.3f}")
             # FAS (Fourier amplitude spectrum)
-            elif feature_l == "fas":
+            elif im_l == "fas":
                 if not hasattr(self, "freq"):
-                    raise AttributeError("Set 'freq' attribute (frequencies) before accessing spectra")
-                for i, val in enumerate(attr.T):
-                    header.append(f"fas_{self.freq[i] / (2*np.pi):.3f}")
-                    row.append(val)
+                    raise AttributeError("Set 'freq' attribute (frequencies) before accessing FAS")
+                for freq in self.freq:
+                    header.append(f"fas_{freq / (2*np.pi):.3f}")
+            # Scalar values
             else:
-                header.append(feature_l)
-                row.append(attr)
-
+                header.append(im_l)
+        
+        # Build rows
+        for i in range(n_records):
+            row = []
+            for im in ims:
+                im_l = im.lower()
+                attr = getattr(self, im_l)
+                
+                # Spectral arrays (sa, sv, sd)
+                if im_l in ("sa", "sv", "sd"):
+                    if attr.ndim == 1:
+                        row.extend(attr)
+                    else:
+                        row.extend(attr[i])
+                # FAS (Fourier amplitude spectrum)
+                elif im_l == "fas":
+                    if attr.ndim == 1:
+                        row.extend(attr)
+                    else:
+                        row.extend(attr[i])
+                # Scalar values or arrays that need indexing
+                else:
+                    if hasattr(attr, '__len__') and not isinstance(attr, str):
+                        if len(attr) == n_records:
+                            row.append(attr[i])
+                        else:
+                            # Single value for all records
+                            row.append(attr)
+                    else:
+                        # Scalar value
+                        row.append(attr)
+            
+            rows.append(row)
+        
+        # Write to CSV
         with open(filename, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(header)
-            writer.writerow(row)
+            writer.writerows(rows)
     
-    def compare_with(self, component, metrics: list[str], method: str, transform: callable = None):
+    def compare_with(self, component, ims: list[str], method: str, transform: callable = None):
         """
-        Compare selected metrics between this GroundMotion instance and another component.
+        Compare selected intensity measures (ims) between this GroundMotion instance and another component.
 
-        This method computes similarity or error metrics (e.g., goodness-of-fit, relative error)
+        This method computes similarity or error ims (e.g., goodness-of-fit, relative error)
         for specified attributes (such as 'sa', 'sv', 'fas', etc.) between the current ground motion
         and another GroundMotion or FittedModel instance.
 
@@ -495,17 +539,17 @@ class GroundMotion(DomainConfig):
         ----------
         component : GroundMotion or FittedModel
             The instance to compare against.
-        metrics : list of str
-            Names of attributes (e.g., 'sa', 'sv', 'fas') to compare.
+        ims : list of str
+            Intensity measures (e.g., 'sa', 'sv', 'fas') to compare.
         method : {'gof', 're'}
-            Comparison metric: 'gof' for goodness-of-fit, 're' for relative error.
+            Comparison method: 'gof' for goodness-of-fit, 're' for relative error.
         transform : callable, optional
             Function to apply to both attribute values before comparison (e.g., np.log).
 
         Returns
         -------
         dict
-            Dictionary mapping each metric name to its computed comparison value.
+            Dictionary mapping each IM name to its computed comparison value.
 
         Raises
         ------
@@ -518,13 +562,13 @@ class GroundMotion(DomainConfig):
         method = criterion_map.get(method.lower())
         if method is None:
             raise ValueError(f"Unknown method: {method}. Supported: {list(criterion_map.keys())}")
-        for metric in metrics:
-            self_attr = getattr(self, metric)
-            comp_attr = getattr(component, metric)
+        for im in ims:
+            self_attr = getattr(self, im)
+            comp_attr = getattr(component, im)
             if transform is not None:
                 self_attr = transform(self_attr)
                 comp_attr = transform(comp_attr)
-            result[metric] = method(self_attr, comp_attr)
+            result[im] = method(self_attr, comp_attr)
         return result
 
     @classmethod
@@ -550,35 +594,83 @@ class GroundMotion(DomainConfig):
         return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)
 
     @classmethod
-    def available_IMs(cls):
+    def list_IMs(cls):
         """
-        List all available intensity measures (IMs) and properties
+        List all available intensity measures (ims) and properties with descriptions.
+        
+        Returns
+        -------
+        dict
+            Dictionary mapping im names to their descriptions.
+            
+        Examples
+        --------
+        >>> GroundMotion.list_IMs()
+        >>> # or to get just the names:
+        >>> list(GroundMotion.list_IMs().keys())
         
         Note
         ----
-        Feel free to contact the developer (via Hussaini.smsajad@gmail.com) to add or include new IMs.
-
-        Returns
-        -------
-        list of str
-            List of feature names.
+        Feel free to contact the developer (via Hussaini.smsajad@gmail.com) to add or include new ims.
         """
-        features = ['ac', 'vel', 'disp', 'fas', 'ce',
-                    't', 'tp', 'freq',
-                    'pga', 'pgv', 'pgd', 'sa', 'sv', 'sd',
-                    'mle_ac', 'mle_vel', 'mle_disp',
-                    'mzc_ac', 'mzc_vel', 'mzc_disp',
-                    'pmnm_ac', 'pmnm_vel', 'pmnm_disp']
-        return features
+        ims = {
+            # Peak parameters
+            'pga': 'Peak Ground Acceleration',
+            'pgv': 'Peak Ground Velocity',
+            'pgd': 'Peak Ground Displacement',
+            
+            # Response spectra (requires tp attribute)
+            'sa': 'Spectral Acceleration (requires tp)',
+            'sv': 'Spectral Velocity (requires tp)',
+            'sd': 'Spectral Displacement (requires tp)',
+            
+            # Intensity integrals
+            'cav': 'Cumulative Absolute Velocity',
+            'vsi': 'Velocity Spectrum Intensity (0.1-2.5s)',
+            'asi': 'Acceleration Spectrum Intensity (0.1-2.5s)',
+            'dsi': 'Displacement Spectrum Intensity (0.1-2.5s)',
+            
+            # Time series data
+            'ac': 'Acceleration time series',
+            'vel': 'Velocity time series',
+            'disp': 'Displacement time series',
+            
+            # Frequency domain
+            'fas': 'Fourier Amplitude Spectrum',
+            'ce': 'Cumulative Energy',
+            
+            # Domain attributes
+            't': 'Time array',
+            'tp': 'Period array (for spectra)',
+            'freq': 'Frequency array (for FAS)',
+            
+            # Statistical measures
+            'mle_ac': 'Mean Local Extrema of Acceleration',
+            'mle_vel': 'Mean Local Extrema of Velocity',
+            'mle_disp': 'Mean Local Extrema of Displacement',
+            'mzc_ac': 'Mean Zero Crossing of Acceleration',
+            'mzc_vel': 'Mean Zero Crossing of Velocity',
+            'mzc_disp': 'Mean Zero Crossing of Displacement',
+            'pmnm_ac': 'Positive Min / Negative Max of Acceleration',
+            'pmnm_vel': 'Positive Min / Negative Max of Velocity',
+            'pmnm_disp': 'Positive Min / Negative Max of Displacement',
+        }
+        return ims
+
+### ================================================================================
 
 class GroundMotion3D:
-    def __init__(self, gm1, gm2, gm3):
+    """
+    Container for three-component ground motion data.
+    """
+    def __init__(self, gm1:GroundMotion, gm2:GroundMotion, gm3:GroundMotion):
         self.gm1 = gm1
         self.gm2 = gm2
         self.gm3 = gm3
         self.t = gm1.t
         self.dt = gm1.dt
         self.npts = gm1.npts
+        self.freq = gm1.freq
 
     @property
     def ce(self):
@@ -588,7 +680,21 @@ class GroundMotion3D:
         Returns
         -------
         ndarray
-            Cumulative energy array.
+            Combined cumulative energy array.
         """
         return self.gm1.ce + self.gm2.ce + self.gm3.ce
+    
+    @property
+    def fas(self):
+        """
+        Fourier amplitude spectrum of the net three component of acceleration time series.
+
+        Returns
+        -------
+        ndarray
+            Combined Fourier amplitude spectrum.
+        """
+        return np.sqrt(self.gm1.fas ** 2 + self.gm2.fas ** 2 + self.gm3.fas ** 2)
+
+### ================================================================================
 

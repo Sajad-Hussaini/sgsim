@@ -3,21 +3,21 @@ from scipy.optimize import minimize
 from ..core.stochastic_model import StochasticModel
 from ..motion.ground_motion import GroundMotion
 
-def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.99),
+def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.999),
         initial_guess=None, bounds=None, method='L-BFGS-B', jac="3-point"):
     """
-    Fit stochastic model parameters to match target motion.
+    Fit stochastic model parameters to match a target motion.
 
     Parameters
     ----------
     component : str
-        Component to fit ('modulating', 'frequency', or 'damping').
+        Component to fit ('modulating', 'frequency', or 'fas').
     model : StochasticModel
         The stochastic model to fit.
     motion : GroundMotion
         The target ground motion.
     fit_range : tuple, optional
-        Tuple specifying the fractional energy range (start, end) over which to fit.
+        Tuple specifying the fractional energy range (start, end) over which to fit the time series characteristics (e.g., mzc_ac).
         If None, the full range is used.
     initial_guess : array-like, optional
         Initial parameter values. If None, uses defaults.
@@ -53,24 +53,24 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
             target_ce = motion.ce
             return np.sum(np.square((model_ce - target_ce) / target_ce.max()))
 
-    elif component == 'frequency-zc':
+    elif component == 'frequency':
         motion.energy_slicer = fit_range
+        scale = motion.mzc_ac[motion.energy_slicer].max() / motion.fas.max() if motion.fas.max() > 0 else 1.0
         def objective(params):
-            model_output = update_frequency_zc(params, model, motion)
+            model_output = update_frequency(params, model, motion, scale)
             target = np.concatenate((motion.mzc_ac[motion.energy_slicer],
                                      motion.mzc_vel[motion.energy_slicer],
                                      motion.mzc_disp[motion.energy_slicer],
                                      motion.pmnm_vel[motion.energy_slicer],
-                                     motion.pmnm_disp[motion.energy_slicer]))
+                                     motion.pmnm_disp[motion.energy_slicer],
+                                     motion.fas * scale))
             return np.sum(np.square((model_output - target) / target.max()))
 
-    elif component == 'frequency-fas':
+    elif component == 'fas':
         def objective(params):
-            model_output = update_frequency_fas(params, model, motion)
+            model_output = update_fas(params, model, motion)
             target = motion.fas
-
             return np.sum(np.square((model_output - target) / target.max()))
-    
     else:
         raise ValueError(f"Unknown component: {component}")
     
@@ -84,7 +84,7 @@ def update_modulating(params, model: StochasticModel, motion: GroundMotion):
     if modulating_type == 'BetaDual':
         p1, c1, dp2, c2, a1 = params
         model_params = (p1, c1, p1 + dp2, c2, a1, et, tn)
-    elif modulating_type == 'BetaSingle' or modulating_type == 'BetaBasic':
+    elif modulating_type in ('BetaSingle', 'BetaBasic'):
         p1, c1 = params
         model_params = (p1, c1, et, tn)
     else:
@@ -94,7 +94,7 @@ def update_modulating(params, model: StochasticModel, motion: GroundMotion):
 
     return model.ce
 
-def update_frequency_zc(params, model: StochasticModel, motion: GroundMotion):
+def update_frequency(params, model: StochasticModel, motion: GroundMotion, scale: float):
     """Update damping functions and return statistics."""
     fitables = [model.upper_frequency, model.lower_frequency, model.upper_damping, model.lower_damping]
     param_counts = [len(f.params) for f in fitables]
@@ -120,9 +120,10 @@ def update_frequency_zc(params, model: StochasticModel, motion: GroundMotion):
                            model.mzc_vel[motion.energy_slicer],
                            model.mzc_disp[motion.energy_slicer],
                            model.pmnm_vel[motion.energy_slicer],
-                           model.pmnm_disp[motion.energy_slicer]))
+                           model.pmnm_disp[motion.energy_slicer],
+                           model.fas * scale))
 
-def update_frequency_fas(params, model: StochasticModel, motion: GroundMotion):
+def update_fas(params, model: StochasticModel, motion: GroundMotion):
     """Update damping functions and return statistics."""
     fitables = [model.upper_frequency, model.lower_frequency, model.upper_damping, model.lower_damping]
     param_counts = [len(f.params) for f in fitables]
@@ -152,15 +153,15 @@ def get_default_parameters(component: str, model: StochasticModel):
     mod_defaults = {
         ('modulating', 'BetaDual'): (
             [0.1, 20.0, 0.2, 10.0, 0.6],
-            [(0.01, 0.7), (0.99, 1000.0), (0.0, 0.8), (0.99, 1000.0), (0.0, 0.95)]
+            [(0.01, 0.5), (1.0, 1000.0), (0.0, 0.5), (1.0, 1000.0), (0.0, 0.95)]
         ),
         ('modulating', 'BetaSingle'): (
             [0.1, 20.0],
-            [(0.01, 0.8), (0.99, 1000.0)]
+            [(0.01, 0.95), (1.0, 1000.0)]
         ),
         ('modulating', 'BetaBasic'): (
             [0.1, 20.0],
-            [(0.01, 0.8), (0.99, 1000.0)]
+            [(0.01, 0.95), (1.0, 1000.0)]
         ),
     }
 
@@ -171,19 +172,19 @@ def get_default_parameters(component: str, model: StochasticModel):
         ('upper_frequency', 'Constant'): ([5.0], [(0.1, 30.0)]),
 
         # --- Lower Frequency ---
-        ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
-        ('lower_frequency', 'Exponential'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
-        ('lower_frequency', 'Constant'): ([0.2], [(0.01, 0.99)]),
+        ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.999), (0.01, 0.999)]),
+        ('lower_frequency', 'Exponential'): ([0.2, 0.5], [(0.01, 0.999), (0.01, 0.999)]),
+        ('lower_frequency', 'Constant'): ([0.2], [(0.01, 0.999)]),
 
         # --- Upper Damping ---
-        ('upper_damping', 'Linear'): ([0.1, 0.3], [(0.05, 0.99), (0.05, 0.99)]),
-        ('upper_damping', 'Exponential'): ([0.1, 0.3], [(0.05, 0.99), (0.05, 0.99)]),
-        ('upper_damping', 'Constant'): ([0.3], [(0.05, 0.99)]),
+        ('upper_damping', 'Linear'): ([0.1, 0.3], [(0.05, 0.999), (0.05, 0.999)]),
+        ('upper_damping', 'Exponential'): ([0.1, 0.3], [(0.05, 0.999), (0.05, 0.999)]),
+        ('upper_damping', 'Constant'): ([0.3], [(0.05, 0.999)]),
         
         # --- Lower Damping ---
-        ('lower_damping', 'Linear'): ([0.1, 0.2], [(0.05, 0.99), (0.05, 0.99)]),
-        ('lower_damping', 'Exponential'): ([0.1, 0.2], [(0.05, 0.99), (0.05, 0.99)]),
-        ('lower_damping', 'Constant'): ([0.2], [(0.05, 0.99)]),
+        ('lower_damping', 'Linear'): ([0.1, 0.2], [(0.05, 0.999), (0.05, 0.999)]),
+        ('lower_damping', 'Exponential'): ([0.1, 0.2], [(0.05, 0.999), (0.05, 0.999)]),
+        ('lower_damping', 'Constant'): ([0.2], [(0.05, 0.999)]),
     }
 
     if component == 'modulating':
@@ -193,7 +194,7 @@ def get_default_parameters(component: str, model: StochasticModel):
             raise ValueError(f'No default parameters for {key}. Please provide initial_guess and bounds.')
         return mod_defaults[key]
 
-    elif component in ('frequency-zc', 'frequency-fas'):
+    elif component in ('frequency', 'fas'):
         initial_guess = []
         bounds = []
         
