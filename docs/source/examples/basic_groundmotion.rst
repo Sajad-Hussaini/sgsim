@@ -27,7 +27,7 @@ Loading a Ground Motion
    gm.trim("energy", (0.001, 0.999)).filter((0.1, 25.0))
 
    # 3. Obtain avilable Intensity Measures (IMs)
-   gm.available_IMs()  # List available IMs (more IM will be added gradually or by user)
+   gm.list_IMs()  # List available IMs (more IM will be added gradually or by user)
    # Example of accessing some IMs:
    print(gm.pga)
 

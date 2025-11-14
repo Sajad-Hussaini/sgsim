@@ -167,9 +167,9 @@ def get_default_parameters(component: str, model: StochasticModel):
 
     freq_damping_defaults = {
         # --- Upper Frequency ---
-        ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.1, 30.0), (0.1, 30.0)]),
-        ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.1, 30.0), (0.1, 30.0)]),
-        ('upper_frequency', 'Constant'): ([5.0], [(0.1, 30.0)]),
+        ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),
+        ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),
+        ('upper_frequency', 'Constant'): ([5.0], [(0.1, 40.0)]),
 
         # --- Lower Frequency ---
         ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.999), (0.01, 0.999)]),

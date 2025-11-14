@@ -95,6 +95,26 @@ class GroundMotion(DomainConfig):
         self._clear_cache()
         return self
     
+    def correct_baseline(self, degree: int = 1):
+        """
+        Apply baseline correction to ground motion.
+
+        Parameters
+        ----------
+        degree : int
+            Degree of polynomial for baseline correction.
+
+        Returns
+        -------
+        self
+            Modified GroundMotion instance.
+        """
+        self.ac = signal_tools.baseline_correction(self.ac, degree)
+        self.vel = signal_tools.get_integral(self.dt, self.ac)
+        self.disp = signal_tools.get_integral(self.dt, self.vel)
+        self._clear_cache()
+        return self
+    
     def resample(self, dt: float):
         """
         Resample ground motion to new time step.

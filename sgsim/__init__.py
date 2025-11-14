@@ -5,5 +5,5 @@ from .core import parametric_functions as functions
 from .motion import signal_tools as tools
 from .visualization.style import style
 
-__version__ = '1.1.9'
+__version__ = '1.1.10'
 __all__ = ['StochasticModel', 'GroundMotion', 'GroundMotion3D', 'ModelPlot', 'functions']

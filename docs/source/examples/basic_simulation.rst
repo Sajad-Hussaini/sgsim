@@ -18,7 +18,8 @@ Loading a Ground Motion from a record file
    gm = GroundMotion.load_from(source=source, file=file)
 
    # If necessary, trim to 0.1% - 99.9% cumulative energy
-   # If necessary, apply a bandpass filter (e.g., 0.1–25 Hz)
+   # If necessary, apply a bandpass filter (e.g., 0.1–25 Hz) or baseline correction
+   # gm.trim("energy", (0.001, 0.999)).correct_baseline(degree=1)
    gm.trim("energy", (0.001, 0.999)).filter((0.1, 25.0))
 
 
@@ -38,6 +39,8 @@ Creating and Fitting a Stochastic Model to the Target Ground Motion
    model.fit(gm)  # Default fitting procedure
    # model.fit(gm, component=["modulating", "frequency"])  # This is the Default fitting procedure
    # model.fit(gm, component=["modulating", "fas"])  # Alternativey, This uses FAS only to optimize frequency filter parameters
+   # if using your own initial guess or bounds, its recommended to fit one component at a time
+   # e.g., model.fit(gm, component=["modulating"], initial_guess=[...], bounds=[...])
 
    model.summary()  # Summary of fitted model
 
@@ -52,7 +55,7 @@ Simulating Ground Motions and Visualizing the Results
    # 10 simulated ground motions (sm) based on the fitted model
    sm = model.simulate(n=10)
 
-   sm.available_IMs()  # List available IMs (more IM will be added gradually or by user)
+   sm.list_IMs()  # List available IMs (more IM will be added gradually or by user)
 
    # Create a ModelPlot for visualizations
    mp = ModelPlot(model, sm, gm)
