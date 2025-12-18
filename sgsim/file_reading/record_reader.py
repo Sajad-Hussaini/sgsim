@@ -9,7 +9,8 @@ class RecordReader:
         Parameters
         ----------
         source : str
-            Source type (e.g., 'NGA', 'ESM', 'COL', 'RAW', 'COR', 'Array').
+            Data source format: 'NGA', 'ESM', 'COL', 'RAW', 'COR' for file reading,
+                                'Array' for direct array input.
         
         **kwargs
             Additional keyword arguments depending on the source type:

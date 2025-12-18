@@ -296,7 +296,7 @@ class GroundMotion(DomainConfig):
             Response spectra array with shape (3, n_periods).
         """
         if not hasattr(self, 'tp'):
-            raise AttributeError("Set 'tp' attribute (periods) before accessing spectra")
+            raise AttributeError("Set 'tp' (periods) to compute spectra.")
         return signal_tools.get_spectra(self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=self.tp, zeta=0.05)
 
     @property
@@ -599,7 +599,8 @@ class GroundMotion(DomainConfig):
         Parameters
         ----------
         source : str
-            Data source format: 'NGA', 'ESM', 'COL', 'RAW', 'COR', or 'Array'.
+            Data source format: 'NGA', 'ESM', 'COL', 'RAW', 'COR' for file reading
+                                'Array' for direct array input.
         tag : str, optional
             Record identifier.
         **kwargs
@@ -677,7 +678,6 @@ class GroundMotion(DomainConfig):
         }
         return ims
 
-### ================================================================================
 
 class GroundMotion3D:
     """
@@ -691,6 +691,7 @@ class GroundMotion3D:
         self.dt = gm1.dt
         self.npts = gm1.npts
         self.freq = gm1.freq
+        self.ac_mag = np.sqrt(self.gm1.ac ** 2 + self.gm2.ac ** 2 + self.gm3.ac ** 2)
 
     @property
     def ce(self):
@@ -715,6 +716,3 @@ class GroundMotion3D:
             Combined Fourier amplitude spectrum.
         """
         return np.sqrt(self.gm1.fas ** 2 + self.gm2.fas ** 2 + self.gm3.fas ** 2)
-
-### ================================================================================
-

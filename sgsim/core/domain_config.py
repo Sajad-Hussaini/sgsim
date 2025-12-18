@@ -100,20 +100,16 @@ class DomainConfig:
         return self._tp
 
     @tp.setter
-    def tp(self, period_range: tuple[float, float, float] | np.ndarray):
+    def tp(self, periods: np.ndarray):
         """
         Set the period array for response spectra.
 
         Parameters
         ----------
-        period_range : tuple of float or ndarray
-            Either an array of periods or a tuple
-            (start, stop, step) for period array.
+        periods : np.ndarray
+            Explicit periods (list/tuple/ndarray). Uneven spacing is allowed.
         """
-        if len(period_range) == 3:
-            self._tp = np.arange(*period_range)
-        else:
-            self._tp = np.asarray(period_range)
+        self._tp = np.asarray(periods, dtype=float)
 
     @cached_property
     def freq_sim_p2(self):
