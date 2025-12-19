@@ -297,7 +297,7 @@ class GroundMotion(DomainConfig):
         """
         if not hasattr(self, 'tp'):
             raise AttributeError("Set 'tp' (periods) to compute spectra.")
-        return signal_tools.get_spectra(self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=self.tp, zeta=0.05)
+        return signal_tools.get_spectra(self.dt, self.ac, period=self.tp, zeta=0.05)
 
     @property
     def sa(self):

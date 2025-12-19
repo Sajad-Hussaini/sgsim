@@ -95,100 +95,247 @@ def get_mle(rec):
 @njit('float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64)', fastmath=True, parallel=True, cache=True)
 def run_sdof_linear(dt, rec, period, zeta, mass):
     """
-    linear analysis of a SDOF model using newmark method
-    It parallelizes the computation across different SDOF periods
-
-    Effective force for ground motion excitation
-        Use: p = -m * rec
-
-    The total acceleration are computed as ac_tot = ac + rec
-    disp, vel, ac are relative to the ground
-
-    Parameters
-    ----------
-    dt : float
-        time step.
-    rec
-        input ground motions 2d-array.
-    period : np.array
-        period array.
-    zeta : float, optional
-        damping ration of SDOF. The default is 0.05.
-    mass : float, optional
-        mass of SDOF. The default is 1.0.
-
-    sdf_responses : 4d-array (response_type, n_rec, npts, n_period)
-        response_type corresponds to disp, vel, ac, ac_tot
+    Computes full TIME HISTORIES (Disp, Vel, Acc) for SDOF systems.
+    Useful for visualizing the vibration of a specific structure.
     """
     n_rec = rec.shape[0]
     npts = rec.shape[1]
     n_sdf = len(period)
     
+    # 4D output: (response_type, n_rec, npts, n_period)
+    # response_type indices: 0=disp, 1=vel, 2=acc, 3=acc_tot
     out_responses = np.empty((4, n_rec, npts, n_sdf))
-    p = -mass * rec
-
-    wn = 2 * np.pi / period
-    k = mass * wn**2
-    c = 2 * mass * wn * zeta
-
-    # Newmark-beta coefficients
+    
+    # Newmark Constants (Linear Acceleration Method)
     gamma = 0.5
-    beta_vals = np.full(n_sdf, 1.0 / 6.0) # Linear acceleration
-    beta_vals[dt / period > 0.551] = 0.25 # Constant average acceleration
+    beta = 1.0 / 6.0
+    MIN_STEPS_PER_CYCLE = 20.0 
 
     for j in prange(n_sdf):
-        # Extract scalar values for the current system for faster access
-        k_j, c_j, beta_j = k[j], c[j], beta_vals[j]
+        T = period[j]
+        
+        # Safety for T=0
+        if T <= 1e-6:
+            # Rigid body: Disp=0, Acc = Ground Acc
+            out_responses[0, :, :, j] = 0.0 # Disp
+            out_responses[1, :, :, j] = 0.0 # Vel
+            # Acc relative = -Ground
+            out_responses[2, :, :, j] = -rec 
+            # Acc total = Acc relative + Ground = 0 relative to inertial frame? 
+            # Actually Acc Total = Ground Acc for rigid structure.
+            # Let's just output trivial zeros for disp/vel and handle acc:
+            for r in range(n_rec):
+                out_responses[3, r, :, j] = rec[r, :] # Total Acc = Ground Acc
+            continue
 
-        # Pre-calculate Newmark coefficients for the current system
-        a1 = mass / (beta_j * dt**2) + c_j * gamma / (beta_j * dt)
-        a2 = mass / (beta_j * dt) + c_j * (gamma / beta_j - 1)
-        a3 = mass * (1 / (2 * beta_j) - 1) + c_j * dt * (gamma / (2 * beta_j) - 1)
-        k_hat = k_j + a1
+        wn = 2 * np.pi / T
+        k = mass * wn**2
+        c = 2 * mass * wn * zeta
+        
+        # Sub-stepping Logic
+        if dt > (T / MIN_STEPS_PER_CYCLE):
+            n_sub = int(np.ceil(dt / (T / MIN_STEPS_PER_CYCLE)))
+        else:
+            n_sub = 1
+        dt_sub = dt / n_sub
+        
+        # Newmark Coefficients
+        a1 = mass / (beta * dt_sub**2) + c * gamma / (beta * dt_sub)
+        a2 = mass / (beta * dt_sub) + c * (gamma / beta - 1)
+        a3 = mass * (1 / (2 * beta) - 1) + c * dt_sub * (gamma / (2 * beta) - 1)
+        k_hat = k + a1
+        
+        for r in range(n_rec):
+            # Views for cleaner indexing
+            disp = out_responses[0, r, :, j]
+            vel = out_responses[1, r, :, j]
+            acc = out_responses[2, r, :, j]
+            acc_tot = out_responses[3, r, :, j]
 
-        # Get views into the output array for cleaner indexing
-        disp = out_responses[0, :, :, j]
-        vel = out_responses[1, :, :, j]
-        acc = out_responses[2, :, :, j]
-        acc_tot = out_responses[3, :, :, j]
+            # --- CRITICAL FIX START ---
+            # Explicitly zero out the initial state in the output array
+            disp[0] = 0.0
+            vel[0] = 0.0
+            
+            # Initial acceleration: ma + cv + kd = p  => ma = p => a = -rec[0]
+            acc[0] = -rec[r, 0]
+            acc_tot[0] = acc[0] + rec[r, 0] # Should be 0
+            
+            # Init Temp variables from these explicit zeros
+            d_curr = 0.0
+            v_curr = 0.0
+            a_curr = acc[0]
+            # --- CRITICAL FIX END ---
 
-        # Initial acceleration (disp and vel are already 0)
-        acc[:, 0] = (p[:, 0] - c_j * vel[:, 0] - k_j * disp[:, 0]) / mass
-        acc_tot[:, 0] = acc[:, 0] + rec[:, 0]
+            for i in range(npts - 1):
+                ug_start = rec[r, i]
+                ug_end = rec[r, i+1]
+                
+                for sub in range(n_sub):
+                    alpha = (sub + 1) / n_sub 
+                    ug_now = ug_start + (ug_end - ug_start) * alpha
+                    p_eff = -mass * ug_now
+                    
+                    dp = p_eff + a1 * d_curr + a2 * v_curr + a3 * a_curr
+                    d_next = dp / k_hat
+                    
+                    v_next = ((gamma / (beta * dt_sub)) * (d_next - d_curr) +
+                              (1 - gamma / beta) * v_curr +
+                              dt_sub * a_curr * (1 - gamma / (2 * beta)))
+                    
+                    a_next = ((d_next - d_curr) / (beta * dt_sub**2) -
+                              v_curr / (beta * dt_sub) -
+                              a_curr * (1 / (2 * beta) - 1))
+                    
+                    d_curr = d_next
+                    v_curr = v_next
+                    a_curr = a_next
 
-        # Inner loop: Time-stepping for a single SDOF system
-        for i in range(npts - 1):
-            dp = p[:, i + 1] + a1 * disp[:, i] + a2 * vel[:, i] + a3 * acc[:, i]
-            disp[:, i + 1] = dp / k_hat
-            vel[:, i + 1] = ((gamma / (beta_j * dt)) * (disp[:, i + 1] - disp[:, i]) +
-                             (1 - gamma / beta_j) * vel[:, i] +
-                             dt * acc[:, i] * (1 - gamma / (2 * beta_j)))
-            acc[:, i + 1] = ((disp[:, i + 1] - disp[:, i]) / (beta_j * dt**2) -
-                             vel[:, i] / (beta_j * dt) -
-                             acc[:, i] * (1 / (2 * beta_j) - 1))
-            acc_tot[:, i + 1] = acc[:, i + 1] + rec[:, i + 1]
-    return out_responses    
+                # Save State
+                disp[i+1] = d_curr
+                vel[i+1] = v_curr
+                acc[i+1] = a_curr
+                acc_tot[i+1] = a_curr + ug_end
 
-def get_spectra(dt: float, rec: np.ndarray, period: np.ndarray, zeta: float = 0.05, chunk_size: int = 10):
+    return out_responses
+
+@njit('float64[:, :, :](float64, float64[:, :], float64[:], float64, float64)', fastmath=True, parallel=True, cache=True)
+def calc_spectra_kernel(dt, rec, period, zeta, mass):
     """
-    Calculates displacement, velocity, and total acceleration response spectra (SD, SV, SA)
+    Computes Response Spectra (SD, SV, SA).
+    
+    Returns:
+    --------
+    spectra : 3D array (3, n_rec, n_period) -> [SD, SV, SA]
     """
-    n_rec, npts = rec.shape
-    n_period = len(period)
+    n_rec = rec.shape[0]
+    npts = rec.shape[1]
+    n_sdf = len(period)
+    
+    # Output: (SD, SV, SA)
+    spectra_vals = np.zeros((3, n_rec, n_sdf))
+    
+    # Constants
+    gamma = 0.5
+    beta = 1.0 / 6.0 
+    MIN_STEPS_PER_CYCLE = 20.0 
 
-    sd = np.empty((n_rec, n_period))
-    sv = np.empty((n_rec, n_period))
-    sa = np.empty((n_rec, n_period))
+    for j in prange(n_sdf):
+        T = period[j]
+        
+        # SAFETY: Handle T=0 or negative periods
+        if T <= 1e-6:
+            # For T=0 (Rigid), Response = Ground Motion
+            # SD=0, SV=0, SA = Max Ground Acc (PGA)
+            for r in range(n_rec):
+                pga = 0.0
+                for i in range(npts):
+                    val = abs(rec[r, i])
+                    if val > pga: pga = val
+                spectra_vals[2, r, j] = pga
+            continue # Skip to next period
 
-    for start in range(0, n_rec, chunk_size):
-        end = min(start + chunk_size, n_rec)
-        rec_chunk = rec[start:end]
-        sdf_responses_chunk = run_sdof_linear(dt, rec_chunk, period, zeta, 1.0)
+        wn = 2 * np.pi / T
+        k = mass * wn**2
+        c = 2 * mass * wn * zeta
+        
+        # Sub-stepping Logic
+        if dt > (T / MIN_STEPS_PER_CYCLE):
+            n_sub = int(np.ceil(dt / (T / MIN_STEPS_PER_CYCLE)))
+        else:
+            n_sub = 1
+        dt_sub = dt / n_sub
+        
+        # Newmark Coefficients (Linear Acceleration)
+        # use dt_sub for all dynamic stiffness calculations
+        a1 = mass / (beta * dt_sub**2) + c * gamma / (beta * dt_sub)
+        a2 = mass / (beta * dt_sub) + c * (gamma / beta - 1)
+        a3 = mass * (1 / (2 * beta) - 1) + c * dt_sub * (gamma / (2 * beta) - 1)
+        k_hat = k + a1
+        
+        for r in range(n_rec):
+            # We must ensure previous state is exactly 0.0
+            disp_prev = 0.0
+            vel_prev = 0.0
+            
+            # Initial acceleration (assuming starting from rest)
+            # ma + cv + kd = p  -> ma = p -> a = p/m = -ug
+            acc_prev = -rec[r, 0]
+            
+            # Initialize Max Trackers
+            sd_max = 0.0
+            sv_max = 0.0
+            # SA is Total Acceleration: a_rel + a_ground
+            # At t=0: -rec[0] + rec[0] = 0.0
+            sa_max = 0.0 
+            
+            for i in range(npts - 1):
+                ug_start = rec[r, i]
+                ug_end = rec[r, i+1]
+                
+                # Temp variables for sub-stepping
+                d_curr = disp_prev
+                v_curr = vel_prev
+                a_curr = acc_prev
+                
+                # Sub-step Loop
+                for sub in range(n_sub):
+                    # Interpolate Ground Motion
+                    alpha = (sub + 1) / n_sub 
+                    ug_now = ug_start + (ug_end - ug_start) * alpha
+                    
+                    p_eff = -mass * ug_now
+                    
+                    # Newmark Step
+                    dp = p_eff + a1 * d_curr + a2 * v_curr + a3 * a_curr
+                    d_next = dp / k_hat
+                    
+                    v_next = ((gamma / (beta * dt_sub)) * (d_next - d_curr) +
+                              (1 - gamma / beta) * v_curr +
+                              dt_sub * a_curr * (1 - gamma / (2 * beta)))
+                    
+                    a_next = ((d_next - d_curr) / (beta * dt_sub**2) -
+                              v_curr / (beta * dt_sub) -
+                              a_curr * (1 / (2 * beta) - 1))
+                    
+                    # Update state
+                    d_curr = d_next
+                    v_curr = v_next
+                    a_curr = a_next
+                    
+                    # Track Maxima (inside sub-steps for precision)
+                    if abs(d_curr) > sd_max: sd_max = abs(d_curr)
+                    if abs(v_curr) > sv_max: sv_max = abs(v_curr)
+                    
+                    # Total Acceleration = Relative Acc + Ground Acc
+                    val_sa = abs(a_curr + ug_now)
+                    if val_sa > sa_max: sa_max = val_sa
 
-        np.abs(sdf_responses_chunk, out=sdf_responses_chunk)
-        np.max(sdf_responses_chunk[0], axis=1, out=sd[start:end])
-        np.max(sdf_responses_chunk[1], axis=1, out=sv[start:end])
-        np.max(sdf_responses_chunk[3], axis=1, out=sa[start:end])
+                # End of Sub-loop
+                disp_prev = d_curr
+                vel_prev = v_curr
+                acc_prev = a_curr
+            
+            # Save final spectra values
+            spectra_vals[0, r, j] = sd_max
+            spectra_vals[1, r, j] = sv_max
+            spectra_vals[2, r, j] = sa_max
+
+    return spectra_vals
+
+def get_spectra(dt: float, rec: np.ndarray, period: np.ndarray, zeta: float = 0.05):
+    """
+    Calculates response spectra (SD, SV, SA).
+    """
+    if rec.ndim == 1:
+        rec = rec[None, :]
+        
+    # The kernel returns (3, n_rec, n_period)
+    spectra_array = calc_spectra_kernel(dt, rec, period, zeta, 1.0)
+    
+    sd = spectra_array[0]
+    sv = spectra_array[1]
+    sa = spectra_array[2]
 
     return sd, sv, sa
 
