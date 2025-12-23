@@ -56,14 +56,14 @@ class DomainConfig:
         """
         ndarray: Time array for the configured number of points and time step.
         """
-        return signal_tools.get_time(self.npts, self.dt)
+        return signal_tools.time(self.npts, self.dt)
 
     @cached_property
     def freq(self):
         """
         ndarray: Frequency array for the configured number of points and time step.
         """
-        return signal_tools.get_freq(self.npts, self.dt)
+        return signal_tools.frequency(self.npts, self.dt) * 2 * np.pi
     
     @cached_property
     def freq_sim(self):
@@ -71,7 +71,7 @@ class DomainConfig:
         ndarray: Frequency array for simulation (zero-padded to avoid aliasing).
         """
         npts_sim = int(2 ** np.ceil(np.log2(2 * self.npts)))
-        return signal_tools.get_freq(npts_sim, self.dt)  # Nyquist freq to avoid aliasing in simulations
+        return signal_tools.frequency(npts_sim, self.dt) * 2 * np.pi  # Nyquist freq to avoid aliasing in simulations
 
     @property
     def freq_slicer(self):

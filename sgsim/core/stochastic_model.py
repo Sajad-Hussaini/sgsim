@@ -34,7 +34,7 @@ class StochasticModel(ModelConfig):
     """
 
     def fit(self, target_motion: GroundMotion, component: list[str] = ['modulating', 'frequency'], 
-            fit_range: tuple = (0.01, 0.99), initial_guess=None, bounds=None, method='L-BFGS-B'):
+            fit_range: tuple = (0.01, 0.99), initial_guess=None, bounds=None):
         """
         Fit stochastic model parameters to match target motion.
         
@@ -73,7 +73,7 @@ class StochasticModel(ModelConfig):
         
         for comp in component:
             model_fit.fit(model=self, motion=target_motion, component=comp, fit_range=fit_range,
-                        initial_guess=initial_guess, bounds=bounds, method=method)
+                        initial_guess=initial_guess, bounds=bounds)
         return self
 
     def simulate(self, n, tag=None, seed=None):
@@ -122,8 +122,12 @@ class StochasticModel(ModelConfig):
                                                        self._variance, white_noise)
         ac = irfft(fourier, workers=-1)[..., :self.npts]  # anti-aliasing
         # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
-        vel = irfft(fourier[..., 1:] / (1j * self.freq_sim[1:]), workers=-1)[..., :self.npts]
-        disp = irfft(-fourier[..., 1:] / (self.freq_sim_p2[1:]), workers=-1)[..., :self.npts]
+        fourier[..., 1:] /= (1j * self.freq_sim[1:])
+        vel = irfft(fourier, workers=-1)[..., :self.npts]
+
+        fourier[..., 1:] /= (1j * self.freq_sim[1:])
+        disp = irfft(fourier, workers=-1)[..., :self.npts]
+        
         return GroundMotion(self.npts, self.dt, ac, vel, disp, tag=tag)
 
     def simulate_conditional(self, n: int, target: GroundMotion, metrics: dict, max_iter: int = 100):

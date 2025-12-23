@@ -76,10 +76,10 @@ class ModelConfig(DomainConfig):
         ndarray
             Cumulative energy time history.
         """
-        return signal_tools.get_ce(self.dt, self.modulating.values)
+        return signal_tools.ce(self.dt, self.modulating.values)
 
     @property
-    def mle_ac(self):
+    def le_ac(self):
         """
         Mean cumulative number of local extrema (peaks and valleys) of acceleration.
 
@@ -92,7 +92,7 @@ class ModelConfig(DomainConfig):
         return model_engine.cumulative_rate(self.dt, self._variance_2dot, self._variance_dot)
 
     @property
-    def mle_vel(self):
+    def le_vel(self):
         """
         Mean cumulative number of local extrema (peaks and valleys) of velocity.
 
@@ -105,7 +105,7 @@ class ModelConfig(DomainConfig):
         return model_engine.cumulative_rate(self.dt, self._variance_dot, self._variance)
 
     @property
-    def mle_disp(self):
+    def le_disp(self):
         """
         Mean cumulative number of local extrema (peaks and valleys) of displacement.
 
@@ -118,7 +118,7 @@ class ModelConfig(DomainConfig):
         return model_engine.cumulative_rate(self.dt, self._variance, self._variance_bar)
 
     @property
-    def mzc_ac(self):
+    def zc_ac(self):
         """
         Mean cumulative number of zero crossings (up and down) of acceleration.
 
@@ -131,7 +131,7 @@ class ModelConfig(DomainConfig):
         return model_engine.cumulative_rate(self.dt, self._variance_dot, self._variance)
 
     @property
-    def mzc_vel(self):
+    def zc_vel(self):
         """
         Mean cumulative number of zero crossings (up and down) of velocity.
 
@@ -144,7 +144,7 @@ class ModelConfig(DomainConfig):
         return model_engine.cumulative_rate(self.dt, self._variance, self._variance_bar)
 
     @property
-    def mzc_disp(self):
+    def zc_disp(self):
         """
         Mean cumulative number of zero crossings (up and down) of displacement.
 

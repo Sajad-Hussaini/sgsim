@@ -105,11 +105,11 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'fas'):
             raise ValueError("""No Fourier spectrum available.""")
-        self.real.freq_slicer = plot_range
+        # self.real.freq_slicer = plot_range
         with style(config):
             fig, ax = plt.subplots()
-            self._plot_mean_std(self.real.freq / (2 * np.pi), self.sim.fas, self.real.fas, ax)
-            ax.set_ylim(np.min(self.real.fas[self.real.freq_slicer]), 2 * np.max(self.real.fas[self.real.freq_slicer]))
+            self._plot_mean_std(self.real.freq, self.sim.fas, self.real.fas, ax)
+            # ax.set_ylim(np.min(self.real.fas[self.real.freq_slicer]), 2 * np.max(self.real.fas[self.real.freq_slicer]))
             ax.set_xlim([0.1, 25.0])
             ax.set_xscale('log')
             if log_scale:
@@ -122,7 +122,7 @@ class ModelPlot:
             ax.set_ylabel(r'Fourier amplitude spectrum (cm/$s^2$)')
             plt.show()
 
-    def plot_spectra(self, spectrum='sa', log_scale=True, plot_range=(0.1, 25.5), config=None):
+    def plot_spectra(self, periods, spectrum='sa', log_scale=True, plot_range=(0.1, 25.5), config=None):
         """
         Plot the specified type of response spectrum (sa, sv, or sd) for record and simulations.
 
@@ -136,11 +136,20 @@ class ModelPlot:
             Plot style configuration.
         """
         labels = {'sa': r'acceleration (cm/$s^2$)', 'sv': 'velocity (cm/s)', 'sd': 'displacement (cm)'}
-        if not hasattr(self.sim, spectrum):
-            raise ValueError("""No response spectra available.""")
         with style(config):
             fig, ax = plt.subplots()
-            self._plot_mean_std(self.real.tp, getattr(self.sim, spectrum), getattr(self.real, spectrum), ax)
+            sim_spectra = self.sim.response_spectra(periods)
+            real_spectra = self.real.response_spectra(periods)
+            if spectrum=="sd" :
+                simspec = sim_spectra[0]
+                realspec = real_spectra[0]
+            elif spectrum=="sv" :
+                simspec = sim_spectra[1]
+                realspec = real_spectra[1]
+            else :
+                simspec = sim_spectra[2]
+                realspec = real_spectra[2]
+            self._plot_mean_std(self.real.tp, simspec, realspec, ax)
             ax.set_xscale('log')
             if log_scale:
                 ax.set_yscale('log')
@@ -182,14 +191,14 @@ class ModelPlot:
             axes[1].minorticks_on()
             plt.show()
 
-    def plot_feature(self, feature='mzc', model_plot=True, sim_plot=False, config=None):
+    def plot_feature(self, feature='zc', model_plot=True, sim_plot=False, config=None):
         """
         Compare a specific feature (error metric) of the record, model, and simulations.
 
         Parameters
         ----------
-        feature : {'mzc', 'mle', 'pmnm'}, default='mzc'
-            Feature to plot: 'mzc' (mean zero crossing), 'mle' (mean local extrema),
+        feature : {'zc', 'le', 'pmnm'}, default='zc'
+            Feature to plot: 'zc' (mean zero crossing), 'le' (mean local extrema),
             or 'pmnm' (positive-minima/negative-maxima).
         model_plot : bool, default=True
             Whether to plot the model feature.
@@ -202,7 +211,7 @@ class ModelPlot:
             raise ValueError("""No characteristics available.""")
         with style(config):
             plt.plot(self.real.t, getattr(self.real, f"{feature}_ac"), label="Target acceleration",
-                     c='tab:blue', zorder=2) if feature == 'mzc' else None
+                     c='tab:blue', zorder=2) if feature == 'zc' else None
             plt.plot(self.real.t, getattr(self.real, f"{feature}_vel"), label="Target velocity",
                      c='tab:orange', zorder=2)
             plt.plot(self.real.t, getattr(self.real, f"{feature}_disp"), label="Target displacement",
@@ -210,7 +219,7 @@ class ModelPlot:
 
             if model_plot:
                 plt.plot(self.model.t, getattr(self.model, f"{feature}_ac"),
-                        label="Model acceleration", c='tab:cyan', zorder=3)  if feature == 'mzc' else None
+                        label="Model acceleration", c='tab:cyan', zorder=3)  if feature == 'zc' else None
                 plt.plot(self.model.t, getattr(self.model, f"{feature}_vel"),
                         label="Model velocity", c='tab:pink', zorder=3)
                 plt.plot(self.model.t, getattr(self.model, f"{feature}_disp"),
@@ -218,7 +227,7 @@ class ModelPlot:
 
             if sim_plot:
                 plt.plot(self.sim.t, getattr(self.sim, f"{feature}_ac").T,
-                        color='tab:gray', lw=0.1)  if feature == 'mzc' else None
+                        color='tab:gray', lw=0.1)  if feature == 'zc' else None
                 plt.plot(self.sim.t, getattr(self.sim, f"{feature}_vel")[:-1].T,
                         color='tab:gray', lw=0.1)
                 plt.plot(self.sim.t, getattr(self.sim, f"{feature}_vel")[-1],
@@ -228,8 +237,8 @@ class ModelPlot:
 
             plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False)
             plt.xlabel("Time (s)")
-            plt.ylabel("Cumulative mean zero crossing" if feature == 'mzc'
-                    else "Cumulative mean local extrema" if feature == 'mle'
+            plt.ylabel("Cumulative mean zero crossing" if feature == 'zc'
+                    else "Cumulative mean local extrema" if feature == 'le'
                     else 'Cumulative mean positive-minima\nand negative-maxima')
             plt.show()
     
@@ -253,7 +262,7 @@ class ModelPlot:
             ax = plt.gca()
         mean_all = np.mean(sims, axis=0)
         std_all = np.std(sims, axis=0)
-        ax.plot(t, rec.flatten(), c='tab:blue', label='Target', zorder=2)
+        ax.plot(t, rec.T, c='tab:blue', label='Target', zorder=2)
         ax.plot(t, mean_all, c='tab:orange', label='Mean', zorder=4)
         ax.plot(t, mean_all - std_all, c='k', linestyle='-.', label=r'Mean $\pm \, \sigma$', zorder=3)
         ax.plot(t, mean_all + std_all, c='k', linestyle='-.', zorder=3)

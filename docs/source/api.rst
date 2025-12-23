@@ -9,6 +9,7 @@ Official API documentation for the ``sgsim`` package. This lists only public cla
    :maxdepth: 1
 
    groundmotion
+   signaltools
    stochasticmodel
-   parametricfunction
+   functions
    modelplot

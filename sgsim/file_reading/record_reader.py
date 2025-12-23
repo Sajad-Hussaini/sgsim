@@ -1,29 +1,32 @@
 import numpy as np
 from . import reading_tools
-from ..motion.signal_tools import get_time, get_integral
+from ..motion.signal_tools import time, integrate
 
 class RecordReader:
     """
     A class to read ground motion time series from various sources.
 
         Parameters
-        ----------
-        source : str
-            Data source format: 'NGA', 'ESM', 'COL', 'RAW', 'COR' for file reading,
-                                'Array' for direct array input.
-        
+        ----------        
         **kwargs
             Additional keyword arguments depending on the source type:
+            - source : str
+                Data source format: 'NGA', 'ESM', 'COL', 'RAW', 'COR' for file reading,
+                                    'Array' for direct array input.
+            For file-based sources:
             - file : str
                 Path to the file.
             - filename : str
                 Filename inside the zip archive (for zip files).
             - zip_file : str
                 Path to the zip file containing filename (for zip files).
+
+            For 'Array' source:
             - dt : float
                 Time step (required for 'Array' source).
             - ac : np.ndarray
                 Acceleration data (required for 'Array' source).
+            
             - skiprows : int
                 Number of rows to skip at the beginning of the file (default is 1).
             - scale : float
@@ -42,8 +45,11 @@ class RecordReader:
             Time step of the ground motion.
         npts : int
             Number of data points in the time series.
-        """
-    def __init__(self, source: str, **kwargs):
+    """
+    def __init__(self, **kwargs):
+        source = kwargs.get('source')
+        if source is None:
+            raise ValueError("'source' parameter is required.")
         self.source = source.lower()
 
         self.file = kwargs.get('file')
@@ -79,10 +85,10 @@ class RecordReader:
         Calculates time, velocity, and displacement from acceleration.
         """
         self.ac = self.ac.astype(np.float64, copy=False) * self.scale
-        self.npts = len(self.ac)
-        self.t = get_time(self.npts, self.dt)
-        self.vel = get_integral(self.dt, self.ac)
-        self.disp = get_integral(self.dt, self.vel)
+        self.npts = self.ac.shape[-1]
+        self.t = time(self.npts, self.dt)
+        self.vel = integrate(self.dt, self.ac)
+        self.disp = integrate(self.dt, self.vel)
 
     def _parser_nga(self):
         """

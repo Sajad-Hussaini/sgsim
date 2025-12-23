@@ -19,8 +19,7 @@ Loading a Ground Motion from a record file
 
    # If necessary, trim to 0.1% - 99.9% cumulative energy
    # If necessary, apply a bandpass filter (e.g., 0.1–25 Hz) or baseline correction
-   # gm.trim("energy", (0.001, 0.999)).correct_baseline(degree=1)
-   gm.trim("energy", (0.001, 0.999)).filter((0.1, 25.0))
+   gm = gm.trim_by_energy((0.001, 0.999)).butterworth_filter((0.01, 100.0))
 
 
 Creating and Fitting a Stochastic Model to the Target Ground Motion
@@ -28,19 +27,15 @@ Creating and Fitting a Stochastic Model to the Target Ground Motion
 
 .. code-block:: python
 
-   from sgsim import StochasticModel, functions
+   from sgsim import StochasticModel, Functions
 
    # Specify model's array data and functional forms
-   model = StochasticModel(modulating=functions.BetaSingle(),
-                        upper_frequency=functions.Linear(), upper_damping=functions.Linear(),
-                        lower_frequency=functions.Linear(), lower_damping=functions.Linear())
+   model = StochasticModel(modulating=Functions.BetaSingle(),
+                        upper_frequency=Functions.Linear(), upper_damping=Functions.Linear(),
+                        lower_frequency=Functions.Linear(), lower_damping=Functions.Linear())
 
 
    model.fit(gm)  # Default fitting procedure
-   # model.fit(gm, component=["modulating", "frequency"])  # This is the Default fitting procedure
-   # model.fit(gm, component=["modulating", "fas"])  # Alternativey, This uses FAS only to optimize frequency filter parameters
-   # if using your own initial guess or bounds, its recommended to fit one component at a time
-   # e.g., model.fit(gm, component=["modulating"], initial_guess=[...], bounds=[...])
 
    model.summary()  # Summary of fitted model
 
@@ -60,13 +55,13 @@ Simulating Ground Motions and Visualizing the Results
    # Create a ModelPlot for visualizations
    mp = ModelPlot(model, sm, gm)
 
-   gm.tp = sm.tp = (0.1, 10.1, 0.1)  # Set periods for response spectra or set to an array value
+   gm.tp = sm.tp = np.arange(0.1, 10.1, 0.1)
 
    # Index first and last simulated motion to visualize (0, -1)
    mp.plot_motions(0, -1)
    mp.plot_fas()
    mp.plot_ac_ce()
-   mp.plot_spectra(spectrum='sa')
+   mp.plot_spectra(gm.tp, spectrum='sa')
 
    # the slope of below curves should match than the number of cumualtive counts, however these characteristics are more prone to noise so perfit fit is not recommended
    mp.plot_feature(feature='mzc')
@@ -74,4 +69,4 @@ Simulating Ground Motions and Visualizing the Results
 
 
    # To export selected IMs of simulated motions to CSV files
-   sm.to_csv('output_ground_motion.csv', ims=['pga', 'pgv', 'sa', 'fas'])
+   sm.to_csv('output_ground_motion.csv', ims=['pga', 'pgv', 'sa', 'fas'], periods=gm.tp)  # Or any other period range

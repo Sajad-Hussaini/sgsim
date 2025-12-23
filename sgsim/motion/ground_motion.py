@@ -6,7 +6,7 @@ from ..file_reading.record_reader import RecordReader
 from ..core.domain_config import DomainConfig
 from ..optimization.fit_eval import relative_error, goodness_of_fit
 
-class GroundMotion(DomainConfig):
+class GroundMotion:
     """
     Ground motion data container
 
@@ -28,114 +28,165 @@ class GroundMotion(DomainConfig):
     _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset({'ac', 'vel', 'disp', 'tag'})
 
     def __init__(self, npts, dt, ac, vel, disp, tag=None):
-        super().__init__(npts, dt)
+        self._npts = npts
+        self._dt = dt
         self.ac = ac.astype(np.float64, copy=False)
         self.vel = vel.astype(np.float64, copy=False)
         self.disp = disp.astype(np.float64, copy=False)
         self.tag = tag
-
-    def trim(self, method: str, value: tuple[float, float] | int | slice):
-        """
-        Trim ground motion time series.
-
-        Parameters
-        ----------
-        method : {'energy', 'npts', 'slice'}
-            Trimming method to use.
-        value : tuple of float, int, or slice
-            Trim parameters. For 'energy': (start, end) fractions (e.g., 0.05, 0.95).
-            For 'npts': number of points. For 'slice': slice object.
-
-        Returns
-        -------
-        self
-            Modified GroundMotion instance.
-        """
-        if method.lower() == 'energy':
-            if not isinstance(value, tuple) or len(value) != 2:
-                raise ValueError("Energy trimming requires a tuple of (start_fraction, end_fraction)")
-            self.energy_slicer = value
-            slicer = self.energy_slicer
-
-        elif method.lower() == 'npts':
-            if not isinstance(value, int) or value <= 0 or value > self.npts:
-                raise ValueError("Number of points must be a positive integer less than the current number of points")
-            slicer = slice(0, value)
-        
-        elif method.lower() == 'slice':
-            if not isinstance(value, slice):
-                raise ValueError("Slice method requires a Python slice object")
-            slicer = value
-        
-        else:
-            raise ValueError(f"Unsupported trim method: '{method}'. Use 'energy', 'npts', or 'slice'")
-        self.ac = self.ac[slicer]
-        self.vel = self.vel[slicer]
-        self.disp = self.disp[slicer]
-        self.npts = len(self.ac)  # auto clear cache
-        return self
     
-    def filter(self, bandpass_freqs: tuple[float, float]):
-        """
-        Apply bandpass filter to ground motion.
+    @property
+    def npts(self):
+        return self._npts
 
-        Parameters
-        ----------
-        bandpass_freqs : tuple of float
-            Lower and upper cutoff frequencies in Hz.
+    @npts.setter
+    def npts(self, value: int):
+            self._npts = value
+            self._clear_cache()
 
-        Returns
-        -------
-        self
-            Modified GroundMotion instance.
-        """
-        self.ac = signal_tools.bandpass_filter(self.dt, self.ac, bandpass_freqs[0], bandpass_freqs[1])
-        self.vel = signal_tools.get_integral(self.dt, self.ac)
-        self.disp = signal_tools.get_integral(self.dt, self.vel)
-        self._clear_cache()
-        return self
+    @property
+    def dt(self):
+        return self._dt
+
+    @dt.setter
+    def dt(self, value: float):
+            self._dt = value
+            self._clear_cache()
     
-    def correct_baseline(self, degree: int = 1):
+    @cached_property
+    def t(self):
         """
-        Apply baseline correction to ground motion.
+        ndarray: Time array for the configured number of points and time step.
+        """
+        return signal_tools.time(self.npts, self.dt)
 
-        Parameters
-        ----------
-        degree : int
-            Degree of polynomial for baseline correction.
+    @cached_property
+    def freq(self):
+        """
+        ndarray: Frequency array for the configured number of points and time step.
+        """
+        return signal_tools.frequency(self.npts, self.dt)
+
+    def _clear_cache(self):
+        """
+        Clear cached properties, preserving core attributes.
+        """
+        core_values = {attr: getattr(self, attr, None) for attr in self._CORE_ATTRS}
+        self.__dict__.clear()
+        self.__dict__.update(core_values)
+    
+    def trim_by_index(self, start_index: int, end_index: int):
+        """
+        Trim ground motion by keeping the points between `start_index` and `end_index`.
 
         Returns
         -------
-        self
-            Modified GroundMotion instance.
+        GroundMotion
+            New instance.
         """
-        self.ac = signal_tools.baseline_correction(self.ac, degree)
-        self.vel = signal_tools.get_integral(self.dt, self.ac)
-        self.disp = signal_tools.get_integral(self.dt, self.vel)
-        self._clear_cache()
-        return self
+        if start_index < 0 or end_index > self.npts:
+            raise ValueError("start_index and end_index must be within current npts")
+        return self.load_from(source="array", dt=self.dt, ac=self.ac[start_index:end_index], tag=self.tag)
+
+    def trim_by_slice(self, slicer: slice):
+        """
+        Trim ground motion using a slice object.
+
+        Returns
+        -------
+        GroundMotion
+            New instance.
+        """
+        if not isinstance(slicer, slice):
+            raise TypeError("Expected a slice object")
+        return self.load_from(source="array", dt=self.dt, ac=self.ac[slicer], tag=self.tag)
+
+    def trim_by_energy(self, energy_range: tuple[float, float]):
+        """
+        Trim ground motion to a specific cumulative energy range.
+
+        Parameters
+        ----------
+        energy_range : tuple
+            (start_fraction, end_fraction), e.g., (0.05, 0.95)
+
+        Returns
+        -------
+        GroundMotion
+            New instance.
+        """
+        slicer = signal_tools.slice_energy(self.ce, energy_range)
+        return self.load_from(source="array", dt=self.dt, ac=self.ac[slicer], tag=self.tag)
+
+    def trim_by_amplitude(self, threshold: float):
+        """
+        Trim ground motion based on acceleration amplitude threshold.
+
+        Parameters
+        ----------
+        threshold : float
+            Amplitude threshold.
+
+        Returns
+        -------
+        GroundMotion
+            New instance.
+        """
+        slicer = signal_tools.slice_amplitude(self.ac, threshold)
+        return self.load_from(source="array", dt=self.dt, ac=self.ac[slicer], tag=self.tag)
+    
+    def butterworth_filter(self, bandpass_freqs: tuple[float, float], order: int = 4):
+        """
+        Apply butterworth filter.
+
+        Parameters
+        ----------
+        bandpass_freqs : tuple
+            (low_freq, high_freq) in Hz.
+        order : int, optional
+            Filter order (default 4).
+
+        Returns
+        -------
+        GroundMotion
+            New instance.
+        """
+        new_ac = signal_tools.butterworth_filter(self.dt, self.ac, *bandpass_freqs, order)
+        return self.load_from(source="array", dt=self.dt, ac=new_ac, tag=self.tag)
+    
+    def baseline_correction(self, degree: int = 1):
+        """
+        Apply baseline correction.
+
+        Parameters
+        ----------
+        degree : int, optional
+            Degree of polynomial (default 1).
+
+        Returns
+        -------
+        GroundMotion
+            New instance.
+        """
+        new_ac = signal_tools.baseline_correction(self.ac, degree)
+        return self.load_from(source="array", dt=self.dt, ac=new_ac, tag=self.tag)
     
     def resample(self, dt: float):
         """
-        Resample ground motion to new time step.
+        Resample to a new time step.
 
         Parameters
         ----------
         dt : float
-            Target time step in seconds.
+            New time step.
 
         Returns
         -------
-        self
-            Modified GroundMotion instance.
+        GroundMotion
+            New instance.
         """
-        npts_new, dt_new, ac_new = signal_tools.resample(self.dt, dt, self.ac)
-        self.ac = ac_new
-        self.vel = signal_tools.get_integral(dt_new, self.ac)
-        self.disp = signal_tools.get_integral(dt_new, self.vel)
-        self.npts = npts_new  # auto clear cache
-        self.dt = dt_new
-        return self
+        _, dt_new, ac_new = signal_tools.resample(self.dt, dt, self.ac)
+        return self.load_from(source="array", dt=dt_new, ac=ac_new, tag=self.tag)
     
     @property
     def fas(self):
@@ -147,23 +198,7 @@ class GroundMotion(DomainConfig):
         ndarray
             Fourier amplitude spectrum.
         """
-        return signal_tools.get_fas(self.npts, self.ac)
-
-    def smooth_fas(self, window: int = 9):
-        """
-        Smoothed Fourier amplitude spectrum.
-
-        Parameters
-        ----------
-        window : int, optional
-            Moving average window size.
-
-        Returns
-        -------
-        ndarray
-            Smoothed Fourier amplitude spectrum.
-        """
-        return signal_tools.moving_average(self.fas, window)
+        return signal_tools.fas(self.npts, self.ac)
 
     @property
     def ce(self):
@@ -175,10 +210,10 @@ class GroundMotion(DomainConfig):
         ndarray
             Cumulative energy array.
         """
-        return signal_tools.get_ce(self.dt, self.ac)
+        return signal_tools.ce(self.dt, self.ac)
     
     @property
-    def mle_ac(self):
+    def le_ac(self):
         """
         Mean local extrema of acceleration.
 
@@ -187,10 +222,10 @@ class GroundMotion(DomainConfig):
         float
             Mean local extrema value.
         """
-        return signal_tools.get_mle(self.ac)
+        return signal_tools.le(self.ac)
 
     @property
-    def mle_vel(self):
+    def le_vel(self):
         """
         Mean local extrema of velocity.
 
@@ -199,10 +234,10 @@ class GroundMotion(DomainConfig):
         float
             Mean local extrema value.
         """
-        return signal_tools.get_mle(self.vel)
+        return signal_tools.le(self.vel)
 
     @property
-    def mle_disp(self):
+    def le_disp(self):
         """
         Mean local extrema of displacement.
 
@@ -211,10 +246,10 @@ class GroundMotion(DomainConfig):
         float
             Mean local extrema value.
         """
-        return signal_tools.get_mle(self.disp)
+        return signal_tools.le(self.disp)
 
     @property
-    def mzc_ac(self):
+    def zc_ac(self):
         """
         Mean zero-crossing of acceleration.
 
@@ -223,10 +258,10 @@ class GroundMotion(DomainConfig):
         float
             Zero-crossing.
         """
-        return signal_tools.get_mzc(self.ac)
+        return signal_tools.zc(self.ac)
 
     @property
-    def mzc_vel(self):
+    def zc_vel(self):
         """
         Mean zero-crossing of velocity.
 
@@ -235,10 +270,10 @@ class GroundMotion(DomainConfig):
         float
             Zero-crossing.
         """
-        return signal_tools.get_mzc(self.vel)
+        return signal_tools.zc(self.vel)
 
     @property
-    def mzc_disp(self):
+    def zc_disp(self):
         """
         Mean zero-crossing of displacement.
 
@@ -247,7 +282,7 @@ class GroundMotion(DomainConfig):
         float
             Zero-crossing.
         """
-        return signal_tools.get_mzc(self.disp)
+        return signal_tools.zc(self.disp)
 
     @property
     def pmnm_ac(self):
@@ -259,7 +294,7 @@ class GroundMotion(DomainConfig):
         float
             PMNM.
         """
-        return signal_tools.get_pmnm(self.ac)
+        return signal_tools.pmnm(self.ac)
 
     @property
     def pmnm_vel(self):
@@ -271,7 +306,7 @@ class GroundMotion(DomainConfig):
         float
             PMNM.
         """
-        return signal_tools.get_pmnm(self.vel)
+        return signal_tools.pmnm(self.vel)
 
     @property
     def pmnm_disp(self):
@@ -283,57 +318,25 @@ class GroundMotion(DomainConfig):
         float
             PMNM.
         """
-        return signal_tools.get_pmnm(self.disp)
+        return signal_tools.pmnm(self.disp)
 
-    @cached_property
-    def spectra(self):
+    def response_spectra(self, periods: np.ndarray, damping: float = 0.05):
         """
-        Response spectra at 5% damping.
-
+        Calculate response spectra for given periods and damping.
+        
+        Parameters
+        ----------
+        periods : ndarray
+            Array of periods in seconds.
+        damping : float
+            Damping ratio (default 0.05).
+            
         Returns
         -------
-        ndarray
-            Response spectra array with shape (3, n_periods).
+        tuple
+            (sd, sv, sa) arrays.
         """
-        if not hasattr(self, 'tp'):
-            raise AttributeError("Set 'tp' (periods) to compute spectra.")
-        return signal_tools.get_spectra(self.dt, self.ac, period=self.tp, zeta=0.05)
-
-    @property
-    def sa(self):
-        """
-        Spectral acceleration response.
-
-        Returns
-        -------
-        ndarray
-            Spectral acceleration values.
-        """
-        return self.spectra[2]
-
-    @property
-    def sv(self):
-        """
-        Spectral velocity response.
-
-        Returns
-        -------
-        ndarray
-            Spectral velocity values.
-        """
-        return self.spectra[1]
-
-    @property
-    def sd(self):
-        """
-        Spectral displacement response.
-
-        Returns
-        -------
-        ndarray
-            Spectral displacement values.
-        """
-        return self.spectra[0]
+        return signal_tools.response_spectra(self.dt, self.ac, period=periods, zeta=damping)
 
     @property
     def pga(self):
@@ -345,7 +348,7 @@ class GroundMotion(DomainConfig):
         float
             Peak ground acceleration value.
         """
-        return signal_tools.get_peak_param(self.ac)
+        return signal_tools.peak_abs_value(self.ac)
 
     @property
     def pgv(self):
@@ -357,7 +360,7 @@ class GroundMotion(DomainConfig):
         float
             Peak ground velocity value.
         """
-        return signal_tools.get_peak_param(self.vel)
+        return signal_tools.peak_abs_value(self.vel)
 
     @property
     def pgd(self):
@@ -369,7 +372,7 @@ class GroundMotion(DomainConfig):
         float
             Peak ground displacement value.
         """
-        return signal_tools.get_peak_param(self.disp)
+        return signal_tools.peak_abs_value(self.disp)
     
     @property
     def cav(self):
@@ -381,7 +384,7 @@ class GroundMotion(DomainConfig):
         float
             CAV value.
         """
-        return signal_tools.get_cav(self.dt, self.ac)
+        return signal_tools.cav(self.dt, self.ac)
     
     @cached_property
     def spectrum_intensity(self):
@@ -394,10 +397,10 @@ class GroundMotion(DomainConfig):
             VSI value.
         """
         vsi_tp = np.arange(0.1, 2.5, 0.05)
-        sd, sv, sa = signal_tools.get_spectra(self.dt, self.ac if self.ac.ndim == 2 else self.ac[None, :], period=vsi_tp, zeta=0.05)
-        dsi = signal_tools.get_integral(0.05, sd)[..., -1]
-        vsi = signal_tools.get_integral(0.05, sv)[..., -1]
-        asi = signal_tools.get_integral(0.05, sa)[..., -1]
+        sd, sv, sa = signal_tools.response_spectra(self.dt, self.ac, period=vsi_tp, zeta=0.05)
+        dsi = np.sum(sd, axis=-1) * 0.05
+        vsi = np.sum(sv, axis=-1) * 0.05
+        asi = np.sum(sa, axis=-1) * 0.05
         return dsi, vsi, asi
     
     @property
@@ -438,161 +441,165 @@ class GroundMotion(DomainConfig):
         """
         
         return self.spectrum_intensity[0]
-
-    @property
-    def energy_slicer(self):
-        """
-        Slice indices for cumulative energy range.
-
-        Returns
-        -------
-        slice
-            Index slice for energy-based trimming.
-        """
-        return self._energy_slicer
-
-    @energy_slicer.setter
-    def energy_slicer(self, energy_range: tuple[float, float]):
-        """
-        Set energy slice range.
-
-        Parameters
-        ----------
-        energy_range : tuple of float
-            Start and end fractions of cumulative energy.
-        """
-        self._energy_slicer = signal_tools.slice_energy(self.ce, energy_range)
     
-    def to_csv(self, filename: str, ims: list[str]):
+    def compute_intensity_measures(self, ims: list[str], periods: np.ndarray = None) -> dict:
         """
-        Export selected intensity measures (ims) to CSV.
+        Compute selected intensity measures.
 
         Parameters
         ----------
-        filename : str
-            Output CSV file path.
-        ims : list of str
-            List of ims to export.
-        
-        Notes
-        -----
-        For multi-record data (e.g., self.ac with shape (n_records, npts)),
-        each record will be saved as a separate row in the CSV.
-        """
-        header = []
-        rows = []
-        
-        # Determine number of records
-        if self.ac.ndim == 1:
-            n_records = 1
-        else:
-            n_records = self.ac.shape[0]
-        
-        # Build header
-        for im in ims:
-            im_l = im.lower()
-            
-            # Spectral arrays (sa, sv, sd)
-            if im_l in ("sa", "sv", "sd"):
-                if not hasattr(self, "tp"):
-                    raise AttributeError("Set 'tp' attribute (periods) before accessing spectra.")
-                for period in self.tp:
-                    header.append(f"{im_l}_{period:.3f}")
-            # FAS (Fourier amplitude spectrum)
-            elif im_l == "fas":
-                if not hasattr(self, "freq"):
-                    raise AttributeError("Set 'freq' attribute (frequencies) before accessing FAS")
-                for freq in self.freq:
-                    header.append(f"fas_{freq / (2*np.pi):.3f}")
-            # Scalar values
-            else:
-                header.append(im_l)
-        
-        # Build rows
-        for i in range(n_records):
-            row = []
-            for im in ims:
-                im_l = im.lower()
-                attr = getattr(self, im_l)
-                
-                # Spectral arrays (sa, sv, sd)
-                if im_l in ("sa", "sv", "sd"):
-                    if attr.ndim == 1:
-                        row.extend(attr)
-                    else:
-                        row.extend(attr[i])
-                # FAS (Fourier amplitude spectrum)
-                elif im_l == "fas":
-                    if attr.ndim == 1:
-                        row.extend(attr)
-                    else:
-                        row.extend(attr[i])
-                # Scalar values or arrays that need indexing
-                else:
-                    if hasattr(attr, '__len__') and not isinstance(attr, str):
-                        if len(attr) == n_records:
-                            row.append(attr[i])
-                        else:
-                            # Single value for all records
-                            row.append(attr)
-                    else:
-                        # Scalar value
-                        row.append(attr)
-            
-            rows.append(row)
-        
-        # Write to CSV
-        with open(filename, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(header)
-            writer.writerows(rows)
-    
-    def compare_with(self, component, ims: list[str], method: str, transform: callable = None):
-        """
-        Compare selected intensity measures (ims) between this GroundMotion instance and another component.
-
-        This method computes similarity or error ims (e.g., goodness-of-fit, relative error)
-        for specified attributes (such as 'sa', 'sv', 'fas', etc.) between the current ground motion
-        and another GroundMotion or FittedModel instance.
-
-        Parameters
-        ----------
-        component : GroundMotion or FittedModel
-            The instance to compare against.
-        ims : list of str
-            Intensity measures (e.g., 'sa', 'sv', 'fas') to compare.
-        method : {'gof', 're'}
-            Comparison method: 'gof' for goodness-of-fit, 're' for relative error.
-        transform : callable, optional
-            Function to apply to both attribute values before comparison (e.g., np.log).
+        ims : list[str]
+            List of IM names to compute (e.g., ['pga', 'sa', 'cav']).
+        periods : np.ndarray, optional
+            Periods for spectral quantities (sa, sv, sd). Required if any spectral IM is requested.
 
         Returns
         -------
         dict
-            Dictionary mapping each IM name to its computed comparison value.
-
-        Raises
-        ------
-        ValueError
-            If an unsupported method is provided.
-
+            Dictionary of computed IMs. Keys are column names (e.g., 'pga', 'sa_0.200').
+            Values are either floats (single record) or arrays (multiple records).
         """
-        result = {}
-        criterion_map = {'gof': goodness_of_fit, 're': relative_error}
-        method = criterion_map.get(method.lower())
-        if method is None:
-            raise ValueError(f"Unknown method: {method}. Supported: {list(criterion_map.keys())}")
+        periods = np.asarray(periods)
+        results = {}
+        
+        # Determine if we have multiple records
+        if self.ac.ndim == 1:
+            n_records = 1
+        else:
+            n_records = self.ac.shape[0]
+
+        # 1. Pre-compute spectra if requested (Batch Optimization)
+        spectral_ims = [im for im in ims if im.lower() in ("sa", "sv", "sd")]
+        spectral_data = {}
+        
+        if spectral_ims:
+            if periods is None:
+                raise ValueError("Periods must be provided to compute/export spectral quantities (sa, sv, sd).")
+            # Compute once for all spectral types
+            sd, sv, sa = self.response_spectra(periods)
+            spectral_data['sd'] = sd
+            spectral_data['sv'] = sv
+            spectral_data['sa'] = sa
+        
+        # 2. Iterate and collect data
         for im in ims:
-            self_attr = getattr(self, im)
-            comp_attr = getattr(component, im)
-            if transform is not None:
-                self_attr = transform(self_attr)
-                comp_attr = transform(comp_attr)
-            result[im] = method(self_attr, comp_attr)
-        return result
+            im_l = im.lower()
+            
+            # Case A: Spectral IMs
+            if im_l in spectral_data:
+                data_matrix = spectral_data[im_l] # Shape: (periods,) or (records, periods)
+                
+                for idx, period in enumerate(periods):
+                    key = f"{im_l}_{period:.3f}"
+                    if n_records == 1:
+                        results[key] = data_matrix[idx]
+                    else:
+                        results[key] = data_matrix[:, idx]
+
+            # Case B: Fourier Amplitude Spectra (vector handling)
+            elif im_l == "fas":
+                 # FAS logic is slightly unique as it depends on freq, not period
+                 # Usually FAS is exported as full spectrum, so logic might differ.
+                 # For now, sticking to logic mirroring to_csv: export all freqs
+                 freqs = self.freq
+                 attr = self.fas
+                 for idx, freq in enumerate(freqs):
+                     key = f"fas_{freq:.3f}"
+                     if n_records == 1:
+                         results[key] = attr[idx]
+                     else:
+                         results[key] = attr[:, idx] # Check dim handling of fas property
+
+            # Case C: Scalar IMs (PGA, PGV, etc.)
+            else:
+                attr = getattr(self, im_l)
+                results[im_l] = attr
+
+        return results
+
+    def to_csv(self, filename: str, ims: list[str], periods: np.ndarray = None):
+        """
+        Export selected intensity measures (ims) to CSV.
+        
+        Parameters
+        ----------
+        filename : str
+            Output path.
+        ims : list[str]
+            List of IM names.
+        periods : np.ndarray, optional
+            Periods for spectral quantities (sa, sv, sd). Required if any spectral IM is requested.
+        """
+        data = self.compute_intensity_measures(ims, periods)
+        
+        fieldnames = list(data.keys())
+        
+        # Determine number of rows to write
+        # Check the length of the first value
+        first_val = next(iter(data.values()))
+        
+        # Handle scalar (single record) vs list (multiple records)
+        # If single record, values are floats (compute_intensity_measures returns scalar or array)
+        if np.isscalar(first_val):
+            n_rows = 1
+        else:
+            n_rows = len(first_val)
+            
+        rows = []
+        for i in range(n_rows):
+            row = {}
+            for key, val in data.items():
+                if n_rows == 1:
+                     row[key] = val
+                else:
+                     row[key] = val[i]
+            rows.append(row)
+            
+        with open(filename, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+    
+    def compare(self, other: "GroundMotion", ims: list[str], periods: np.ndarray = None, method: str = 'gof') -> dict:
+        """
+        Compare this ground motion with another using selected IMs.
+        
+        Parameters
+        ----------
+        other : GroundMotion
+            Target ground motion or model.
+        ims : list[str]
+            List of IM names to compare.
+        periods : np.ndarray, optional
+            Periods for spectral quantities.
+        method : str, optional
+            Comparison method: 'gof' (Goodness of Fit) or 're' (Relative Error).
+            
+        Returns
+        -------
+        dict
+            Dictionary of comparison scores.
+        """
+        criterion_map = {'gof': goodness_of_fit, 're': relative_error}
+        if method.lower() not in criterion_map:
+             raise ValueError(f"Unknown method: {method}. Supported: {list(criterion_map.keys())}")
+        
+        func = criterion_map[method.lower()]
+        
+        # 1. Compute IMs for both
+        my_data = self.compute_intensity_measures(ims, periods)
+        other_data = other.compute_intensity_measures(ims, periods)
+        
+        # 2. Compare matching keys
+        scores = {}
+        for key in my_data:
+             if key in other_data:
+                 scores[key] = func(my_data[key], other_data[key])
+                 
+        return scores
 
     @classmethod
-    def load_from(cls, source: str, tag=None, **kwargs):
+    def load_from(cls, tag=None, **kwargs):
         """
         Load ground motion from file or array.
 
@@ -611,7 +618,7 @@ class GroundMotion(DomainConfig):
         GroundMotion
             Loaded ground motion instance.
         """
-        record = RecordReader(source, **kwargs)
+        record = RecordReader(**kwargs)
         return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)
 
     @classmethod
@@ -641,9 +648,7 @@ class GroundMotion(DomainConfig):
             'pgd': 'Peak Ground Displacement',
             
             # Response spectra (requires tp attribute)
-            'sa': 'Spectral Acceleration (requires tp)',
-            'sv': 'Spectral Velocity (requires tp)',
-            'sd': 'Spectral Displacement (requires tp)',
+            'response_spectra': 'Acceleration, Velocity, Displacement Response Spectra (requires periods)',
             
             # Intensity integrals
             'cav': 'Cumulative Absolute Velocity',
@@ -662,16 +667,15 @@ class GroundMotion(DomainConfig):
             
             # Domain attributes
             't': 'Time array',
-            'tp': 'Period array (for spectra)',
             'freq': 'Frequency array (for FAS)',
             
             # Statistical measures
-            'mle_ac': 'Mean Local Extrema of Acceleration',
-            'mle_vel': 'Mean Local Extrema of Velocity',
-            'mle_disp': 'Mean Local Extrema of Displacement',
-            'mzc_ac': 'Mean Zero Crossing of Acceleration',
-            'mzc_vel': 'Mean Zero Crossing of Velocity',
-            'mzc_disp': 'Mean Zero Crossing of Displacement',
+            'le_ac': 'Mean Local Extrema of Acceleration',
+            'le_vel': 'Mean Local Extrema of Velocity',
+            'le_disp': 'Mean Local Extrema of Displacement',
+            'zc_ac': 'Mean Zero Crossing of Acceleration',
+            'zc_vel': 'Mean Zero Crossing of Velocity',
+            'zc_disp': 'Mean Zero Crossing of Displacement',
             'pmnm_ac': 'Positive Min / Negative Max of Acceleration',
             'pmnm_vel': 'Positive Min / Negative Max of Velocity',
             'pmnm_disp': 'Positive Min / Negative Max of Displacement',

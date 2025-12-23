@@ -2,9 +2,10 @@ import numpy as np
 from scipy.optimize import minimize
 from ..core.stochastic_model import StochasticModel
 from ..motion.ground_motion import GroundMotion
+from ..motion import signal_tools
 
 def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.999),
-        initial_guess=None, bounds=None, method='L-BFGS-B', jac="3-point"):
+        initial_guess=None, bounds=None):
     """
     Fit stochastic model parameters to match a target motion.
 
@@ -17,7 +18,7 @@ def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range:
     motion : GroundMotion
         The target ground motion.
     fit_range : tuple, optional
-        Tuple specifying the fractional energy range (start, end) over which to fit the time series characteristics (e.g., mzc_ac).
+        Tuple specifying the fractional energy range (start, end) over which to fit the time series characteristics (e.g., zc_ac).
         If None, the full range is used.
     initial_guess : array-like, optional
         Initial parameter values. If None, uses defaults.
@@ -40,7 +41,7 @@ def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range:
 
     objective_func = get_objective_function(component, model, motion, fit_range)
 
-    result = minimize(objective_func, initial_guess, bounds=bounds, method=method, jac=jac)
+    result = minimize(objective_func, initial_guess, bounds=bounds, method='L-BFGS-B', jac="3-point")
 
     if result.success:
         objective_func(result.x)
@@ -54,13 +55,13 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
             return np.sum(np.square((model_ce - target_ce) / target_ce.max()))
 
     elif component == 'frequency':
-        motion.energy_slicer = fit_range
-        scale = motion.mzc_ac[motion.energy_slicer].max() / motion.fas.max() if motion.fas.max() > 0 else 1.0
+        motion.energy_slicer = signal_tools.slice_energy(motion.ce, fit_range)
+        scale = motion.zc_ac[motion.energy_slicer].max() / motion.fas.max() if motion.fas.max() > 0 else 1.0
         def objective(params):
             model_output = update_frequency(params, model, motion, scale)
-            target = np.concatenate((motion.mzc_ac[motion.energy_slicer],
-                                     motion.mzc_vel[motion.energy_slicer],
-                                     motion.mzc_disp[motion.energy_slicer],
+            target = np.concatenate((motion.zc_ac[motion.energy_slicer],
+                                     motion.zc_vel[motion.energy_slicer],
+                                     motion.zc_disp[motion.energy_slicer],
                                      motion.pmnm_vel[motion.energy_slicer],
                                      motion.pmnm_disp[motion.energy_slicer],
                                      motion.fas * scale))
@@ -116,9 +117,9 @@ def update_frequency(params, model: StochasticModel, motion: GroundMotion, scale
     for freq_model, model_params in zip(fitables, fitable_params):
         freq_model(motion.t, *model_params)
 
-    return np.concatenate((model.mzc_ac[motion.energy_slicer],
-                           model.mzc_vel[motion.energy_slicer],
-                           model.mzc_disp[motion.energy_slicer],
+    return np.concatenate((model.zc_ac[motion.energy_slicer],
+                           model.zc_vel[motion.energy_slicer],
+                           model.zc_disp[motion.energy_slicer],
                            model.pmnm_vel[motion.energy_slicer],
                            model.pmnm_disp[motion.energy_slicer],
                            model.fas * scale))

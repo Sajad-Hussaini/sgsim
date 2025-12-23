@@ -3,7 +3,7 @@
 functions
 ===========
 
-.. automodule:: sgsim.functions
+.. automodule:: sgsim.Functions
    :members:
    :undoc-members:
    :imported-members:
