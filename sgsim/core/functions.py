@@ -29,8 +29,8 @@ class ParametricFunction(ABC):
         return f"{self.__class__.__name__}({param_str})"
 
 class BetaSingle(ParametricFunction):
-    _pnames = ['peak', 'concentration', 'energy', 'duration']
-    """Beta single modulating function.
+    """
+    Beta single modulating function.
 
     Parameters
     ----------
@@ -48,6 +48,7 @@ class BetaSingle(ParametricFunction):
     - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
 
     """
+    _pnames = ['peak', 'concentration', 'energy', 'duration']
     def __call__(self, t, peak, concentration, energy, duration):
         self.values = self.compute(t, peak, concentration, energy, duration)
         self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
@@ -66,8 +67,8 @@ class BetaSingle(ParametricFunction):
         return np.sqrt(energy * multi_mdl)
 
 class BetaDual(ParametricFunction):
-    _pnames = ['peak', 'concentration', 'peak_2', 'concentration_2', 'energy_ratio', 'energy', 'duration']
-    """Beta dual modulating function.
+    """
+    Beta dual modulating function.
 
     Parameters
     ----------
@@ -91,6 +92,7 @@ class BetaDual(ParametricFunction):
     - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
 
     """
+    _pnames = ['peak', 'concentration', 'peak_2', 'concentration_2', 'energy_ratio', 'energy', 'duration']
     def __call__(self, t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):
         self.values = self.compute(t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration)
         self.params = dict(peak=peak, concentration=concentration,
@@ -120,8 +122,8 @@ class BetaDual(ParametricFunction):
         return np.sqrt(energy * multi_mdl)
 
 class BetaBasic(ParametricFunction):
-    _pnames = ['peak', 'concentration', 'energy', 'duration']
-    """Basic Beta modulating function.
+    """
+    Basic Beta modulating function.
 
     Parameters
     ----------
@@ -139,6 +141,7 @@ class BetaBasic(ParametricFunction):
     - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
 
     """
+    _pnames = ['peak', 'concentration', 'energy', 'duration']
     def __call__(self, t, peak, concentration, energy, duration):
         self.values = self.compute(t, peak, concentration, energy, duration)
         self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
@@ -152,8 +155,8 @@ class BetaBasic(ParametricFunction):
         return np.sqrt(energy * mdl)
 
 class Gamma(ParametricFunction):
-    _pnames = ['scale', 'shape', 'decay']
-    """Gamma modulating function.
+    """
+    Gamma modulating function.
 
     Parameters
     ----------
@@ -164,6 +167,7 @@ class Gamma(ParametricFunction):
     decay : float
         Decay parameter (> 0).
     """
+    _pnames = ['scale', 'shape', 'decay']
     def __call__(self, t, scale, shape, decay):
         self.values = self.compute(t, scale, shape, decay)
         self.params = dict(scale=scale, shape=shape, decay=decay)
@@ -175,8 +179,8 @@ class Gamma(ParametricFunction):
         return scale * t ** shape * np.exp(-decay * t)
 
 class Housner(ParametricFunction):
-    _pnames = ['amplitude', 'decay', 'shape', 'tp', 'td']
-    """Housner modulating function.
+    """
+    Housner modulating function.
 
     Parameters
     ----------
@@ -191,6 +195,7 @@ class Housner(ParametricFunction):
     td : float
         Time to start of decay phase (td > tp).
     """
+    _pnames = ['amplitude', 'decay', 'shape', 'tp', 'td']
     def __call__(self, t, amplitude, decay, shape, tp, td):
         self.values = self.compute(t, amplitude, decay, shape, tp, td)
         self.params = dict(amplitude=amplitude, decay=decay, shape=shape, tp=tp, td=td)
@@ -203,30 +208,9 @@ class Housner(ParametricFunction):
                             [lambda t_val: amplitude * (t_val / tp) ** 2, amplitude,
                              lambda t_val: amplitude * np.exp(-decay * ((t_val - td) ** shape))])
 
-class Rayleigh(ParametricFunction):
-    _pnames = ['a', 'b',]
-    """Rayleigh function.
-
-    Parameters
-    ----------
-    a : float
-        The mass-proportional damping coefficient value.
-    b : float
-        The stiffness-proportional damping coefficient value.
-    """
-    def __call__(self, t, a, b):
-        self.values = self.compute(t, a, b)
-        self.params = dict(a=a, b=b)
-        self._trigger_callback()
-        return self.values
-    
-    @staticmethod
-    def compute(t, a, b):
-        return (a * t + b / t) / 2
-
 class Linear(ParametricFunction):
-    _pnames = ['start', 'end']
-    """Linear function.
+    """
+    Linear function.
 
     Parameters
     ----------
@@ -235,6 +219,7 @@ class Linear(ParametricFunction):
     end : float
         Ending value.
     """
+    _pnames = ['start', 'end']
     def __call__(self, t, start, end):
         self.values = self.compute(t, start, end)
         self.params = dict(start=start, end=end)
@@ -246,8 +231,8 @@ class Linear(ParametricFunction):
         return start + (end - start) * (t / t.max())
 
 class Bilinear(ParametricFunction):
-    _pnames = ['start', 'mid', 'end', 't_mid']
-    """Bilinear function.
+    """
+    Bilinear function.
 
     Parameters
     ----------
@@ -260,6 +245,7 @@ class Bilinear(ParametricFunction):
     t_mid : float
         Time at which the midpoint occurs (0 < t_mid < max(t)).
     """
+    _pnames = ['start', 'mid', 'end', 't_mid']
     def __call__(self, t, start, mid, end, t_mid):
         self.values = self.compute(t, start, mid, end, t_mid)
         self.params = dict(start=start, mid=mid, end=end, t_mid=t_mid)
@@ -273,8 +259,8 @@ class Bilinear(ParametricFunction):
                              lambda t_val: mid - (mid - end) * (t_val - t_mid) / (t.max() - t_mid)])
 
 class Exponential(ParametricFunction):
-    _pnames = ['start', 'end']
-    """Exponential function.
+    """
+    Exponential function.
 
     Parameters
     ----------
@@ -283,6 +269,7 @@ class Exponential(ParametricFunction):
     end : float
         Ending value.
     """
+    _pnames = ['start', 'end']
     def __call__(self, t, start, end):
         self.values = self.compute(t, start, end)
         self.params = dict(start=start, end=end)
@@ -294,14 +281,15 @@ class Exponential(ParametricFunction):
         return start * np.exp(np.log(end / start) * (t / t.max()))
 
 class Constant(ParametricFunction):
-    _pnames = ['value']
-    """Constant function.
+    """
+    Constant function.
 
     Parameters
     ----------
     value : float
         Constant value.
     """
+    _pnames = ['value']
     def __call__(self, t, value):
         self.values = self.compute(t, value)
         self.params = dict(value=value)

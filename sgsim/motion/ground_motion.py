@@ -35,6 +35,90 @@ class GroundMotion:
         self.disp = disp.astype(np.float64, copy=False)
         self.tag = tag
     
+    @classmethod
+    def load_from(cls, tag=None, **kwargs):
+        """
+        Load ground motion from file or array.
+
+        Parameters
+        ----------
+        source : str
+            Data source format: 'NGA', 'ESM', 'COL', 'RAW', 'COR' for file reading
+                                'Array' for direct array input.
+        tag : str, optional
+            Record identifier.
+        **kwargs
+            Source-specific arguments.
+
+        Returns
+        -------
+        GroundMotion
+            Loaded ground motion instance.
+        """
+        record = RecordReader(**kwargs)
+        return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)
+
+    @classmethod
+    def list_IMs(cls):
+        """
+        List all available intensity measures (ims) and properties with descriptions.
+        
+        Returns
+        -------
+        dict
+            Dictionary mapping im names to their descriptions.
+            
+        Examples
+        --------
+        >>> GroundMotion.list_IMs()
+        >>> # or to get just the names:
+        >>> list(GroundMotion.list_IMs().keys())
+        
+        Note
+        ----
+        Feel free to contact the developer (via Hussaini.smsajad@gmail.com) to add or include new ims.
+        """
+        ims = {
+            # Peak parameters
+            'pga': 'Peak Ground Acceleration',
+            'pgv': 'Peak Ground Velocity',
+            'pgd': 'Peak Ground Displacement',
+            
+            # Response spectra (requires tp attribute)
+            'response_spectra': 'Acceleration, Velocity, Displacement Response Spectra (requires periods)',
+            
+            # Intensity integrals
+            'cav': 'Cumulative Absolute Velocity',
+            'vsi': 'Velocity Spectrum Intensity (0.1-2.5s)',
+            'asi': 'Acceleration Spectrum Intensity (0.1-2.5s)',
+            'dsi': 'Displacement Spectrum Intensity (0.1-2.5s)',
+            
+            # Time series data
+            'ac': 'Acceleration time series',
+            'vel': 'Velocity time series',
+            'disp': 'Displacement time series',
+            
+            # Frequency domain
+            'fas': 'Fourier Amplitude Spectrum',
+            'ce': 'Cumulative Energy',
+            
+            # Domain attributes
+            't': 'Time array',
+            'freq': 'Frequency array (for FAS)',
+            
+            # Statistical measures
+            'le_ac': 'Mean Local Extrema of Acceleration',
+            'le_vel': 'Mean Local Extrema of Velocity',
+            'le_disp': 'Mean Local Extrema of Displacement',
+            'zc_ac': 'Mean Zero Crossing of Acceleration',
+            'zc_vel': 'Mean Zero Crossing of Velocity',
+            'zc_disp': 'Mean Zero Crossing of Displacement',
+            'pmnm_ac': 'Positive Min / Negative Max of Acceleration',
+            'pmnm_vel': 'Positive Min / Negative Max of Velocity',
+            'pmnm_disp': 'Positive Min / Negative Max of Displacement',
+        }
+        return ims
+    
     @property
     def npts(self):
         return self._npts
@@ -597,90 +681,6 @@ class GroundMotion:
                  scores[key] = func(my_data[key], other_data[key])
                  
         return scores
-
-    @classmethod
-    def load_from(cls, tag=None, **kwargs):
-        """
-        Load ground motion from file or array.
-
-        Parameters
-        ----------
-        source : str
-            Data source format: 'NGA', 'ESM', 'COL', 'RAW', 'COR' for file reading
-                                'Array' for direct array input.
-        tag : str, optional
-            Record identifier.
-        **kwargs
-            Source-specific arguments.
-
-        Returns
-        -------
-        GroundMotion
-            Loaded ground motion instance.
-        """
-        record = RecordReader(**kwargs)
-        return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)
-
-    @classmethod
-    def list_IMs(cls):
-        """
-        List all available intensity measures (ims) and properties with descriptions.
-        
-        Returns
-        -------
-        dict
-            Dictionary mapping im names to their descriptions.
-            
-        Examples
-        --------
-        >>> GroundMotion.list_IMs()
-        >>> # or to get just the names:
-        >>> list(GroundMotion.list_IMs().keys())
-        
-        Note
-        ----
-        Feel free to contact the developer (via Hussaini.smsajad@gmail.com) to add or include new ims.
-        """
-        ims = {
-            # Peak parameters
-            'pga': 'Peak Ground Acceleration',
-            'pgv': 'Peak Ground Velocity',
-            'pgd': 'Peak Ground Displacement',
-            
-            # Response spectra (requires tp attribute)
-            'response_spectra': 'Acceleration, Velocity, Displacement Response Spectra (requires periods)',
-            
-            # Intensity integrals
-            'cav': 'Cumulative Absolute Velocity',
-            'vsi': 'Velocity Spectrum Intensity (0.1-2.5s)',
-            'asi': 'Acceleration Spectrum Intensity (0.1-2.5s)',
-            'dsi': 'Displacement Spectrum Intensity (0.1-2.5s)',
-            
-            # Time series data
-            'ac': 'Acceleration time series',
-            'vel': 'Velocity time series',
-            'disp': 'Displacement time series',
-            
-            # Frequency domain
-            'fas': 'Fourier Amplitude Spectrum',
-            'ce': 'Cumulative Energy',
-            
-            # Domain attributes
-            't': 'Time array',
-            'freq': 'Frequency array (for FAS)',
-            
-            # Statistical measures
-            'le_ac': 'Mean Local Extrema of Acceleration',
-            'le_vel': 'Mean Local Extrema of Velocity',
-            'le_disp': 'Mean Local Extrema of Displacement',
-            'zc_ac': 'Mean Zero Crossing of Acceleration',
-            'zc_vel': 'Mean Zero Crossing of Velocity',
-            'zc_disp': 'Mean Zero Crossing of Displacement',
-            'pmnm_ac': 'Positive Min / Negative Max of Acceleration',
-            'pmnm_vel': 'Positive Min / Negative Max of Velocity',
-            'pmnm_disp': 'Positive Min / Negative Max of Displacement',
-        }
-        return ims
 
 
 class GroundMotion3D:

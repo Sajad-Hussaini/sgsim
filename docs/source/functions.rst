@@ -1,6 +1,6 @@
 .. _api_parametricfunction:
 
-functions
+Functions
 ===========
 
 .. automodule:: sgsim.Functions

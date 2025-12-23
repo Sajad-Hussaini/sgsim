@@ -2,7 +2,7 @@ import json
 import numpy as np
 from scipy.fft import irfft
 from . import model_engine
-from . import parametric_functions
+from . import functions
 from .model_config import ModelConfig
 from ..motion.ground_motion import GroundMotion
 from ..optimization.fit_eval import goodness_of_fit
@@ -32,6 +32,43 @@ class StochasticModel(ModelConfig):
     
     Changes to `npts` or `dt` persist until explicitly changed again.
     """
+    @classmethod
+    def load_from(cls, filename):
+        """
+        Construct a stochastic model from a JSON file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to JSON file containing model data.
+
+        Returns
+        -------
+        StochasticModel
+            Loaded stochastic model instance.
+        """
+        with open(filename, 'r') as file:
+            data = json.load(file)
+        
+        # Instantiate parametric functions
+        model = cls(
+            modulating=getattr(functions, data['modulating']['func'])(),
+            upper_frequency=getattr(functions, data['upper_frequency']['func'])(),
+            upper_damping=getattr(functions, data['upper_damping']['func'])(),
+            lower_frequency=getattr(functions, data['lower_frequency']['func'])(),
+            lower_damping=getattr(functions, data['lower_damping']['func'])(),
+            npts=data.get('npts'),
+            dt=data.get('dt'))
+        
+        # Evaluate parametric functions if time domain is available
+        if model._npts is not None and model._dt is not None:
+            model.modulating(model.t, **data['modulating']['params'])
+            model.upper_frequency(model.t, **data['upper_frequency']['params'])
+            model.upper_damping(model.t, **data['upper_damping']['params'])
+            model.lower_frequency(model.t, **data['lower_frequency']['params'])
+            model.lower_damping(model.t, **data['lower_damping']['params'])
+        
+        return model
 
     def fit(self, target_motion: GroundMotion, component: list[str] = ['modulating', 'frequency'], 
             fit_range: tuple = (0.01, 0.99), initial_guess=None, bounds=None):
@@ -242,41 +279,3 @@ class StochasticModel(ModelConfig):
                 json.dump(model_data, file, indent=2)
             print(f"Model saved to: {filename}")
         return self
-
-    @classmethod
-    def load_from(cls, filename):
-        """
-        Construct a stochastic model from a JSON file.
-
-        Parameters
-        ----------
-        filename : str
-            Path to JSON file containing model data.
-
-        Returns
-        -------
-        StochasticModel
-            Loaded stochastic model instance.
-        """
-        with open(filename, 'r') as file:
-            data = json.load(file)
-        
-        # Instantiate parametric functions
-        model = cls(
-            modulating=getattr(parametric_functions, data['modulating']['func'])(),
-            upper_frequency=getattr(parametric_functions, data['upper_frequency']['func'])(),
-            upper_damping=getattr(parametric_functions, data['upper_damping']['func'])(),
-            lower_frequency=getattr(parametric_functions, data['lower_frequency']['func'])(),
-            lower_damping=getattr(parametric_functions, data['lower_damping']['func'])(),
-            npts=data.get('npts'),
-            dt=data.get('dt'))
-        
-        # Evaluate parametric functions if time domain is available
-        if model._npts is not None and model._dt is not None:
-            model.modulating(model.t, **data['modulating']['params'])
-            model.upper_frequency(model.t, **data['upper_frequency']['params'])
-            model.upper_damping(model.t, **data['upper_damping']['params'])
-            model.lower_frequency(model.t, **data['lower_frequency']['params'])
-            model.lower_damping(model.t, **data['lower_damping']['params'])
-        
-        return model

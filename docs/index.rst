@@ -1,7 +1,7 @@
 .. sgsim documentation master file.
 
-Welcome to SGSIM's Documentation!
-==================================
+SGSIM's Documentation
+======================
 
 SGSIM is a Python package for:
 

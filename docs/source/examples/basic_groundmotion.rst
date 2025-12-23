@@ -1,4 +1,4 @@
-.. _example_basic_simulation:
+.. _example_basic_groundmotion:
 
 Quick Start: Basic Ground Motion Analysis Example
 ====================================================

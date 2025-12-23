@@ -1,6 +1,6 @@
 import numpy as np
 from .domain_config import DomainConfig
-from .parametric_functions import ParametricFunction
+from .functions import ParametricFunction
 from . import model_engine
 from ..motion import signal_tools
 
