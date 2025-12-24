@@ -71,7 +71,8 @@ class StochasticModel(ModelConfig):
         return model
 
     def fit(self, target_motion: GroundMotion, component: list[str] = ['modulating', 'frequency'], 
-            fit_range: tuple = (0.01, 0.99), initial_guess=None, bounds=None):
+            fit_range: tuple = (0.01, 0.99), initial_guess=None, bounds=None,
+            damping_penalty_threshold: float = 0.6, damping_penalty_weight: float = 2.0):
         """
         Fit stochastic model parameters to match target motion.
         
@@ -110,7 +111,8 @@ class StochasticModel(ModelConfig):
         
         for comp in component:
             model_fit.fit(model=self, motion=target_motion, component=comp, fit_range=fit_range,
-                        initial_guess=initial_guess, bounds=bounds)
+                        initial_guess=initial_guess, bounds=bounds,
+                        damping_penalty_threshold=damping_penalty_threshold, damping_penalty_weight=damping_penalty_weight)
         return self
 
     def simulate(self, n, tag=None, seed=None):
