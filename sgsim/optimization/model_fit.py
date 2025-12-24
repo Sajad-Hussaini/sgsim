@@ -5,7 +5,8 @@ from ..motion.ground_motion import GroundMotion
 from ..motion import signal_tools
 
 def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.999),
-        initial_guess=None, bounds=None):
+        initial_guess=None, bounds=None,
+        damping_penalty_threshold: float = 0.6, damping_penalty_weight: float = 2.0):
     """
     Fit stochastic model parameters to match a target motion.
 
@@ -24,8 +25,14 @@ def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range:
         Initial parameter values. If None, uses defaults.
     bounds : list of tuples, optional
         Parameter bounds as [(min1, max1), (min2, max2), ...]. If None, uses defaults.
-    method : str, optional
-        Optimization method. Default is 'L-BFGS-B'.
+    damping_penalty_threshold : float, optional
+        Threshold for damping regularization penalty (default: 0.60).
+        Encourages physically realistic damping values (< threshold) by penalizing high damping.
+        Only applied when component='frequency' or 'fas'.
+    damping_penalty_weight : float, optional
+        Weight for damping regularization penalty (0.0 = no penalty, 0.5-1.0 = moderate).
+        Encourages physically realistic damping values (< 0.60) by penalizing high damping.
+        Only applied when component='frequency' or 'fas'.
 
     Returns
     -------
@@ -39,14 +46,15 @@ def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range:
         initial_guess = initial_guess or default_guess
         bounds = bounds or default_bounds
 
-    objective_func = get_objective_function(component, model, motion, fit_range)
+    objective_func = get_objective_function(component, model, motion, fit_range, damping_penalty_threshold, damping_penalty_weight)
 
     result = minimize(objective_func, initial_guess, bounds=bounds, method='L-BFGS-B', jac="3-point")
 
     if result.success:
         objective_func(result.x)
 
-def get_objective_function(component: str, model: StochasticModel, motion: GroundMotion, fit_range: tuple):
+def get_objective_function(component: str, model: StochasticModel, motion: GroundMotion, 
+                          fit_range: tuple, damping_penalty_threshold: float, damping_penalty_weight: float):
     """Create objective function for the specified component."""
     if component == 'modulating':
         def objective(params):
@@ -57,6 +65,10 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
     elif component == 'frequency':
         motion.energy_slicer = signal_tools.slice_energy(motion.ce, fit_range)
         scale = motion.zc_ac[motion.energy_slicer].max() / motion.fas.max() if motion.fas.max() > 0 else 1.0
+        
+        # Get damping parameter indices for penalty calculation
+        damping_indices = _get_damping_param_indices(model)
+        
         def objective(params):
             model_output = update_frequency(params, model, motion, scale)
             target = np.concatenate((motion.zc_ac[motion.energy_slicer],
@@ -65,17 +77,95 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
                                      motion.pmnm_vel[motion.energy_slicer],
                                      motion.pmnm_disp[motion.energy_slicer],
                                      motion.fas * scale))
-            return np.sum(np.square((model_output - target) / target.max()))
+            
+            # Main fit error (normalized sum of squared residuals)
+            fit_error = np.sum(np.square((model_output - target) / target.max()))
+            
+            # Damping regularization penalty (soft constraint toward realistic values)
+            damping_penalty = _compute_damping_penalty(params, damping_indices, 
+                                                       threshold=damping_penalty_threshold, weight=damping_penalty_weight)
+            
+            return fit_error + damping_penalty
 
     elif component == 'fas':
+        # Get damping parameter indices for penalty calculation
+        damping_indices = _get_damping_param_indices(model)
+        
         def objective(params):
             model_output = update_fas(params, model, motion)
             target = motion.fas
-            return np.sum(np.square((model_output - target) / target.max()))
+            
+            # Main fit error
+            fit_error = np.sum(np.square((model_output - target) / target.max()))
+            
+            # Damping regularization penalty
+            damping_penalty = _compute_damping_penalty(params, damping_indices, 
+                                                       threshold=damping_penalty_threshold, weight=damping_penalty_weight)
+            
+            return fit_error + damping_penalty
     else:
         raise ValueError(f"Unknown component: {component}")
     
     return objective
+
+def _get_damping_param_indices(model: StochasticModel):
+    """
+    Get the indices of damping parameters in the full parameter vector.
+    
+    Returns
+    -------
+    dict
+        Dictionary with 'upper' and 'lower' keys, each containing list of parameter indices.
+    """
+    fitables = [model.upper_frequency, model.lower_frequency, model.upper_damping, model.lower_damping]
+    param_counts = [len(f.params) for f in fitables]
+    param_slices = np.cumsum([0] + param_counts)
+    
+    # Upper damping is at index 2, lower damping at index 3
+    upper_damping_indices = list(range(param_slices[2], param_slices[3]))
+    lower_damping_indices = list(range(param_slices[3], param_slices[4]))
+    
+    return {'upper': upper_damping_indices, 'lower': lower_damping_indices}
+
+def _compute_damping_penalty(params, damping_indices, threshold, weight):
+    """
+    Compute regularization penalty for high damping values.
+    
+    Penalizes damping values above the threshold using a quadratic penalty.
+    This encourages the optimizer to adjust frequencies before pushing damping to extremes.
+    
+    Parameters
+    ----------
+    params : array-like
+        Full parameter vector being optimized.
+    damping_indices : dict
+        Dictionary with 'upper' and 'lower' keys containing parameter indices.
+    threshold : float, optional
+        Damping value above which penalty is applied (default: 0.30).
+    weight : float, optional
+        Penalty weight (default: 0.05). Higher values more strongly discourage high damping.
+    
+    Returns
+    -------
+    float
+        Penalty value (0 if all damping values <= threshold).
+    """
+    if weight == 0.0:
+        return 0.0
+    
+    penalty = 0.0
+    
+    # Penalize upper damping parameters
+    for idx in damping_indices['upper']:
+        excess = max(0.0, params[idx] - threshold)
+        penalty += excess ** 2
+    
+    # Penalize lower damping parameters
+    for idx in damping_indices['lower']:
+        excess = max(0.0, params[idx] - threshold)
+        penalty += excess ** 2
+    
+    return weight * penalty
 
 def update_modulating(params, model: StochasticModel, motion: GroundMotion):
     """Update modulating function and return model cumulative energy."""
