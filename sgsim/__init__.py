@@ -1,5 +1,5 @@
 from .core.stochastic_model import StochasticModel
-from .motion.ground_motion import GroundMotion, GroundMotion3D
+from .motion.ground_motion import GroundMotion, GroundMotionMultiComponent
 from .visualization.model_plot import ModelPlot
 from .core import functions as Functions
 from .motion import signal_tools as SignalTools

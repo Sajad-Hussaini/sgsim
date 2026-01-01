@@ -613,7 +613,7 @@ def integrate_detrend(dt: float, rec: np.ndarray):
     np.ndarray
         Integrated and detrended record.
     """
-    uvec = get_integral(dt, rec)
+    uvec = integrate(dt, rec)
     return uvec - np.linspace(0.0, uvec[-1], len(uvec))
 
 def peak_abs_value(rec: np.ndarray):

@@ -6,7 +6,7 @@ from ..motion import signal_tools
 
 def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.999),
         initial_guess=None, bounds=None,
-        damping_penalty_threshold: float = 0.6, damping_penalty_weight: float = 2.0):
+        damping_penalty_threshold: float = 0.7, damping_penalty_weight: float = 5.0):
     """
     Fit stochastic model parameters to match a target motion.
 

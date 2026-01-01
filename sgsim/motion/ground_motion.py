@@ -682,41 +682,106 @@ class GroundMotion:
                  
         return scores
 
+# =============================================================================
 
-class GroundMotion3D:
+class GroundMotionMultiComponent:
     """
-    Container for three-component ground motion data.
+    Container for multi-component ground motion data (2 or 3 component).
+    
+    Parameters
+    ----------
+    *components : GroundMotion
+        Variable number of GroundMotion objects (minimum 2).
     """
-    def __init__(self, gm1:GroundMotion, gm2:GroundMotion, gm3:GroundMotion):
-        self.gm1 = gm1
-        self.gm2 = gm2
-        self.gm3 = gm3
-        self.t = gm1.t
-        self.dt = gm1.dt
-        self.npts = gm1.npts
-        self.freq = gm1.freq
-        self.ac_mag = np.sqrt(self.gm1.ac ** 2 + self.gm2.ac ** 2 + self.gm3.ac ** 2)
+    def __init__(self, *components: GroundMotion):
+        if len(components) < 2:
+            raise ValueError("At least 2 components required for multi-component ground motion.")
+        
+        # Validate all components have same time parameters
+        dt_ref = components[0].dt
+        npts_ref = components[0].npts
+        for i, gm in enumerate(components[1:], 1):
+            if gm.dt != dt_ref or gm.npts != npts_ref:
+                raise ValueError(f"Component {i} has mismatched dt or npts with component 0.")
+        
+        self.components = components
+        self.n_components = len(components)
+        self.t = components[0].t
+        self.dt = components[0].dt
+        self.npts = components[0].npts
+        self.freq = components[0].freq
+    
+    @property
+    def ac(self):
+        """
+        Magnitude of acceleration across all components (resultant acceleration).
+
+        Returns
+        -------
+        ndarray
+            Combined magnitude array.
+        """
+        return np.sqrt(np.sum([gm.ac ** 2 for gm in self.components], axis=0))
+    
+    @property
+    def vel(self):
+        """
+        Magnitude of velocity across all components.
+
+        Returns
+        -------
+        ndarray
+            Combined magnitude array.
+        """
+        return np.sqrt(np.sum([gm.vel ** 2 for gm in self.components], axis=0))
+    
+    @property
+    def disp(self):
+        """
+        Magnitude of displacement across all components.
+
+        Returns
+        -------
+        ndarray
+            Combined magnitude array.
+        """
+        return np.sqrt(np.sum([gm.disp ** 2 for gm in self.components], axis=0))
 
     @property
     def ce(self):
         """
-        Cumulative energy of the net three component of acceleration time series.
+        Cumulative energy of combined components.
 
         Returns
         -------
         ndarray
             Combined cumulative energy array.
         """
-        return self.gm1.ce + self.gm2.ce + self.gm3.ce
+        return np.sum([gm.ce for gm in self.components], axis=0)
     
     @property
     def fas(self):
         """
-        Fourier amplitude spectrum of the net three component of acceleration time series.
+        Fourier amplitude spectrum of combined components.
 
         Returns
         -------
         ndarray
             Combined Fourier amplitude spectrum.
         """
-        return np.sqrt(self.gm1.fas ** 2 + self.gm2.fas ** 2 + self.gm3.fas ** 2)
+        return np.sqrt(np.sum([gm.fas ** 2 for gm in self.components], axis=0))
+    
+    @property
+    def pga(self):
+        """Peak ground acceleration (resultant)."""
+        return signal_tools.peak_abs_value(self.ac)
+    
+    @property
+    def pgv(self):
+        """Peak ground velocity (resultant)."""
+        return signal_tools.peak_abs_value(self.vel)
+    
+    @property
+    def pgd(self):
+        """Peak ground displacement (resultant)."""
+        return signal_tools.peak_abs_value(self.disp)
