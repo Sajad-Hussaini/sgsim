@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import beta
+from scipy.special import betaln
 from abc import ABC, abstractmethod
 
 class ParametricFunction(ABC):
@@ -57,14 +57,13 @@ class BetaSingle(ParametricFunction):
     
     @staticmethod
     def compute(t, peak, concentration, energy, duration):
-        mdl1 = 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
-        mdl2 = 0.95 * np.exp((concentration * peak) * np.log(t[1:-1]) +
+        mdl = np.zeros(len(t))
+        mdl[1:-1] += 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
+        mdl[1:-1] += 0.95 * np.exp((concentration * peak) * np.log(t[1:-1]) +
                              (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                             np.log(beta(1 + concentration * peak, 1 + concentration * (1 - peak))) -
+                             betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
                              (1 + concentration) * np.log(duration))
-        multi_mdl = np.zeros(len(t))
-        multi_mdl[1:-1] = mdl1 + mdl2
-        return np.sqrt(energy * multi_mdl)
+        return np.sqrt(energy * mdl)
 
 class BetaDual(ParametricFunction):
     """
@@ -108,18 +107,17 @@ class BetaDual(ParametricFunction):
         # mdl2 = energy_ratio * ((t ** (concentration * peak) * (duration - t) ** (concentration * (1 - peak))) / (beta(1 + concentration * peak, 1 + concentration * (1 - peak)) * duration ** (1 + concentration)))
         # mdl3 = (1 - 0.05 - energy_ratio) * ((t ** (concentration_2 * peak_2) * (duration - t) ** (concentration_2 * (1 - peak_2))) / (beta(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2)) * duration ** (1 + concentration_2)))
         # multi_mdl = mdl1 + mdl2 + mdl3
-        mdl1 = 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
-        mdl2 = energy_ratio * np.exp((concentration * peak) * np.log(t[1:-1]) +
+        mdl = np.zeros(len(t))
+        mdl[1:-1] += 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
+        mdl[1:-1] += energy_ratio * np.exp((concentration * peak) * np.log(t[1:-1]) +
                                      (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                                     np.log(beta(1 + concentration * peak, 1 + concentration * (1 - peak))) -
+                                     betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
                                      (1 + concentration) * np.log(duration))
-        mdl3 = (0.95 - energy_ratio) * np.exp((concentration_2 * peak_2) * np.log(t[1:-1]) +
+        mdl[1:-1] += (0.95 - energy_ratio) * np.exp((concentration_2 * peak_2) * np.log(t[1:-1]) +
                                               (concentration_2 * (1 - peak_2)) * np.log(duration - t[1:-1]) -
-                                              np.log(beta(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2))) -
+                                              betaln(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2)) -
                                               (1 + concentration_2) * np.log(duration))
-        multi_mdl = np.zeros(len(t))
-        multi_mdl[1:-1] = mdl1 + mdl2 + mdl3
-        return np.sqrt(energy * multi_mdl)
+        return np.sqrt(energy * mdl)
 
 class BetaBasic(ParametricFunction):
     """
@@ -150,8 +148,11 @@ class BetaBasic(ParametricFunction):
     
     @staticmethod
     def compute(t, peak, concentration, energy, duration):
-        mdl = ((t ** (concentration * peak) * (duration - t) ** (concentration * (1 - peak))) /
-               (beta(1 + concentration * peak, 1 + concentration * (1 - peak)) * duration ** (1 + concentration)))
+        mdl = np.zeros(len(t))
+        mdl[1:-1] = np.exp((concentration * peak) * np.log(t[1:-1]) +
+                             (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
+                             betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
+                             (1 + concentration) * np.log(duration))
         return np.sqrt(energy * mdl)
 
 class Gamma(ParametricFunction):
