@@ -6,7 +6,7 @@ from ..motion import signal_tools
 
 def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.99),
         initial_guess=None, bounds=None,
-        damping_penalty_threshold: float = 0.7, damping_penalty_weight: float = 1.0):
+        damping_penalty_threshold: float = 0.8, damping_penalty_weight: float = 2.0):
     """
     Fit stochastic model parameters to match a target motion.
 
@@ -254,29 +254,29 @@ def get_default_parameters(component: str, model: StochasticModel):
             [0.1, 20.0],
             [(0.01, 0.95), (1.0, 1000.0)]
         ),
-    }
+        }
 
     freq_damping_defaults = {
         # --- Upper Frequency ---
-        ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),
-        ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),
-        ('upper_frequency', 'Constant'): ([5.0], [(0.1, 40.0)]),
+        ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
+        ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
+        ('upper_frequency', 'Constant'): ([5.0], [(0.5, 40.0)]),
 
         # --- Lower Frequency ---
-        ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.999), (0.01, 0.999)]),
-        ('lower_frequency', 'Exponential'): ([0.2, 0.5], [(0.01, 0.999), (0.01, 0.999)]),
-        ('lower_frequency', 'Constant'): ([0.2], [(0.01, 0.999)]),
+        ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
+        ('lower_frequency', 'Exponential'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
+        ('lower_frequency', 'Constant'): ([0.2], [(0.01, 0.99)]),
 
         # --- Upper Damping ---
-        ('upper_damping', 'Linear'): ([0.1, 0.3], [(0.05, 0.999), (0.05, 0.999)]),
-        ('upper_damping', 'Exponential'): ([0.1, 0.3], [(0.05, 0.999), (0.05, 0.999)]),
-        ('upper_damping', 'Constant'): ([0.3], [(0.05, 0.999)]),
+        ('upper_damping', 'Linear'): ([0.1, 0.3], [(0.15, 0.95), (0.15, 0.95)]),
+        ('upper_damping', 'Exponential'): ([0.1, 0.3], [(0.15, 0.95), (0.15, 0.95)]),
+        ('upper_damping', 'Constant'): ([0.3], [(0.15, 0.95)]),
         
         # --- Lower Damping ---
-        ('lower_damping', 'Linear'): ([0.1, 0.2], [(0.05, 0.999), (0.05, 0.999)]),
-        ('lower_damping', 'Exponential'): ([0.1, 0.2], [(0.05, 0.999), (0.05, 0.999)]),
-        ('lower_damping', 'Constant'): ([0.2], [(0.05, 0.999)]),
-    }
+        ('lower_damping', 'Linear'): ([0.1, 0.2], [(0.15, 0.95), (0.15, 0.95)]),
+        ('lower_damping', 'Exponential'): ([0.1, 0.2], [(0.15, 0.95), (0.15, 0.95)]),
+        ('lower_damping', 'Constant'): ([0.2], [(0.15, 0.95)]),
+        }
 
     if component == 'modulating':
         model_type = type(model.modulating).__name__
