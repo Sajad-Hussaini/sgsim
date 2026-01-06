@@ -158,7 +158,8 @@ class StochasticModel(ModelConfig):
         fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2, self.modulating.values,
                                                        self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
                                                        self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
-                                                       self._variance, white_noise)
+                                                       self._variance, white_noise, self.dt)
+        # Default backward 1/N scaling is correct here
         ac = irfft(fourier, workers=-1)[..., :self.npts]  # anti-aliasing
         # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
         fourier[..., 1:] /= (1j * self.freq_sim[1:])

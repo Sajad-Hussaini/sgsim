@@ -66,12 +66,17 @@ class DomainConfig:
         return signal_tools.frequency(self.npts, self.dt) * 2 * np.pi
     
     @cached_property
+    def dw(self):
+        return self.freq[2] - self.freq[1]
+    
+    @cached_property
     def freq_sim(self):
         """
         ndarray: Frequency array for simulation (zero-padded to avoid aliasing).
+        Uses Nyquist frequency to avoid aliasing in simulations.
         """
         npts_sim = int(2 ** np.ceil(np.log2(2 * self.npts)))
-        return signal_tools.frequency(npts_sim, self.dt) * 2 * np.pi  # Nyquist freq to avoid aliasing in simulations
+        return signal_tools.frequency(npts_sim, self.dt) * 2 * np.pi
 
     @property
     def freq_slicer(self):
@@ -91,25 +96,6 @@ class DomainConfig:
             (start_freq, end_freq) for frequency range.
         """
         self._freq_slicer = signal_tools.slice_freq(self.freq, freq_range)
-
-    @property
-    def tp(self):
-        """
-        ndarray: Period array for response spectra.
-        """
-        return self._tp
-
-    @tp.setter
-    def tp(self, periods: np.ndarray):
-        """
-        Set the period array for response spectra.
-
-        Parameters
-        ----------
-        periods : np.ndarray
-            Explicit periods (list/tuple/ndarray). Uneven spacing is allowed.
-        """
-        self._tp = np.asarray(periods, dtype=float)
 
     @cached_property
     def freq_sim_p2(self):

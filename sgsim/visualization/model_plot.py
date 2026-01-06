@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from ..motion import signal_tools
 from .style import style
 
 class ModelPlot:
@@ -92,7 +93,7 @@ class ModelPlot:
             ax.set_ylabel(r'Cumulative energy ($cm^2/s^3$)')
             plt.show()
 
-    def plot_fas(self, log_scale=True, plot_range=(0.1, 25.5), config=None):
+    def plot_fas(self, log_scale=True, plot_range=(0.1, 25.0), config=None):
         """
         Plot Fourier Amplitude Spectrum (FAS) of the record and simulations.
 
@@ -105,11 +106,11 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'fas'):
             raise ValueError("""No Fourier spectrum available.""")
-        # self.real.freq_slicer = plot_range
+        self.real.freq_slicer = signal_tools.slice_freq(self.real.freq, plot_range)
         with style(config):
             fig, ax = plt.subplots()
             self._plot_mean_std(self.real.freq, self.sim.fas, self.real.fas, ax)
-            # ax.set_ylim(np.min(self.real.fas[self.real.freq_slicer]), 2 * np.max(self.real.fas[self.real.freq_slicer]))
+            ax.set_ylim(np.min(self.real.fas[self.real.freq_slicer]), 2 * np.max(self.real.fas[self.real.freq_slicer]))
             ax.set_xlim([0.1, 25.0])
             ax.set_xscale('log')
             if log_scale:

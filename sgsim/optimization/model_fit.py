@@ -4,9 +4,9 @@ from ..core.stochastic_model import StochasticModel
 from ..motion.ground_motion import GroundMotion
 from ..motion import signal_tools
 
-def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.999),
+def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.99),
         initial_guess=None, bounds=None,
-        damping_penalty_threshold: float = 0.7, damping_penalty_weight: float = 5.0):
+        damping_penalty_threshold: float = 0.7, damping_penalty_weight: float = 1.0):
     """
     Fit stochastic model parameters to match a target motion.
 
@@ -179,7 +179,7 @@ def update_modulating(params, model: StochasticModel, motion: GroundMotion):
         p1, c1 = params
         model_params = (p1, c1, et, tn)
     else:
-        raise ValueError(f"Unknown modulating type: {modulating_type}")
+        model_params = params  # For other modulating types
     
     model.modulating(motion.t, *model_params)
 

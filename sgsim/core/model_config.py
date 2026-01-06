@@ -47,7 +47,7 @@ class ModelConfig(DomainConfig):
             self._variance, self._variance_dot, self._variance_2dot, self._variance_bar, self._variance_2bar = model_engine.get_stats(
                 self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
                 self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
-                self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4)
+                self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.dw)
 
     @property
     def fas(self):
@@ -63,7 +63,7 @@ class ModelConfig(DomainConfig):
             self._fas = model_engine.get_fas(self.modulating.values,
                                              self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
                                              self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
-                                             self.freq_p2, self.freq_p4, self._variance)
+                                             self.freq_p2, self.freq_p4, self._variance, self.dt)
         return self._fas
     
     @property
