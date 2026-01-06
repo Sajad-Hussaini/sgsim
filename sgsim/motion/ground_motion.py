@@ -116,7 +116,7 @@ class GroundMotion:
             'pmnm_ac': 'Positive Min / Negative Max of Acceleration',
             'pmnm_vel': 'Positive Min / Negative Max of Velocity',
             'pmnm_disp': 'Positive Min / Negative Max of Displacement',
-        }
+            }
         return ims
     
     @property
@@ -282,7 +282,20 @@ class GroundMotion:
         ndarray
             Fourier amplitude spectrum.
         """
-        return signal_tools.fas(self.npts, self.ac)
+        return signal_tools.fas(self.dt, self.ac)
+    
+    @property
+    def fps(self):
+        """
+        Fourier phase spectrum of acceleration.
+        Returns unwrapped phase to ensure continuity (no jumps between -pi and pi).
+
+        Returns
+        -------
+        ndarray
+            Fourier phase spectrum.
+        """
+        return signal_tools.fps(self.ac)
 
     @property
     def ce(self):

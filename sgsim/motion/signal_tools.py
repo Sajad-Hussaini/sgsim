@@ -4,7 +4,9 @@ from scipy.fft import rfft, rfftfreq
 from numba import njit, prange
 from scipy.ndimage import uniform_filter1d
 
-# Signal processing functions
+# ============================================================================
+# Signal Processing Functions
+# ============================================================================
 
 def butterworth_filter(dt, rec, lowcut=0.1, highcut=25.0, order=4):
     """
@@ -106,7 +108,9 @@ def resample(dt, dt_new, rec):
     ac_new = sp_resample(rec, npts_new, axis=-1)
     return npts_new, dt_new, ac_new
 
-# Properties of the signal
+# ============================================================================
+# Signal Analysis Functions
+# ============================================================================
 
 def zc(rec):
     """
@@ -650,23 +654,41 @@ def cav(dt: float, rec: np.ndarray):
     """
     return np.sum(np.abs(rec), axis=-1) * dt
 
-def fas(npts, rec):
+def fas(dt: float, rec: np.ndarray):
     """
-    Calculate Fourier Amplitude Spectrum (FAS).
+    Calculate Seismological Fourier Amplitude Spectrum.
+    Robust against record duration and sampling rate changes.
+    The spectrum represent the Physics of the Earthquake, not the Settings of the Recorder.
 
     Parameters
     ----------
-    npts : int
-        Number of points.
+    dt : float
+        Time step (sampling interval).
     rec : np.ndarray
         Input record.
 
     Returns
     -------
-    np.ndarray
-        Fourier amplitude spectrum.
+    fas : np.ndarray
+        Fourier Amplitude Spectrum (rec unit * dt unit).
     """
-    return np.abs(rfft(rec)) / np.sqrt(npts / 2)
+    return np.abs(rfft(rec)) * dt
+
+def fps(rec: np.ndarray):
+    """
+    Calculate Fourier Phase Spectrum (Phase).
+    Returns unwrapped phase to ensure continuity (no jumps between -pi and pi).
+
+    Returns
+    -------
+    np.ndarray
+        Unwrapped phase in radians.
+    """
+    # 1. Get complex coefficients
+    complex_coeffs = rfft(rec)
+    # 2. Get angle and unwrap it
+    # unwrap removes the artificial discontinuities at pi/-pi
+    return np.unwrap(np.angle(complex_coeffs))
 
 def frequency(npts, dt):
     """
@@ -758,7 +780,7 @@ def turning_rate(dt, rec1, rec2):
     np.ndarray
         Turning rate time series.
     """
-    anlges = get_angle(rec1, rec2)
+    anlges = angle(rec1, rec2)
     if len(anlges.shape) == 1:
         return np.diff(anlges, prepend=anlges[0]) / dt
     else:
