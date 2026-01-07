@@ -47,6 +47,7 @@ def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range:
 
 def get_objective_function(component: str, model: StochasticModel, motion: GroundMotion, fit_range: tuple):
     """Create objective function for the specified component."""
+    energy_slicer = signal_tools.slice_energy(motion.ce, fit_range)
     
     if component == 'modulating':
         target_ce = motion.ce
@@ -58,9 +59,6 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
             return np.sum(np.square((model_ce - target_ce) / target_max))
 
     elif component == 'frequency':
-        # Pre-compute all fixed quantities once
-        energy_slicer = signal_tools.slice_energy(motion.ce, fit_range)
-        
         # Cache model type names
         upper_freq_type = type(model.upper_frequency).__name__
         lower_freq_type = type(model.lower_frequency).__name__
@@ -126,7 +124,7 @@ def update_modulating(params, model: StochasticModel, motion: GroundMotion, modu
         p1, c1 = params
         model_params = (p1, c1, et, tn)
     else:
-        model_params = params  # For other modulating types
+        model_params = params
     
     model.modulating(motion.t, *model_params)
 
@@ -179,41 +177,29 @@ def get_default_parameters(component: str, model: StochasticModel):
     """Get default initial guess and bounds for parameters."""
 
     mod_defaults = {
-        ('modulating', 'BetaDual'): (
-            [0.1, 20.0, 0.2, 10.0, 0.6],
-            [(0.01, 0.5), (1.0, 1000.0), (0.0, 0.5), (1.0, 1000.0), (0.0, 0.95)]
-        ),
-        ('modulating', 'BetaSingle'): (
-            [0.1, 20.0],
-            [(0.01, 0.95), (1.0, 1000.0)]
-        ),
-        ('modulating', 'BetaBasic'): (
-            [0.1, 20.0],
-            [(0.01, 0.95), (1.0, 1000.0)]
-        ),
-        }
+        ('modulating', 'BetaDual'): ([0.1, 20.0, 0.2, 10.0, 0.6],
+                                     [(0.01, 0.5), (1.0, 1000.0), (0.0, 0.5), (1.0, 1000.0), (0.0, 0.95)]),
+        ('modulating', 'BetaSingle'): ([0.1, 20.0],
+                                       [(0.01, 0.95), (1.0, 1000.0)]),
+        ('modulating', 'BetaBasic'): ([0.1, 20.0],
+                                      [(0.01, 0.95), (1.0, 1000.0)]),}
 
     freq_damping_defaults = {
-        # --- Upper Frequency ---
         ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
         ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
         ('upper_frequency', 'Constant'): ([5.0], [(0.5, 40.0)]),
 
-        # --- Lower Frequency ---
         ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
         ('lower_frequency', 'Exponential'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
         ('lower_frequency', 'Constant'): ([0.2], [(0.01, 0.99)]),
 
-        # --- Upper Damping ---
         ('upper_damping', 'Linear'): ([0.1, 0.3], [(0.1, 0.99), (0.1, 0.99)]),
         ('upper_damping', 'Exponential'): ([0.1, 0.3], [(0.1, 0.99), (0.1, 0.99)]),
         ('upper_damping', 'Constant'): ([0.3], [(0.1, 0.99)]),
         
-        # --- Lower Damping ---
         ('lower_damping', 'Linear'): ([0.1, 0.2], [(0.1, 0.99), (0.1, 0.99)]),
         ('lower_damping', 'Exponential'): ([0.1, 0.2], [(0.1, 0.99), (0.1, 0.99)]),
-        ('lower_damping', 'Constant'): ([0.2], [(0.1, 0.99)]),
-        }
+        ('lower_damping', 'Constant'): ([0.2], [(0.1, 0.99)]),}
 
     if component == 'modulating':
         model_type = type(model.modulating).__name__
@@ -225,14 +211,13 @@ def get_default_parameters(component: str, model: StochasticModel):
     elif component in ('frequency', 'fas'):
         initial_guess = []
         bounds = []
-        
-        # Define the components and their roles in order
+
         roles_and_models = [
             ('upper_frequency', model.upper_frequency),
             ('lower_frequency', model.lower_frequency),
             ('upper_damping', model.upper_damping),
             ('lower_damping', model.lower_damping)]
-        # Dynamically build the lists
+
         for role, model_obj in roles_and_models:
             model_type = type(model_obj).__name__
             key = (role, model_type)
@@ -240,7 +225,6 @@ def get_default_parameters(component: str, model: StochasticModel):
             if key not in freq_damping_defaults:
                 raise ValueError(f'No default parameters for {key}. Please provide initial_guess and bounds.')
             
-            # Extend the lists with the defaults for this specific subcomponent
             guess, bnds = freq_damping_defaults[key]
             initial_guess.extend(guess)
             bounds.extend(bnds)

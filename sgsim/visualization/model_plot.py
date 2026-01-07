@@ -150,7 +150,7 @@ class ModelPlot:
             else :
                 simspec = sim_spectra[2]
                 realspec = real_spectra[2]
-            self._plot_mean_std(self.real.tp, simspec, realspec, ax)
+            self._plot_mean_std(periods, simspec, realspec, ax)
             ax.set_xscale('log')
             if log_scale:
                 ax.set_yscale('log')
