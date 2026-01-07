@@ -93,7 +93,7 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
         
         def objective(params):
             model_output = update_fas(params, model, motion)
-            target = motion.fas
+            target = signal_tools.smooth(motion.fas)
             
             # Main fit error
             fit_error = np.sum(np.square((model_output - target) / target.max()))
