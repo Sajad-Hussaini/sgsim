@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.signal import butter, sosfilt, resample as sp_resample
+from scipy.signal.windows import tukey
 from scipy.fft import rfft, rfftfreq
 from numba import njit, prange
 from scipy.ndimage import uniform_filter1d
@@ -79,6 +80,29 @@ def smooth(rec: np.ndarray, window_size: int = 9) -> np.ndarray:
         Smoothed record.
     """
     return uniform_filter1d(rec, size=window_size, axis=-1, mode='constant', cval=0.0)
+
+def taper(rec: np.ndarray, alpha: float = 0.05) -> np.ndarray:
+    """
+    Apply a Tukey (tapered cosine) window to the signal ends.
+    Supports both 1D (npts,) and 2D (n_rec, npts) arrays.
+
+    Parameters
+    ----------
+    rec : np.ndarray
+        Input record.
+    alpha : float, optional
+        Shape parameter of the Tukey window, representing the fraction of the
+        window inside the cosine tapered region.
+        If zero, the Tukey window is equivalent to a rectangular window.
+        If one, the Tukey window is equivalent to a Hann window.
+
+    Returns
+    -------
+    np.ndarray
+        Tapered record.
+    """
+    window = tukey(rec.shape[-1], alpha=alpha)
+    return rec * window
 
 def resample(dt, dt_new, rec):
     """

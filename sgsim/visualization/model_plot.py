@@ -106,11 +106,11 @@ class ModelPlot:
         """
         if not hasattr(self.sim, 'fas'):
             raise ValueError("""No Fourier spectrum available.""")
-        self.real.freq_slicer = signal_tools.slice_freq(self.real.freq, plot_range)
+        freq_slicer = signal_tools.slice_freq(self.real.freq, plot_range)
         with style(config):
             fig, ax = plt.subplots()
             self._plot_mean_std(self.real.freq, self.sim.fas, self.real.fas, ax)
-            ax.set_ylim(np.min(self.real.fas[self.real.freq_slicer]), 2 * np.max(self.real.fas[self.real.freq_slicer]))
+            ax.set_ylim(np.min(self.real.fas[freq_slicer]), 2 * np.max(self.real.fas[freq_slicer]))
             ax.set_xlim([0.1, 25.0])
             ax.set_xscale('log')
             if log_scale:

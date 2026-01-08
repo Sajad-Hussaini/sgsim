@@ -219,6 +219,26 @@ class GroundMotion:
         slicer = signal_tools.slice_amplitude(self.ac, threshold)
         return self.load_from(source="array", dt=self.dt, ac=self.ac[slicer], tag=self.tag)
     
+    def taper(self, alpha: float = 0.05):
+        """
+        Apply tapering to the ground motion.
+
+        Parameters
+        ----------
+        alpha : float, optional
+            Shape parameter of the Tukey window, representing the fraction of the
+            window inside the cosine tapered region.
+            If zero, the Tukey window is equivalent to a rectangular window.
+            If one, the Tukey window is equivalent to a Hann window.
+
+        Returns
+        -------
+        GroundMotion
+            New instance.
+        """
+        new_ac = signal_tools.taper(self.ac, alpha)
+        return self.load_from(source="array", dt=self.dt, ac=new_ac, tag=self.tag)
+    
     def butterworth_filter(self, bandpass_freqs: tuple[float, float], order: int = 4):
         """
         Apply butterworth filter.
