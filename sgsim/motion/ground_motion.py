@@ -76,7 +76,7 @@ class GroundMotion:
         
         Note
         ----
-        Feel free to contact the developer (via Hussaini.smsajad@gmail.com) to add or include new ims.
+        Feel free to contact the developer (via Hussaini.smsajad@gmail.com) to include new IMs.
         """
         ims = {
             # Peak parameters

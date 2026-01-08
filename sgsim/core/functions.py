@@ -2,6 +2,18 @@ import numpy as np
 from scipy.special import betaln
 from abc import ABC, abstractmethod
 
+__all__ = [
+    "BetaBasic",
+    "BetaSingle",
+    "BetaDual",
+    "Gamma",
+    "Housner",
+    "Linear",
+    "Bilinear",
+    "Exponential",
+    "Constant"
+    ]
+
 class ParametricFunction(ABC):
     """
     Abstract base class for parametric functions.
@@ -27,6 +39,42 @@ class ParametricFunction(ABC):
         p = getattr(self, "params", {})
         param_str = ', '.join(f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}" for k, v in p.items())
         return f"{self.__class__.__name__}({param_str})"
+
+class BetaBasic(ParametricFunction):
+    """
+    Basic Beta modulating function.
+
+    Parameters
+    ----------
+    peak : float
+        Peak location as a fraction of duration (0 < peak < 1).
+    concentration : float
+        Concentration parameter (> 0).
+    energy : float
+        Total energy of the modulating function (> 0).
+    duration : float
+        Duration of the modulating function (> 0).
+
+    References
+    ----------  
+    - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
+
+    """
+    _pnames = ['peak', 'concentration', 'energy', 'duration']
+    def __call__(self, t, peak, concentration, energy, duration):
+        self.values = self.compute(t, peak, concentration, energy, duration)
+        self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
+        self._trigger_callback()
+        return self.values
+    
+    @staticmethod
+    def compute(t, peak, concentration, energy, duration):
+        mdl = np.zeros(len(t))
+        mdl[1:-1] = np.exp((concentration * peak) * np.log(t[1:-1]) +
+                             (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
+                             betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
+                             (1 + concentration) * np.log(duration))
+        return np.sqrt(energy * mdl)
 
 class BetaSingle(ParametricFunction):
     """
@@ -117,42 +165,6 @@ class BetaDual(ParametricFunction):
                                               (concentration_2 * (1 - peak_2)) * np.log(duration - t[1:-1]) -
                                               betaln(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2)) -
                                               (1 + concentration_2) * np.log(duration))
-        return np.sqrt(energy * mdl)
-
-class BetaBasic(ParametricFunction):
-    """
-    Basic Beta modulating function.
-
-    Parameters
-    ----------
-    peak : float
-        Peak location as a fraction of duration (0 < peak < 1).
-    concentration : float
-        Concentration parameter (> 0).
-    energy : float
-        Total energy of the modulating function (> 0).
-    duration : float
-        Duration of the modulating function (> 0).
-
-    References
-    ----------  
-    - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
-
-    """
-    _pnames = ['peak', 'concentration', 'energy', 'duration']
-    def __call__(self, t, peak, concentration, energy, duration):
-        self.values = self.compute(t, peak, concentration, energy, duration)
-        self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
-        self._trigger_callback()
-        return self.values
-    
-    @staticmethod
-    def compute(t, peak, concentration, energy, duration):
-        mdl = np.zeros(len(t))
-        mdl[1:-1] = np.exp((concentration * peak) * np.log(t[1:-1]) +
-                             (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                             betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
-                             (1 + concentration) * np.log(duration))
         return np.sqrt(energy * mdl)
 
 class Gamma(ParametricFunction):

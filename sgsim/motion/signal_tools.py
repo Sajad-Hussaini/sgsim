@@ -5,6 +5,37 @@ from scipy.fft import rfft, rfftfreq
 from numba import njit, prange
 from scipy.ndimage import uniform_filter1d
 
+# Define the public API.
+# Sphinx will ONLY document these functions.
+__all__ = [
+    "butterworth_filter",
+    "baseline_correction",
+    "smooth",
+    "taper",
+    "resample",
+    "zc",
+    "pmnm",
+    "le",
+    "sdof_response",
+    "response_spectra",
+    "slice_energy",
+    "slice_amplitude",
+    "slice_freq",
+    "ce",
+    "integrate",
+    "integrate_detrend",
+    "peak_abs_value",
+    "cav",
+    "fas",
+    "fps",
+    "frequency",
+    "time",
+    "magnitude",
+    "angle",
+    "turning_rate",
+    "rotate",
+    "correlation",
+    ]
 # ============================================================================
 # Signal Processing Functions
 # ============================================================================

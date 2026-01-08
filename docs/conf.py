@@ -8,6 +8,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'myst_parser',
+    "sphinx_copybutton",
     'nbsphinx']
 
 nbsphinx_allow_errors = True
@@ -19,3 +20,4 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 html_theme = 'sphinx_rtd_theme'
 
 autodoc_typehints = "none"
+pygments_style = 'sphinx'

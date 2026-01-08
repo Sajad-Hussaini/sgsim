@@ -7,4 +7,3 @@ Functions
    :members:
    :undoc-members:
    :imported-members:
-   :exclude-members: ParametricFunction, abstractmethod, ABC
