@@ -72,11 +72,11 @@ You can easily access scalar Intensity Measures like PGA (Peak Ground Accelerati
 .. code-block:: python
 
    # %% List all available Intensity Measures
-   gm.list_IMs()
+   gm_processed.list_IMs()
 
    # Access specific values
-   print(f"PGA: {gm.pga} g")
-   print(f"PGV: {gm.pgv} cm/s")
+   print(f"PGA: {gm_processed.pga} g")
+   print(f"PGV: {gm_processed.pgv} cm/s")
 
 Step 5: Plot Time Series, Response Spectra, FAS
 ------------------------------------------------
@@ -133,4 +133,4 @@ Finally, save the processed ground motion IMs and spectra to a CSV file.
 .. code-block:: python
 
    # %% Export to CSV including specific IMs and arbitrary spectral ordinates
-   gm.to_csv('output_ground_motion.csv', ims=['pga', 'pgv', 'sa', 'fas'], periods=tp)
+   gm_processed.to_csv('output_ground_motion.csv', ims=['pga', 'pgv', 'sa', 'fas'], periods=tp)
