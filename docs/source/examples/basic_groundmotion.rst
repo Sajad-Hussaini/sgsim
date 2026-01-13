@@ -22,8 +22,8 @@ Step 2: Load a Ground Motion
 
 You can create a ``GroundMotion`` instance in two primary ways: loading from a file or creating one from existing data arrays in memory.
 
-Option A: Load from a Record File (e.g., PEER NGA)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Option A: Load from a Record File (e.g., PEER NGA, ESM, etc.)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -40,8 +40,7 @@ Option B: Load from Memory (NumPy Arrays)
 
 .. code-block:: python
 
-   # %% Create dummy data for demonstration
-   # Example dummy data (time step and acceleration array)
+   # %% Create dummy data for demonstration (time step and acceleration array)
    dt = 0.01  # Time step in seconds
    ac = np.random.normal(0, 0.1, 1000)  # Simulated acceleration array
 
@@ -51,18 +50,29 @@ Option B: Load from Memory (NumPy Arrays)
 Step 3: Process the Signal
 --------------------------
 
-Once loaded, you can chain methods to process the ground motion. For example, trim the record to significant duration (5-95% cumulative energy) and apply a bandpass filter.
+Once loaded, you can chain methods to process the ground motion.
+Processing is often essential to remove noise and integration errors.
+
+The code below performs the following standard workflow:
+
+1.  **Trimming:** Isolates the significant shaking (5% to 95% of energy).
+2.  **Baseline Correction:** Removes low-frequency drift.
+3.  **Tapering:** Smooths the ends to zero to prevent spectral leakage.
+4.  **Filtering:** Bandpass filter (0.1 Hz - 25 Hz) to remove noise or unwanted frequencies.
 
 .. code-block:: python
 
    # %% Process the ground motion
-   # 1. Trimming: Isolates the significant duration (e.g., 5% to 95% of energy)
-   # 2. Tapering: Smooths the ends of the signal to zero (Tukey window)
-   # 3. Baseline Correction: Removes low-frequency drift (polynomial fit)
-   # 3. Filtering: Bandpass filter (e.g., 0.1 Hz to 25 Hz) to remove noise
-   gm_processed = (gm.trim_by_energy(energy_range=(0.05, 0.95)).taper(alpha=0.05)
-                     .baseline_correction(degree=1)
-                     .butterworth_filter(bandpass_freqs=(0.1, 25.0), order=4))
+   gm_trimmed = gm.trim_by_energy(energy_range=(0.05, 0.95))
+   gm_corrected = gm_trimmed.baseline_correction(degree=1)
+   gm_tapered = gm_corrected.taper(alpha=0.05)
+   gm_processed = gm_tapered.butterworth_filter(bandpass_freqs=(0.1, 25.0), order=4)
+
+   # Alternatively, chain all processing steps in one line
+   # gm_processed = (gm.trim_by_energy(energy_range=(0.05, 0.95))
+   #                  .baseline_correction(degree=1)
+   #                  .taper(alpha=0.05)
+   #                  .butterworth_filter(bandpass_freqs=(0.1, 25.0), order=4))  
 
 Step 4: Access Intensity Measures (IMs)
 ---------------------------------------
@@ -74,32 +84,32 @@ You can easily access scalar Intensity Measures like PGA (Peak Ground Accelerati
    # %% List all available Intensity Measures
    gm_processed.list_IMs()
 
-   # Access specific values
+   # %% Access specific IMs
    print(f"PGA: {gm_processed.pga} g")
    print(f"PGV: {gm_processed.pgv} cm/s")
 
 Step 5: Plot Time Series, Response Spectra, FAS
 ------------------------------------------------
 
-Compute the spectral displacement (SD), velocity (SV), and acceleration (SA) for a range of periods.
+You can compute spectral displacement (SD), velocity (SV), and acceleration (SA) for any range of periods.
 
 .. code-block:: python
 
    # %% Plot time Series of processed ground motion
-   fig, ax = plt.subplots(3, 1, sharex=True, figsize=(10, 8))
+   fig, ax = plt.subplots(3, 1, sharex=True, figsize=(5, 4))
    # Acceleration
-   ax[0].plot(gm_processed.t, gm_processed.ac, color='black', linewidth=0.8)
-   ax[0].set_ylabel('Acceleration ($g$)')
+   ax[0].plot(gm_processed.t, gm_processed.ac, color='black')
+   ax[0].set_ylabel('Acceleration (g)')
    ax[0].set_title('Processed Time Series')
 
    # Velocity
-   ax[1].plot(gm_processed.t, gm_processed.vel, color='blue', linewidth=0.8)
-   ax[1].set_ylabel('Velocity ($cm/s$)')
+   ax[1].plot(gm_processed.t, gm_processed.vel, color='blue')
+   ax[1].set_ylabel('Velocity (cm/s)')
 
    # Displacement
-   ax[2].plot(gm_processed.t, gm_processed.disp, color='red', linewidth=0.8)
-   ax[2].set_ylabel('Displacement ($cm$)')
-   ax[2].set_xlabel('Time ($s$)')
+   ax[2].plot(gm_processed.t, gm_processed.disp, color='red')
+   ax[2].set_ylabel('Displacement (cm)')
+   ax[2].set_xlabel('Time (s)')
 
    plt.tight_layout()
    plt.show()
@@ -128,9 +138,17 @@ Compute the spectral displacement (SD), velocity (SV), and acceleration (SA) for
 Step 6: Export Results
 ----------------------
 
-Finally, save the processed ground motion IMs and spectra to a CSV file.
+Finally, You can save any ground motion attributes (e.g., any IM, SA, FAS, etc.) to CSV file if spreadsheet analysis is needed.
+You can also use numpy methods to simply save any attributes to txt or npy files.
 
 .. code-block:: python
 
    # %% Export to CSV including specific IMs and arbitrary spectral ordinates
-   gm_processed.to_csv('output_ground_motion.csv', ims=['pga', 'pgv', 'sa', 'fas'], periods=tp)
+   gm_processed.to_csv('output_gm.csv', ims=['pga', 'pgv', 'cav', 'sa'], periods=tp)   
+
+   # %% Save time and acceleration arrays to a text file using numpy
+   output_path = "output_gm.txt"
+
+   data = np.column_stack((gm_processed.t, gm_processed.ac))
+   np.savetxt(output_path, data, fmt="%.6e", header="Time Acceleration")
+
