@@ -17,6 +17,16 @@ __all__ = [
 class ParametricFunction(ABC):
     """
     Abstract base class for parametric functions.
+    
+    Provides interface for time-varying parametric functions used in
+    stochastic ground motion simulation.
+    
+    Attributes
+    ----------
+    params : dict
+        Dictionary of function parameters.
+    value : ndarray
+        Last computed function values.
     """
     def __init__(self):
         self.params = {k: None for k in self._pnames}
@@ -42,23 +52,32 @@ class ParametricFunction(ABC):
 
 class BetaBasic(ParametricFunction):
     """
-    Basic Beta modulating function.
+    Basic Beta modulating function for earthquake ground motion simulation.
+    
+    Provides a smooth envelope function based on the Beta distribution,
+    suitable for modeling single-phase earthquake strong motion.
 
     Parameters
     ----------
     peak : float
-        Peak location as a fraction of duration (0 < peak < 1).
+        Peak location as fraction of duration (0 < peak < 1).
     concentration : float
-        Concentration parameter (> 0).
+        Concentration parameter controlling sharpness (> 0).
     energy : float
-        Total energy of the modulating function (> 0).
+        Total energy under the envelope (> 0).
     duration : float
-        Duration of the modulating function (> 0).
+        Total duration of the function (> 0).
+    
+    See Also
+    --------
+    BetaSingle : Beta function with weak motion baseline.
+    BetaDual : Beta function with two strong phases.
 
     References
     ----------  
-    - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
-
+    Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic
+    simulation of earthquake ground motions with multiple strong phases.
+    Earthquake Spectra. 2025;41(3):2399-2435.
     """
     _pnames = ['peak', 'concentration', 'energy', 'duration']
     def __call__(self, t, peak, concentration, energy, duration):
@@ -78,23 +97,33 @@ class BetaBasic(ParametricFunction):
 
 class BetaSingle(ParametricFunction):
     """
-    Beta single modulating function.
+    Beta modulating function with weak motion baseline.
+    
+    Combines a parabolic weak motion component (5% energy) with a Beta
+    distribution strong motion component (95% energy) for realistic
+    earthquake ground motion envelopes.
 
     Parameters
     ----------
     peak : float
-        Peak location as a fraction of duration (0 < peak < 1).
+        Peak location as fraction of duration (0 < peak < 1).
     concentration : float
-        Concentration parameter (> 0).
+        Concentration parameter controlling sharpness (> 0).
     energy : float
-        Total energy of the modulating function (> 0).
+        Total energy under the envelope (> 0).
     duration : float
-        Duration of the modulating function (> 0).
+        Total duration of the function (> 0).
+    
+    See Also
+    --------
+    BetaBasic : Pure Beta function without weak motion.
+    BetaDual : Beta function with two strong phases.
 
     References
     ----------  
-    - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
-
+    Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic
+    simulation of earthquake ground motions with multiple strong phases.
+    Earthquake Spectra. 2025;41(3):2399-2435.
     """
     _pnames = ['peak', 'concentration', 'energy', 'duration']
     def __call__(self, t, peak, concentration, energy, duration):
@@ -115,29 +144,39 @@ class BetaSingle(ParametricFunction):
 
 class BetaDual(ParametricFunction):
     """
-    Beta dual modulating function.
+    Beta modulating function with two distinct strong phases.
+    
+    Models earthquakes with multiple strong motion packets, combining weak
+    motion baseline (5% energy) with two independent Beta distributions
+    representing separate strong motion phases.
 
     Parameters
     ----------
     peak : float
-        Peak location of the first strong phase as a fraction of duration (0 < peak < 1).
+        Peak location of first strong phase as fraction of duration (0 < peak < 1).
     concentration : float
-        Concentration parameter of the first phase (> 0).
+        Concentration parameter of first phase (> 0).
     peak_2 : float
-        Peak location of the second strong phase as a fraction of duration (0 < peak_2 < 1).
+        Peak location of second strong phase as fraction of duration (0 < peak_2 < 1).
     concentration_2 : float
-        Concentration parameter of the second phase (> 0).
+        Concentration parameter of second phase (> 0).
     energy_ratio : float
-        Energy ratio of the first strong phase (0 < energy_ratio < 1).
+        Energy fraction allocated to first strong phase (0 < energy_ratio < 0.95).
     energy : float
-        Total energy of the modulating function (> 0).
+        Total energy under the envelope (> 0).
     duration : float
-        Duration of the modulating function (> 0).
+        Total duration of the function (> 0).
+    
+    See Also
+    --------
+    BetaBasic : Single Beta function without weak motion.
+    BetaSingle : Single strong phase with weak motion.
 
     References
     ----------  
-    - Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake. Earthquake Spectra. 2025;41(3):2399-2435. doi:10.1177/87552930251331981
-
+    Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic
+    simulation of earthquake ground motions with multiple strong phases.
+    Earthquake Spectra. 2025;41(3):2399-2435.
     """
     _pnames = ['peak', 'concentration', 'peak_2', 'concentration_2', 'energy_ratio', 'energy', 'duration']
     def __call__(self, t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):
@@ -169,16 +208,24 @@ class BetaDual(ParametricFunction):
 
 class Gamma(ParametricFunction):
     """
-    Gamma modulating function.
+    Gamma distribution modulating function.
+    
+    Classical envelope function for earthquake ground motion based on
+    Gamma distribution with exponential decay.
 
     Parameters
     ----------
     scale : float
         Amplitude scaling factor (> 0).
     shape : float
-        Shape parameter (> 0).
+        Shape parameter controlling rise time (> 0).
     decay : float
-        Decay parameter (> 0).
+        Decay rate parameter (> 0).
+    
+    See Also
+    --------
+    BetaSingle : Alternative Beta-based envelope.
+    Housner : Piecewise envelope function.
     """
     _pnames = ['scale', 'shape', 'decay']
     def __call__(self, t, scale, shape, decay):
@@ -193,20 +240,28 @@ class Gamma(ParametricFunction):
 
 class Housner(ParametricFunction):
     """
-    Housner modulating function.
+    Housner piecewise modulating function.
+    
+    Three-phase envelope function: quadratic rise, constant plateau,
+    and exponential decay. Classic model for earthquake strong motion.
 
     Parameters
     ----------
     amplitude : float
-        Constant amplitude (> 0).
+        Constant amplitude during plateau phase (> 0).
     decay : float
-        Decay scale (> 0).
+        Decay rate during tail phase (> 0).
     shape : float
-        Shape parameter (> 0).
+        Decay shape exponent (> 0).
     tp : float
-        Time to peak amplitude (> 0).
+        Time to reach peak amplitude (> 0).
     td : float
-        Time to start of decay phase (td > tp).
+        Time to start decay phase (td > tp).
+    
+    See Also
+    --------
+    Gamma : Alternative smooth envelope.
+    BetaSingle : Beta-based envelope function.
     """
     _pnames = ['amplitude', 'decay', 'shape', 'tp', 'td']
     def __call__(self, t, amplitude, decay, shape, tp, td):
@@ -223,14 +278,22 @@ class Housner(ParametricFunction):
 
 class Linear(ParametricFunction):
     """
-    Linear function.
+    Linear interpolation function.
+    
+    Provides linear transition between start and end values over
+    the time domain.
 
     Parameters
     ----------
     start : float
-        Starting value.
+        Starting value at t=0.
     end : float
-        Ending value.
+        Ending value at t=max(t).
+    
+    See Also
+    --------
+    Bilinear : Piecewise linear with midpoint.
+    Exponential : Exponential interpolation.
     """
     _pnames = ['start', 'end']
     def __call__(self, t, start, end):
@@ -245,18 +308,26 @@ class Linear(ParametricFunction):
 
 class Bilinear(ParametricFunction):
     """
-    Bilinear function.
+    Piecewise linear interpolation function.
+    
+    Provides two-segment linear transition through a specified midpoint,
+    useful for modeling parameters with intermediate changes.
 
     Parameters
     ----------
     start : float
-        Starting value.
+        Starting value at t=0.
     mid : float
-        Midpoint value.
+        Value at midpoint time.
     end : float
-        Ending value.
+        Ending value at t=max(t).
     t_mid : float
-        Time at which the midpoint occurs (0 < t_mid < max(t)).
+        Time at midpoint (0 < t_mid < max(t)).
+    
+    See Also
+    --------
+    Linear : Simple linear interpolation.
+    Exponential : Smooth exponential transition.
     """
     _pnames = ['start', 'mid', 'end', 't_mid']
     def __call__(self, t, start, mid, end, t_mid):
@@ -273,14 +344,22 @@ class Bilinear(ParametricFunction):
 
 class Exponential(ParametricFunction):
     """
-    Exponential function.
+    Exponential interpolation function.
+    
+    Provides smooth exponential transition between start and end values,
+    useful for parameters varying over orders of magnitude.
 
     Parameters
     ----------
     start : float
-        Starting value.
+        Starting value at t=0 (> 0).
     end : float
-        Ending value.
+        Ending value at t=max(t) (> 0).
+    
+    See Also
+    --------
+    Linear : Linear interpolation.
+    Bilinear : Piecewise linear with midpoint.
     """
     _pnames = ['start', 'end']
     def __call__(self, t, start, end):
@@ -295,12 +374,18 @@ class Exponential(ParametricFunction):
 
 class Constant(ParametricFunction):
     """
-    Constant function.
+    Constant value function.
+    
+    Provides time-invariant parameter values throughout the time domain.
 
     Parameters
     ----------
     value : float
-        Constant value.
+        Constant value for all time points.
+    
+    See Also
+    --------
+    Linear : Time-varying linear function.
     """
     _pnames = ['value']
     def __call__(self, t, value):

@@ -4,13 +4,27 @@ from numba import njit, prange
 @njit('complex128[:](float64, float64, float64, float64, float64[:], float64[:])', fastmath=True, cache=True)
 def get_frf(wu, zu, wl, zl, freq, freq_p2):
     """
-    Frequency response function for the filter
-    using the displacement and acceleration transfer function of the 2nd order system
+    Compute frequency response function.
 
-    wu, zu: upper angular frequency and damping ratio
-    wl, zl: lower angular frequency and damping ratio
-    freq: angular frequency upto Nyq.
-    freq_p2: freq ** 2
+    Parameters
+    ----------
+    wu : float
+        Upper angular frequency.
+    zu : float
+        Upper damping ratio.
+    wl : float
+        Lower angular frequency.
+    zl : float
+        Lower damping ratio.
+    freq : ndarray
+        Angular frequencies.
+    freq_p2 : ndarray
+        Squared frequencies.
+
+    Returns
+    -------
+    ndarray
+        Complex frequency response.
     """
     out = np.empty_like(freq, dtype=np.complex128)
     for i in range(len(freq)):
@@ -22,14 +36,27 @@ def get_frf(wu, zu, wl, zl, freq, freq_p2):
 @njit('float64[:](float64, float64, float64, float64, float64[:], float64[:])', fastmath=True, cache=True)
 def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
     """
-    Non-normalized Power Spectral Density (PSD) for the filter
-    using the displacement and acceleration transfer function of the 2nd order system
+    Compute power spectral density.
 
-    wu, zu: upper angular frequency and damping ratio
-    wl, zl: lower angular frequency and damping ratio
-    freq: angular frequency up to Nyq.
-    freq_p2: freq ** 2
-    freq_p4: freq ** 4
+    Parameters
+    ----------
+    wu : float
+        Upper angular frequency.
+    zu : float
+        Upper damping ratio.
+    wl : float
+        Lower angular frequency.
+    zl : float
+        Lower damping ratio.
+    freq_p2 : ndarray
+        Squared frequencies.
+    freq_p4 : ndarray
+        Fourth power frequencies.
+
+    Returns
+    -------
+    ndarray
+        Power spectral density values.
     """
     out = np.empty_like(freq_p2)
     wu2 = wu * wu
@@ -49,8 +76,41 @@ def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
 @njit('Tuple((float64[:], float64[:], float64[:], float64[:], float64[:]))(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', parallel=True, fastmath=True, cache=True)
 def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, dw):
     """
-    The evolutionary statistics of the stochastic model using Power Spectral Density (PSD)
-    Optimized with Kernel Fusion (inlined PSD calculation) to avoid array allocations.
+    Compute evolutionary statistics from PSD.
+
+    Parameters
+    ----------
+    wu : ndarray
+        Upper angular frequencies.
+    zu : ndarray
+        Upper damping ratios.
+    wl : ndarray
+        Lower angular frequencies.
+    zl : ndarray
+        Lower damping ratios.
+    freq_p2 : ndarray
+        Squared frequencies.
+    freq_p4 : ndarray
+        Fourth power frequencies.
+    freq_n2 : ndarray
+        Negative squared frequencies.
+    freq_n4 : ndarray
+        Negative fourth power frequencies.
+    dw : float
+        Frequency increment.
+
+    Returns
+    -------
+    variance : ndarray
+        Variance array.
+    variance_dot : ndarray
+        First derivative variance.
+    variance_2dot : ndarray
+        Second derivative variance.
+    variance_bar : ndarray
+        Normalized variance.
+    variance_2bar : ndarray
+        Second normalized variance.
     """
     n = len(wu)
     variance = np.empty(n)
@@ -98,8 +158,33 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, dw):
 @njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
 def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     """
-    The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
-    Optimized with Kernel Fusion to eliminate temporary array allocations inside the loop.
+    Compute Fourier amplitude spectrum.
+
+    Parameters
+    ----------
+    mdl : ndarray
+        Modulating function values.
+    wu : ndarray
+        Upper angular frequencies.
+    zu : ndarray
+        Upper damping ratios.
+    wl : ndarray
+        Lower angular frequencies.
+    zl : ndarray
+        Lower damping ratios.
+    freq_p2 : ndarray
+        Squared frequencies.
+    freq_p4 : ndarray
+        Fourth power frequencies.
+    variance : ndarray
+        Variance array.
+    dt : float
+        Time step.
+
+    Returns
+    -------
+    ndarray
+        Fourier amplitude spectrum.
     """
     fas = np.zeros_like(freq_p2, dtype=np.float64)
     final_scale = dt * 2 * np.pi
@@ -134,7 +219,33 @@ def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
 @njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
 def get_fas_vel(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     """
-    The Fourier amplitude spectrum (FAS) of the stochastic model velocity
+    Compute Fourier amplitude spectrum of velocity.
+
+    Parameters
+    ----------
+    mdl : ndarray
+        Modulating function values.
+    wu : ndarray
+        Upper angular frequencies.
+    zu : ndarray
+        Upper damping ratios.
+    wl : ndarray
+        Lower angular frequencies.
+    zl : ndarray
+        Lower damping ratios.
+    freq_p2 : ndarray
+        Squared frequencies.
+    freq_p4 : ndarray
+        Fourth power frequencies.
+    variance : ndarray
+        Variance array.
+    dt : float
+        Time step.
+
+    Returns
+    -------
+    ndarray
+        Velocity Fourier amplitude spectrum.
     """
     fas = np.zeros_like(freq_p2, dtype=np.float64)
     final_scale = dt * 2 * np.pi
@@ -168,7 +279,33 @@ def get_fas_vel(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
 @njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
 def get_fas_disp(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     """
-    The Fourier amplitude spectrum (FAS) of the stochastic model displacement
+    Compute Fourier amplitude spectrum of displacement.
+
+    Parameters
+    ----------
+    mdl : ndarray
+        Modulating function values.
+    wu : ndarray
+        Upper angular frequencies.
+    zu : ndarray
+        Upper damping ratios.
+    wl : ndarray
+        Lower angular frequencies.
+    zl : ndarray
+        Lower damping ratios.
+    freq_p2 : ndarray
+        Squared frequencies.
+    freq_p4 : ndarray
+        Fourth power frequencies.
+    variance : ndarray
+        Variance array.
+    dt : float
+        Time step.
+
+    Returns
+    -------
+    ndarray
+        Displacement Fourier amplitude spectrum.
     """
     fas = np.zeros_like(freq_p2, dtype=np.float64)
     final_scale = dt * 2 * np.pi
@@ -202,7 +339,41 @@ def get_fas_disp(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
 @njit('complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :], float64)', parallel=True, fastmath=True, cache=True)
 def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise, dt):
     """
-    The Fourier series of n number of simulations
+    Generate Fourier series for simulations.
+
+    Parameters
+    ----------
+    n : int
+        Number of simulations.
+    npts : int
+        Number of time points.
+    t : ndarray
+        Time array.
+    freq_sim : ndarray
+        Simulation frequencies.
+    freq_sim_p2 : ndarray
+        Squared simulation frequencies.
+    mdl : ndarray
+        Modulating function values.
+    wu : ndarray
+        Upper angular frequencies.
+    zu : ndarray
+        Upper damping ratios.
+    wl : ndarray
+        Lower angular frequencies.
+    zl : ndarray
+        Lower damping ratios.
+    variance : ndarray
+        Variance array.
+    white_noise : ndarray
+        White noise matrix (n x npts).
+    dt : float
+        Time step.
+
+    Returns
+    -------
+    ndarray
+        Complex Fourier coefficients (n x n_freq).
     """
     n_freq = len(freq_sim)
     fourier = np.zeros((n, n_freq), dtype=np.complex128)
@@ -240,6 +411,23 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
 
 @njit('float64[:](float64, float64[:], float64[:])', fastmath=True, cache=True)
 def cumulative_rate(dt, numerator, denominator):
+    """
+    Compute cumulative rate.
+
+    Parameters
+    ----------
+    dt : float
+        Time step.
+    numerator : ndarray
+        Numerator values.
+    denominator : ndarray
+        Denominator values.
+
+    Returns
+    -------
+    ndarray
+        Cumulative rate array.
+    """
     scale = dt / (2 * np.pi)
     cumsum = 0.0
     out = np.empty_like(numerator, dtype=np.float64)
@@ -250,6 +438,25 @@ def cumulative_rate(dt, numerator, denominator):
 
 @njit('float64[:](float64, float64[:], float64[:], float64[:])', fastmath=True, cache=True)
 def pmnm_rate(dt, first, middle, last):
+    """
+    Compute PMNM rate.
+
+    Parameters
+    ----------
+    dt : float
+        Time step.
+    first : ndarray
+        First variance array.
+    middle : ndarray
+        Middle variance array.
+    last : ndarray
+        Last variance array.
+
+    Returns
+    -------
+    ndarray
+        PMNM rate array.
+    """
     scale = dt / (4 * np.pi)
     cumsum = 0.0
     out = np.empty_like(first, dtype=np.float64)

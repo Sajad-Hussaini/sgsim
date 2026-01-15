@@ -12,4 +12,3 @@ Official API documentation for the ``sgsim`` package. This lists only public cla
    signaltools
    stochasticmodel
    functions
-   modelplot

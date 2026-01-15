@@ -1,7 +1,7 @@
 import numpy as np
 from .domain_config import DomainConfig
 from .functions import ParametricFunction
-from . import model_engine
+from . import engine
 from ..motion import signal_tools
 
 class ModelConfig(DomainConfig):
@@ -44,7 +44,7 @@ class ModelConfig(DomainConfig):
     def _stats(self):
         """Compute and store the variances for internal use."""
         if not hasattr(self, '_variance'):
-            self._variance, self._variance_dot, self._variance_2dot, self._variance_bar, self._variance_2bar = model_engine.get_stats(
+            self._variance, self._variance_dot, self._variance_2dot, self._variance_bar, self._variance_2bar = engine.get_stats(
                 self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
                 self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                 self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.dw)
@@ -60,7 +60,7 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas'):
-            self._fas = model_engine.get_fas(self.modulating.value,
+            self._fas = engine.get_fas(self.modulating.value,
                                              self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
                                              self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                                              self.freq_p2, self.freq_p4, self._variance, self.dt)
@@ -77,7 +77,7 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas_vel'):
-            self._fas_vel = model_engine.get_fas_vel(self.modulating.value,
+            self._fas_vel = engine.get_fas_vel(self.modulating.value,
                                              self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
                                              self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                                              self.freq_p2, self.freq_p4, self._variance, self.dt)
@@ -94,7 +94,7 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas_disp'):
-            self._fas_disp = model_engine.get_fas_disp(self.modulating.value,
+            self._fas_disp = engine.get_fas_disp(self.modulating.value,
                                              self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
                                              self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                                              self.freq_p2, self.freq_p4, self._variance, self.dt)
@@ -123,7 +123,7 @@ class ModelConfig(DomainConfig):
             Cumulative count of acceleration local extrema.
         """
         self._stats
-        return model_engine.cumulative_rate(self.dt, self._variance_2dot, self._variance_dot)
+        return engine.cumulative_rate(self.dt, self._variance_2dot, self._variance_dot)
 
     @property
     def le_vel(self):
@@ -136,7 +136,7 @@ class ModelConfig(DomainConfig):
             Cumulative count of velocity local extrema.
         """
         self._stats
-        return model_engine.cumulative_rate(self.dt, self._variance_dot, self._variance)
+        return engine.cumulative_rate(self.dt, self._variance_dot, self._variance)
 
     @property
     def le_disp(self):
@@ -149,7 +149,7 @@ class ModelConfig(DomainConfig):
             Cumulative count of displacement local extrema.
         """
         self._stats
-        return model_engine.cumulative_rate(self.dt, self._variance, self._variance_bar)
+        return engine.cumulative_rate(self.dt, self._variance, self._variance_bar)
 
     @property
     def zc_ac(self):
@@ -162,7 +162,7 @@ class ModelConfig(DomainConfig):
             Cumulative count of acceleration zero crossings.
         """
         self._stats
-        return model_engine.cumulative_rate(self.dt, self._variance_dot, self._variance)
+        return engine.cumulative_rate(self.dt, self._variance_dot, self._variance)
 
     @property
     def zc_vel(self):
@@ -175,7 +175,7 @@ class ModelConfig(DomainConfig):
             Cumulative count of velocity zero crossings.
         """            
         self._stats
-        return model_engine.cumulative_rate(self.dt, self._variance, self._variance_bar)
+        return engine.cumulative_rate(self.dt, self._variance, self._variance_bar)
 
     @property
     def zc_disp(self):
@@ -188,7 +188,7 @@ class ModelConfig(DomainConfig):
             Cumulative count of displacement zero crossings.
         """
         self._stats
-        return model_engine.cumulative_rate(self.dt, self._variance_bar, self._variance_2bar)
+        return engine.cumulative_rate(self.dt, self._variance_bar, self._variance_2bar)
 
     @property
     def pmnm_ac(self):
@@ -201,7 +201,7 @@ class ModelConfig(DomainConfig):
             Cumulative count of acceleration positive-minima and negative maxima.
         """
         self._stats
-        return model_engine.pmnm_rate(self.dt, self._variance_2dot, self._variance_dot, self._variance)
+        return engine.pmnm_rate(self.dt, self._variance_2dot, self._variance_dot, self._variance)
 
     @property
     def pmnm_vel(self):
@@ -214,7 +214,7 @@ class ModelConfig(DomainConfig):
             Cumulative count of velocity positive-minima and negative maxima.
         """
         self._stats
-        return model_engine.pmnm_rate(self.dt, self._variance_dot, self._variance, self._variance_bar)
+        return engine.pmnm_rate(self.dt, self._variance_dot, self._variance, self._variance_bar)
 
     @property
     def pmnm_disp(self):
@@ -227,4 +227,4 @@ class ModelConfig(DomainConfig):
             Cumulative count of displacement positive-minima and negative maxima.
         """
         self._stats
-        return model_engine.pmnm_rate(self.dt, self._variance, self._variance_bar, self._variance_2bar)
+        return engine.pmnm_rate(self.dt, self._variance, self._variance_bar, self._variance_2bar)

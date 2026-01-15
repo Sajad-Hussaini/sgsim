@@ -5,8 +5,7 @@ from scipy.fft import rfft, rfftfreq
 from numba import njit, prange
 from scipy.ndimage import uniform_filter1d
 
-# Define the public API.
-# Sphinx will ONLY document these functions.
+
 __all__ = [
     "butterworth_filter",
     "baseline_correction",
@@ -36,31 +35,30 @@ __all__ = [
     "rotate",
     "correlation",
     ]
-# ============================================================================
-# Signal Processing Functions
-# ============================================================================
+
+# Signal Processing =============================================================
 
 def butterworth_filter(dt, rec, lowcut=0.1, highcut=25.0, order=4):
     """
-    Apply a band-pass Butterworth filter to remove low-frequency drift.
+    Apply bandpass Butterworth filter using second-order sections.
 
     Parameters
     ----------
     dt : float
-        Time step of the record.
-    rec : np.ndarray
-        Input record.
+        Time step.
+    rec : ndarray
+        Input signal.
     lowcut : float, optional
-        Low cut-off frequency in Hz, by default 0.1.
+        Low cutoff frequency (default is 0.1).
     highcut : float, optional
-        High cut-off frequency in Hz, by default 25.0.
+        High cutoff frequency (default is 25.0).
     order : int, optional
-        Order of the Butterworth filter, by default 4.
+        Filter order (default is 4).
 
     Returns
     -------
-    np.ndarray
-        Filtered record.
+    ndarray
+        Filtered signal.
     """
     nyquist = 0.5 / dt  # Nyquist frequency
     low = lowcut / nyquist
@@ -72,19 +70,19 @@ def butterworth_filter(dt, rec, lowcut=0.1, highcut=25.0, order=4):
 
 def baseline_correction(rec, degree=1):
     """
-    Baseline correction using polynomial fit
+    Remove baseline drift using polynomial fitting.
 
     Parameters
     ----------
-    rec : np.ndarray
-        Input record.
+    rec : ndarray
+        Input signal.
     degree : int, optional
-        Degree of the polynomial fit, by default 1.
+        Polynomial degree (default is 1).
 
     Returns
     -------
-    np.ndarray
-        Baseline corrected record.
+    ndarray
+        Corrected signal.
     """
     rec = np.atleast_2d(rec)
     x = np.arange(rec.shape[-1])
@@ -96,66 +94,62 @@ def baseline_correction(rec, degree=1):
 
 def smooth(rec: np.ndarray, window_size: int = 9) -> np.ndarray:
     """
-    Moving average smoothing.
+    Apply moving average smoothing.
 
     Parameters
     ----------
-    rec : np.ndarray
-        Input record.
+    rec : ndarray
+        Input signal.
     window_size : int, optional
-        Window size (odd), by default 9.
+        Window size (default is 9).
 
     Returns
     -------
-    np.ndarray
-        Smoothed record.
+    ndarray
+        Smoothed signal.
     """
     return uniform_filter1d(rec, size=window_size, axis=-1, mode='constant', cval=0.0)
 
 def taper(rec: np.ndarray, alpha: float = 0.05) -> np.ndarray:
     """
-    Apply a Tukey (tapered cosine) window to the signal ends.
-    Supports both 1D (npts,) and 2D (n_rec, npts) arrays.
+    Apply Tukey window tapering to signal ends.
 
     Parameters
     ----------
-    rec : np.ndarray
-        Input record.
+    rec : ndarray
+        Input signal.
     alpha : float, optional
-        Shape parameter of the Tukey window, representing the fraction of the
-        window inside the cosine tapered region.
-        If zero, the Tukey window is equivalent to a rectangular window.
-        If one, the Tukey window is equivalent to a Hann window.
+        Taper fraction (default is 0.05).
 
     Returns
     -------
-    np.ndarray
-        Tapered record.
+    ndarray
+        Tapered signal.
     """
     window = tukey(rec.shape[-1], alpha=alpha)
     return rec * window
 
 def resample(dt, dt_new, rec):
     """
-    resample a time series from an original time step dt to a new one dt_new.
+    Resample signal to new time step.
 
     Parameters
     ----------
     dt : float
         Original time step.
     dt_new : float
-        New time step.
-    rec : np.ndarray
-        Input record.
+        Target time step.
+    rec : ndarray
+        Input signal.
 
     Returns
     -------
     npts_new : int
-        Number of points in the resampled record.
+        Number of points after resampling.
     dt_new : float
         New time step.
-    ac_new : np.ndarray
-        Resampled record.
+    resampled : ndarray
+        Resampled signal.
     """
     npts = rec.shape[-1]
     duration = (npts - 1) * dt
@@ -163,97 +157,30 @@ def resample(dt, dt_new, rec):
     ac_new = sp_resample(rec, npts_new, axis=-1)
     return npts_new, dt_new, ac_new
 
-# ============================================================================
-# Signal Analysis Functions
-# ============================================================================
-
-def zc(rec):
-    """
-    The mean cumulative number of zero up and down crossings
-
-    Parameters
-    ----------
-    rec : np.ndarray
-        Input record.
-
-    Returns
-    -------
-    np.ndarray
-        Mean cumulative number of zero up and down crossings.
-    """
-    cross_mask = rec[..., :-1] * rec[..., 1:] < 0
-    cross_vec = np.empty_like(rec, dtype=np.float64)
-    cross_vec[..., :-1] = cross_mask * 0.5
-    cross_vec[..., -1] = cross_vec[..., -2]
-    return np.cumsum(cross_vec, axis=-1)
-
-def pmnm(rec):
-    """
-    The mean cumulative number of positive-minima and negative-maxima
-    
-    Parameters
-    ----------
-    rec : np.ndarray
-        Input record.
-
-    Returns
-    -------
-    np.ndarray
-        Mean cumulative number of positive-minima and negative-maxima.
-    """
-    pmnm_mask =((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) & (rec[..., 1:-1] < 0) |
-               (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]) & (rec[..., 1:-1] > 0))
-    pmnm_vec = np.empty_like(rec, dtype=np.float64)
-    pmnm_vec[..., 1:-1] = pmnm_mask * 0.5
-    pmnm_vec[..., 0] = pmnm_vec[..., 1]
-    pmnm_vec[..., -1] = pmnm_vec[..., -2]
-    return np.cumsum(pmnm_vec, axis=-1)
-
-def le(rec):
-    """
-    The mean cumulative number of local extrema (peaks and valleys)
-    
-    Parameters
-    ----------
-    rec : np.ndarray
-        Input record.
-
-    Returns
-    -------
-    np.ndarray
-        Mean cumulative number of local extrema.
-    """
-    mle_mask = ((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) |
-                (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]))
-    mle_vec = np.empty_like(rec, dtype=np.float64)
-    mle_vec[..., 1:-1] = mle_mask * 0.5
-    mle_vec[..., 0] = mle_vec[..., 1]
-    mle_vec[..., -1] = mle_vec[..., -2]
-    return np.cumsum(mle_vec, axis=-1)
+# Signal Analysis ============================================================
 
 @njit('float64[:, :, :, :](float64, float64[:, :], float64[:], float64, float64)', fastmath=True, parallel=True, cache=True)
 def _sdof_response_kernel(dt, rec, period, zeta, mass):
     """
-    Computes full TIME HISTORIES (Disp, Vel, Acc) for SDOF systems.
-    Useful for visualizing the vibration of a specific structure.
+    Compute SDOF response time histories using Newmark method.
 
     Parameters
     ----------
     dt : float
-        Time step of the record.
-    rec : np.ndarray
-        Input record (ground acceleration).
-    period : np.ndarray
-        Periods of the SDOF systems.
+        Time step.
+    rec : ndarray
+        Input acceleration (2D).
+    period : ndarray
+        SDOF natural periods.
     zeta : float
         Damping ratio.
     mass : float
-        Mass of the SDOF systems.
+        SDOF mass.
 
     Returns
     -------
-    out_responses : 4D array (response_type, n_rec, npts, n_period)
-        Response histories: [Disp, Vel, Acc, Acc_total]
+    ndarray
+        Response array (4, n_rec, npts, n_period): [Disp, Vel, Acc, Acc_total].
     """
     n_rec = rec.shape[0]
     npts = rec.shape[1]
@@ -358,25 +285,31 @@ def _sdof_response_kernel(dt, rec, period, zeta, mass):
 
 def sdof_response(dt: float, rec: np.ndarray, period: np.ndarray, zeta: float = 0.05, mass: float = 1.0):
     """
-    Compute time history response of SDOF systems.
+    Compute SDOF response time histories.
 
     Parameters
     ----------
     dt : float
         Time step.
-    rec : np.ndarray
-        Input records (1D or 2D).
-    period : np.ndarray
-        Natural periods of SDOF systems.
+    rec : ndarray
+        Input acceleration (1D or 2D).
+    period : ndarray
+        SDOF natural periods.
     zeta : float, optional
-        Damping ratio (default 0.05).
+        Damping ratio (default is 0.05).
     mass : float, optional
-        Mass of SDOF systems (default 1.0).
+        SDOF mass (default is 1.0).
 
     Returns
     -------
-    tuple
-        (disp, vel, acc, acc_total) arrays of shape (n_rec, npts, n_periods).
+    disp : ndarray
+        Displacement time histories.
+    vel : ndarray
+        Velocity time histories.
+    acc : ndarray
+        Relative acceleration time histories.
+    acc_total : ndarray
+        Total acceleration time histories.
     """
     if rec.ndim == 1:
         n = 1
@@ -396,11 +329,25 @@ def sdof_response(dt: float, rec: np.ndarray, period: np.ndarray, zeta: float = 
 @njit('float64[:, :, :](float64, float64[:, :], float64[:], float64, float64)', fastmath=True, parallel=True, cache=True)
 def _spectra_kernel(dt, rec, period, zeta, mass):
     """
-    Computes Response Spectra (SD, SV, SA).
-    
-    Returns:
-    --------
-    spectra : 3D array (3, n_rec, n_period) -> [SD, SV, SA]
+    Compute response spectra using Newmark method.
+
+    Parameters
+    ----------
+    dt : float
+        Time step.
+    rec : ndarray
+        Input acceleration (2D).
+    period : ndarray
+        Spectral periods.
+    zeta : float
+        Damping ratio.
+    mass : float
+        SDOF mass.
+
+    Returns
+    -------
+    ndarray
+        Spectra array (3, n_rec, n_period): [SD, SV, SA].
     """
     n_rec = rec.shape[0]
     npts = rec.shape[1]
@@ -519,23 +466,27 @@ def _spectra_kernel(dt, rec, period, zeta, mass):
 
 def response_spectra(dt: float, rec: np.ndarray, period: np.ndarray, zeta: float = 0.05):
     """
-    Calculates response spectra (SD, SV, SA).
+    Calculate response spectra.
     
     Parameters
     ----------
     dt : float
         Time step.
-    rec : np.ndarray
-        Input records (1D or 2D).
-    period : np.ndarray
+    rec : ndarray
+        Input acceleration (1D or 2D).
+    period : ndarray
         Spectral periods.
     zeta : float, optional
-        Damping ratio, by default 0.05.
+        Damping ratio (default is 0.05).
 
     Returns
     -------
-    tuple
-        (sd, sv, sa) arrays.
+    sd : ndarray
+        Spectral displacement.
+    sv : ndarray
+        Spectral velocity.
+    sa : ndarray
+        Spectral acceleration.
     """
     if rec.ndim == 1:
         n = 1
@@ -555,14 +506,14 @@ def response_spectra(dt: float, rec: np.ndarray, period: np.ndarray, zeta: float
 
 def slice_energy(ce: np.ndarray, target_range: tuple[float, float] = (0.001, 0.999)):
     """
-    Create slice for cumulative energy range (Husid plot).
+    Create slice for cumulative energy range.
 
     Parameters
     ----------
-    ce : np.ndarray
+    ce : ndarray
         Cumulative energy array.
-    target_range : tuple
-        (start_fraction, end_fraction).
+    target_range : tuple of float, optional
+        Energy fraction range (default is (0.001, 0.999)).
 
     Returns
     -------
@@ -580,20 +531,20 @@ def slice_amplitude(rec: np.ndarray, threshold: float):
 
     Parameters
     ----------
-    rec : np.ndarray
-        Input record.
+    rec : ndarray
+        Input signal.
     threshold : float
         Amplitude threshold.
 
     Returns
     -------
     slice
-        Slice object covering range above threshold.
+        Slice object.
 
     Raises
     ------
     ValueError
-        If no values exceed the threshold.
+        If no values exceed threshold.
     """
     indices = np.nonzero(np.abs(rec) > threshold)[0]
     if len(indices) == 0:
@@ -606,10 +557,10 @@ def slice_freq(freq: np.ndarray, target_range: tuple[float, float] = (0.1, 25.0)
 
     Parameters
     ----------
-    freq : np.ndarray
-        Frequency array in Hz.
-    target_range : tuple
-        (start_freq, end_freq) in Hz.
+    freq : ndarray
+        Frequency array.
+    target_range : tuple of float, optional
+        Frequency range (default is (0.1, 25.0)).
 
     Returns
     -------
@@ -620,124 +571,37 @@ def slice_freq(freq: np.ndarray, target_range: tuple[float, float] = (0.1, 25.0)
     end_idx = np.searchsorted(freq, target_range[1])
     return slice(start_idx, end_idx + 1)
 
-def ce(dt: float, rec: np.ndarray):
-    """
-    Compute cumulative energy.
-
-    Parameters
-    ----------
-    dt : float
-        Time step.
-    rec : np.ndarray
-        Input record.
-
-    Returns
-    -------
-    np.ndarray
-        Cumulative energy time series.
-    """
-    return np.cumsum(rec ** 2, axis=-1) * dt
-
-def integrate(dt: float, rec: np.ndarray):
-    """
-    Compute cumulative sum integral (e.g. Acc -> Vel).
-
-    Parameters
-    ----------
-    dt : float
-        Time step.
-    rec : np.ndarray
-        Input record.
-
-    Returns
-    -------
-    np.ndarray
-        Integrated record.
-    """
-    return np.cumsum(rec, axis=-1) * dt
-
-def integrate_detrend(dt: float, rec: np.ndarray):
-    """
-    Compute cumulative integral with linear detrending.
-
-    Parameters
-    ----------
-    dt : float
-        Time step.
-    rec : np.ndarray
-        Input record.
-
-    Returns
-    -------
-    np.ndarray
-        Integrated and detrended record.
-    """
-    uvec = integrate(dt, rec)
-    return uvec - np.linspace(0.0, uvec[-1], len(uvec))
-
-def peak_abs_value(rec: np.ndarray):
-    """
-    Calculate peak absolute value (e.g., PGA, PGV).
-
-    Parameters
-    ----------
-    rec : np.ndarray
-        Input record.
-
-    Returns
-    -------
-    np.ndarray
-        Peak value (scalar or array).
-    """
-    return np.max(np.abs(rec), axis=-1)
-
-def cav(dt: float, rec: np.ndarray):
-    """
-    Calculate Cumulative Absolute Velocity (CAV).
-
-    Parameters
-    ----------
-    dt : float
-        Time step.
-    rec : np.ndarray
-        Input record.
-
-    Returns
-    -------
-    np.ndarray
-        CAV value (scalar or array).
-    """
-    return np.sum(np.abs(rec), axis=-1) * dt
-
 def fas(dt: float, rec: np.ndarray):
     """
-    Calculate Seismological Fourier Amplitude Spectrum.
-    Robust against record duration and sampling rate changes.
-    The spectrum represent the Physics of the Earthquake, not the Settings of the Recorder.
+    Calculate Fourier amplitude spectrum.
 
     Parameters
     ----------
     dt : float
-        Time step (sampling interval).
-    rec : np.ndarray
-        Input record.
+        Time step.
+    rec : ndarray
+        Input signal.
 
     Returns
     -------
-    fas : np.ndarray
-        Fourier Amplitude Spectrum (rec unit * dt unit).
+    ndarray
+        Fourier amplitude spectrum.
     """
     return np.abs(rfft(rec)) * dt
 
 def fps(rec: np.ndarray):
     """
-    Calculate Fourier Phase Spectrum (Phase).
-    Returns unwrapped phase to ensure continuity (no jumps between -pi and pi).
+    Calculate Fourier phase spectrum (unwrapped).
+
+    Parameters
+    ----------
+    rec : ndarray
+        Input signal.
 
     Returns
     -------
-    np.ndarray
-        Unwrapped phase in radians.
+    ndarray
+        Unwrapped phase.
     """
     # 1. Get complex coefficients
     complex_coeffs = rfft(rec)
@@ -747,7 +611,7 @@ def fps(rec: np.ndarray):
 
 def frequency(npts, dt):
     """
-    Generate frequency array (Hz).
+    Generate frequency array.
 
     Parameters
     ----------
@@ -758,8 +622,8 @@ def frequency(npts, dt):
 
     Returns
     -------
-    np.ndarray
-        Positive frequencies (rfftfreq).
+    ndarray
+        Frequency array.
     """
     return rfftfreq(npts, dt)
 
@@ -776,64 +640,217 @@ def time(npts, dt):
 
     Returns
     -------
-    np.ndarray
-        Time array [0, dt, 2*dt, ...].
+    ndarray
+        Time array.
     """
     return np.linspace(0, (npts - 1) * dt, npts, dtype=np.float64)
 
-def magnitude(rec1, rec2):
+def zc(rec):
     """
-    Calculate magnitude of the vector (Euclidean norm).
+    Calculate zero-crossing rate.
 
     Parameters
     ----------
-    rec1 : np.ndarray
-        First component.
-    rec2 : np.ndarray
-        Second component.
+    rec : ndarray
+        Input signal.
 
     Returns
     -------
-    np.ndarray
-        Magnitude time series.
+    ndarray
+        Cumulative zero crossings.
     """
-    return np.sqrt(np.abs(rec1) ** 2 + np.abs(rec2) ** 2)
+    cross_mask = rec[..., :-1] * rec[..., 1:] < 0
+    cross_vec = np.empty_like(rec, dtype=np.float64)
+    cross_vec[..., :-1] = cross_mask * 0.5
+    cross_vec[..., -1] = cross_vec[..., -2]
+    return np.cumsum(cross_vec, axis=-1)
 
-def angle(rec1, rec2):
+def pmnm(rec):
     """
-    Calculate angle of the vector.
-
+    Calculate positive-minima and negative-maxima count.
+    
     Parameters
     ----------
-    rec1 : np.ndarray
-        First component.
-    rec2 : np.ndarray
-        Second component.
+    rec : ndarray
+        Input signal.
 
     Returns
     -------
-    np.ndarray
-        Angle time series (unwrapped).
+    ndarray
+        Cumulative PMNM count.
     """
-    return np.unwrap(np.arctan2(rec2, rec1))
+    pmnm_mask =((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) & (rec[..., 1:-1] < 0) |
+               (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]) & (rec[..., 1:-1] > 0))
+    pmnm_vec = np.empty_like(rec, dtype=np.float64)
+    pmnm_vec[..., 1:-1] = pmnm_mask * 0.5
+    pmnm_vec[..., 0] = pmnm_vec[..., 1]
+    pmnm_vec[..., -1] = pmnm_vec[..., -2]
+    return np.cumsum(pmnm_vec, axis=-1)
 
-def turning_rate(dt, rec1, rec2):
+def le(rec):
     """
-    Calculate turning rate of the vector.
+    Calculate local extrema count.
+    
+    Parameters
+    ----------
+    rec : ndarray
+        Input signal.
+
+    Returns
+    -------
+    ndarray
+        Cumulative local extrema.
+    """
+    mle_mask = ((rec[..., :-2] < rec[..., 1:-1]) & (rec[..., 1:-1] > rec[..., 2:]) |
+                (rec[..., :-2] > rec[..., 1:-1]) & (rec[..., 1:-1] < rec[..., 2:]))
+    mle_vec = np.empty_like(rec, dtype=np.float64)
+    mle_vec[..., 1:-1] = mle_mask * 0.5
+    mle_vec[..., 0] = mle_vec[..., 1]
+    mle_vec[..., -1] = mle_vec[..., -2]
+    return np.cumsum(mle_vec, axis=-1)
+
+def ce(dt: float, rec: np.ndarray):
+    """
+    Compute cumulative energy.
 
     Parameters
     ----------
     dt : float
         Time step.
-    rec1 : np.ndarray
+    rec : ndarray
+        Input signal.
+
+    Returns
+    -------
+    ndarray
+        Cumulative energy array.
+    """
+    return np.cumsum(rec ** 2, axis=-1) * dt
+
+def integrate(dt: float, rec: np.ndarray):
+    """
+    Integrate signal using cumulative sum.
+
+    Parameters
+    ----------
+    dt : float
+        Time step.
+    rec : ndarray
+        Input signal.
+
+    Returns
+    -------
+    ndarray
+        Integrated signal.
+    """
+    return np.cumsum(rec, axis=-1) * dt
+
+def integrate_detrend(dt: float, rec: np.ndarray):
+    """
+    Integrate signal with linear detrending.
+
+    Parameters
+    ----------
+    dt : float
+        Time step.
+    rec : ndarray
+        Input signal.
+
+    Returns
+    -------
+    ndarray
+        Integrated and detrended signal.
+    """
+    uvec = integrate(dt, rec)
+    return uvec - np.linspace(0.0, uvec[-1], len(uvec))
+
+def peak_abs_value(rec: np.ndarray):
+    """
+    Calculate peak absolute value.
+
+    Parameters
+    ----------
+    rec : ndarray
+        Input signal.
+
+    Returns
+    -------
+    float or ndarray
+        Peak value.
+    """
+    return np.max(np.abs(rec), axis=-1)
+
+def cav(dt: float, rec: np.ndarray):
+    """
+    Calculate cumulative absolute velocity.
+
+    Parameters
+    ----------
+    dt : float
+        Time step.
+    rec : ndarray
+        Input signal.
+
+    Returns
+    -------
+    float or ndarray
+        CAV value.
+    """
+    return np.sum(np.abs(rec), axis=-1) * dt
+
+def magnitude(rec1, rec2):
+    """
+    Calculate vector magnitude.
+
+    Parameters
+    ----------
+    rec1 : ndarray
         First component.
-    rec2 : np.ndarray
+    rec2 : ndarray
         Second component.
 
     Returns
     -------
-    np.ndarray
-        Turning rate time series.
+    ndarray
+        Magnitude array.
+    """
+    return np.sqrt(np.abs(rec1) ** 2 + np.abs(rec2) ** 2)
+
+def angle(rec1, rec2):
+    """
+    Calculate vector angle (unwrapped).
+
+    Parameters
+    ----------
+    rec1 : ndarray
+        First component.
+    rec2 : ndarray
+        Second component.
+
+    Returns
+    -------
+    ndarray
+        Angle array.
+    """
+    return np.unwrap(np.arctan2(rec2, rec1))
+
+def turning_rate(dt, rec1, rec2):
+    """
+    Calculate vector turning rate.
+
+    Parameters
+    ----------
+    dt : float
+        Time step.
+    rec1 : ndarray
+        First component.
+    rec2 : ndarray
+        Second component.
+
+    Returns
+    -------
+    ndarray
+        Turning rate array.
     """
     anlges = angle(rec1, rec2)
     if len(anlges.shape) == 1:
@@ -843,21 +860,23 @@ def turning_rate(dt, rec1, rec2):
 
 def rotate(rec1, rec2, angle):
     """
-    Rotate horizontal components.
+    Rotate two-component signal.
 
     Parameters
     ----------
-    rec1 : np.ndarray
-        First component (e.g., North-South).
-    rec2 : np.ndarray
-        Second component (e.g., East-West).
-    angle_rad : float
-        Rotation angle in radians.
+    rec1 : ndarray
+        First component.
+    rec2 : ndarray
+        Second component.
+    angle : float
+        Rotation angle.
 
     Returns
     -------
-    tuple
-        (rotated_1, rotated_2) arrays.
+    rotated_1 : ndarray
+        Rotated first component.
+    rotated_2 : ndarray
+        Rotated second component.
     """
     xr = rec1 * np.cos(angle) - rec2 * np.sin(angle)
     yr = rec1 * np.sin(angle) + rec2 * np.cos(angle)
@@ -869,10 +888,10 @@ def correlation(rec1, rec2):
 
     Parameters
     ----------
-    rec1 : np.ndarray
-        First record.
-    rec2 : np.ndarray
-        Second record.
+    rec1 : ndarray
+        First signal.
+    rec2 : ndarray
+        Second signal.
 
     Returns
     -------
