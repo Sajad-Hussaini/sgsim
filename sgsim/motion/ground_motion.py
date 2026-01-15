@@ -305,6 +305,30 @@ class GroundMotion:
         return signal_tools.fas(self.dt, self.ac)
     
     @property
+    def fas_vel(self):
+        """
+        Fourier amplitude spectrum of velocity.
+
+        Returns
+        -------
+        ndarray
+            Fourier amplitude spectrum.
+        """
+        return signal_tools.fas(self.dt, self.vel)
+
+    @property
+    def fas_disp(self):
+        """
+        Fourier amplitude spectrum of displacement.
+
+        Returns
+        -------
+        ndarray
+            Fourier amplitude spectrum.
+        """
+        return signal_tools.fas(self.dt, self.disp)
+    
+    @property
     def fps(self):
         """
         Fourier phase spectrum of acceleration.

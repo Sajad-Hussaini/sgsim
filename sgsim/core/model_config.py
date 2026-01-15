@@ -52,7 +52,7 @@ class ModelConfig(DomainConfig):
     @property
     def fas(self):
         """
-        Fourier amplitude spectrum (FAS) of the stochastic model.
+        Fourier amplitude spectrum (FAS) of the stochastic model (acceleration).
 
         Returns
         -------
@@ -65,6 +65,40 @@ class ModelConfig(DomainConfig):
                                              self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
                                              self.freq_p2, self.freq_p4, self._variance, self.dt)
         return self._fas
+    
+    @property
+    def fas_vel(self):
+        """
+        Fourier amplitude spectrum (FAS) of the velocity of the stochastic model.
+
+        Returns
+        -------
+        ndarray
+            FAS computed using the model's PSD.
+        """
+        if not hasattr(self, '_fas_vel'):
+            self._fas_vel = model_engine.get_fas_vel(self.modulating.values,
+                                             self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
+                                             self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
+                                             self.freq_p2, self.freq_p4, self._variance, self.dt)
+        return self._fas_vel
+    
+    @property
+    def fas_disp(self):
+        """
+        Fourier amplitude spectrum (FAS) of the displacement of the stochastic model.
+
+        Returns
+        -------
+        ndarray
+            FAS computed using the model's PSD.
+        """
+        if not hasattr(self, '_fas_disp'):
+            self._fas_disp = model_engine.get_fas_disp(self.modulating.values,
+                                             self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
+                                             self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
+                                             self.freq_p2, self.freq_p4, self._variance, self.dt)
+        return self._fas_disp
     
     @property
     def ce(self):

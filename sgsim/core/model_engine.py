@@ -131,6 +131,74 @@ def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
         fas[j] = np.sqrt(fas[j] * final_scale)
     return fas
 
+@njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
+def get_fas_vel(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
+    """
+    The Fourier amplitude spectrum (FAS) of the stochastic model velocity
+    """
+    fas = np.zeros_like(freq_p2, dtype=np.float64)
+    final_scale = dt * 2 * np.pi
+    for i in range(len(wu)):
+        wui = wu[i]
+        zui = zu[i]
+        wli = wl[i]
+        zli = zl[i]
+        wu2 = wui * wui
+        wu4 = wu2 * wu2
+        wl2 = wli * wli
+        wl4 = wl2 * wl2
+        scalar_l = 2 * wl2 * (2 * zli * zli - 1)
+        scalar_u = 2 * wu2 * (2 * zui * zui - 1)
+        
+        scale = (mdl[i] * mdl[i]) / variance[i]
+        
+        for j in range(len(freq_p2)):
+            val_p2 = freq_p2[j]
+            val_p4 = freq_p4[j]
+            denom = (wl4 + val_p4 + scalar_l * val_p2) * \
+                    (wu4 + val_p4 + scalar_u * val_p2)
+            # Velocity depends on omega^2, not omega^4
+            psd_val = val_p2 / denom
+            fas[j] += scale * psd_val
+    
+    for j in range(len(fas)):
+        fas[j] = np.sqrt(fas[j] * final_scale)
+    return fas
+
+@njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
+def get_fas_disp(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
+    """
+    The Fourier amplitude spectrum (FAS) of the stochastic model displacement
+    """
+    fas = np.zeros_like(freq_p2, dtype=np.float64)
+    final_scale = dt * 2 * np.pi
+    for i in range(len(wu)):
+        wui = wu[i]
+        zui = zu[i]
+        wli = wl[i]
+        zli = zl[i]
+        wu2 = wui * wui
+        wu4 = wu2 * wu2
+        wl2 = wli * wli
+        wl4 = wl2 * wl2
+        scalar_l = 2 * wl2 * (2 * zli * zli - 1)
+        scalar_u = 2 * wu2 * (2 * zui * zui - 1)
+        
+        scale = (mdl[i] * mdl[i]) / variance[i]
+        
+        for j in range(len(freq_p2)):
+            val_p2 = freq_p2[j]
+            val_p4 = freq_p4[j]
+            denom = (wl4 + val_p4 + scalar_l * val_p2) * \
+                    (wu4 + val_p4 + scalar_u * val_p2)
+            # Displacement numerator is 1 (divided acc by omega^4)
+            psd_val = 1.0 / denom
+            fas[j] += scale * psd_val
+    
+    for j in range(len(fas)):
+        fas[j] = np.sqrt(fas[j] * final_scale)
+    return fas
+
 @njit('complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :], float64)', parallel=True, fastmath=True, cache=True)
 def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise, dt):
     """

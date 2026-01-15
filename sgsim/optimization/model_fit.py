@@ -91,7 +91,7 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
 
     elif component == 'fas':
         # Pre-smooth target FAS once
-        target = signal_tools.smooth(motion.fas)
+        target = np.concatenate((motion.fas, motion.fas_vel, motion.fas_disp))
         target_max = target.max()
         
         # Cache model type names
@@ -171,7 +171,7 @@ def update_fas(params, model: StochasticModel, motion: GroundMotion,
     for freq_model, model_params in zip(fitables, fitable_params):
         freq_model(motion.t, *model_params)
     model._stats
-    return model.fas
+    return np.concatenate((model.fas, model.fas_vel, model.fas_disp))
 
 def get_default_parameters(component: str, model: StochasticModel):
     """Get default initial guess and bounds for parameters."""
