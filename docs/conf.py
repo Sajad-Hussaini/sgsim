@@ -24,27 +24,39 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # HTML output options
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'pydata_sphinx_theme'
+
+# PyData Theme Config - OPTIMIZED FOR READABILITY
 html_theme_options = {
-    'navigation_depth': 4,
-    'collapse_navigation': False,
-    'sticky_navigation': True,
-    'includehidden': True,
-    'titles_only': False,
+    "show_nav_level": 2,
+    "navigation_depth": 4,
+    "collapse_navigation": False,
+    "show_toc_level": 2,
+    # This aligns the logo/text properly
+    "navbar_align": "content", 
+    # This prevents the secondary sidebar from taking up too much space on small screens
+    "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    # Footer configuration (Updated for newer pydata-sphinx-theme versions)
+    "footer_start": ["copyright", "sphinx-version"],
+    "footer_end": ["theme-version"],
 }
 
 # Syntax highlighting
-pygments_style = 'sphinx'
+pygments_style = 'sphinx' 
 
 # Autodoc settings (CLEAN LOOK)
 autodoc_default_options = {
     'members': True,
-    'undoc-members': False,        # Hide undocumented members
+    'undoc-members': False,
     'show-inheritance': True,
-    'member-order': 'bysource',    # Keep source order
-    'exclude-members': '__weakref__, __dict__, __module__',  # Hide noise
+    'member-order': 'bysource',
+    'exclude-members': '__weakref__, __dict__, __module__',
 }
-autodoc_typehints = 'none'         # Keep this - prevents type hint clutter
+
+# TYPE HINT SETTINGS: 
+# "description" moves type hints to the parameter description instead of the signature.
+# This makes the main function definition line SHORTER and easier to read.
+autodoc_typehints = 'description' 
 autodoc_typehints_format = 'short'
 
 # Napoleon settings (NumPy style)

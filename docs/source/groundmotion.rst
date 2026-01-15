@@ -5,4 +5,3 @@ GroundMotion
 
 .. autoclass:: sgsim.GroundMotion
    :members:
-   :undoc-members:

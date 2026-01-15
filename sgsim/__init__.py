@@ -3,7 +3,7 @@ from .motion.ground_motion import GroundMotion, GroundMotionMultiComponent
 from .core import functions as Functions
 from .motion import signal_tools as SignalTools
 
-__version__ = '1.2.5'
+__version__ = '1.2.6'
 
 __all__ = [
     'StochasticModel', 

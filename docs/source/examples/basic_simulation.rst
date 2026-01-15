@@ -15,8 +15,7 @@ Import necessary `sgsim` classes along with NumPy.
    # %% import libraries
    import numpy as np
    import matplotlib.pyplot as plt
-   from sgsim import GroundMotion, StochasticModel
-   from sgsim.Function
+   from sgsim import GroundMotion, StochasticModel, Functions
 
 Step 2: Load the Target Ground Motion
 -------------------------------------
@@ -77,46 +76,61 @@ Generate synthetic ground motions based on the fitted model parameters.
 Step 5: Visualize the Results
 -----------------------------
 
-Use the ``ModelPlot`` class to compare the simulations against the target.
+You can use standard libraries like ``matplotlib`` to visualize the model, simulations, and the target.
+
+.. tip::
+   See :ref:`example_basic_groundmotion` for plotting response spectra and other intensity measures.
+
 
 .. code-block:: python
 
-   # %% Visualize results using default ModelPlot but it is recommended to use custom plots
-   mp = ModelPlot(model, sm, gm)
+   # %% Visualize Results using Matplotlib
+   
+   # 1. Compare Time Series (Target vs. First Simulation)
+   fig, ax = plt.subplots(2, 1, sharex=True, figsize=(10, 6))
+   
+   # Plot Target
+   ax[0].plot(gm.t, gm.ac, color='black', lw=0.8, label='Target')
+   # Optional: Overlay Model Envelope
+   ax[0].plot(model.t, model.modulating.value, color='red', linestyle='--', lw=1.5, label='Model Envelope')
+   ax[0].plot(model.t, -model.modulating.value, color='red', linestyle='--', lw=1.5)
+   ax[0].set_ylabel('Acceleration (g)')
+   ax[0].legend(loc='upper right')
+   ax[0].set_title('Target Ground Motion')
+   
+   # Plot First Simulation
+   # sm.ac is an array of shape (n_simulations, n_points)
+   ax[1].plot(sm.t, sm.ac[0], color='tab:blue', lw=0.8, label='Simulation #1')
+   ax[1].set_ylabel('Acceleration (g)')
+   ax[1].set_xlabel('Time (s)')
+   ax[1].legend(loc='upper right')
+   ax[1].set_title('Synthetic Ground Motion')
+   
+   plt.tight_layout()
+   plt.show()
 
-   # Define the period range for spectral plots (0.1s to 10s)
-   periods = np.arange(0.1, 10.1, 0.1)
+   # 2. Compare Fourier Amplitude Spectra (FAS)
+   plt.figure(figsize=(6, 4))
+   # Plot individual simulations (light gray background)
+   # sm.fas is an array of shape (n_simulations, n_frequencies)
+   plt.loglog(sm.freq, sm.fas.T, color='gray', alpha=0.3, lw=0.5)
+   
+   # Plot Simulation Mean
+   plt.loglog(sm.freq, np.mean(sm.fas, axis=0), color='red', linestyle='--', label='Simulation Mean')
+   
+   # Plot Target
+   plt.loglog(gm.freq, gm.fas, color='black', label='Target')
+   
+   plt.xlabel('Frequency (Hz)')
+   plt.ylabel('Fourier Amplitude')
+   plt.legend()
+   plt.grid(True, which="both", ls="-", alpha=0.2)
+   plt.show()
 
-   # 1. Plot Time-Series Comparison (Index 0 and Last simulation)
-   mp.plot_motions(0, -1)
-
-   # 2. Plot Fourier Amplitude Spectra
-   mp.plot_fas()
-
-   # 3. Plot Cumulative Energy
-   mp.plot_ac_ce()
-
-   # 4. Plot Response Spectra (SA)
-   mp.plot_spectra(periods, spectrum='sa')
-
-   # 5. Plot Physical Features (Zero-Crossings and Maxima)
-   # Note: Ideally, slopes should match. However, these features are noise-sensitive, 
-   # so a perfect fit is not strictly required.
-   mp.plot_feature(feature='mzc')  # Mean Zero-Crossing rate
-   mp.plot_feature(feature='pmnm') # Peaks per positive minima
 
 Step 6: Export Simulations
 --------------------------
+.. tip::
+   See :ref:`example_basic_groundmotion` for saving and plotting results.
 
-Export the Intensity Measures (IMs) and spectral data of the synthetics to CSV.
 
-.. code-block:: python
-
-   # %% Export to CSV including specific IMs and arbitrary spectral ordinates
-   sm.to_csv('output_simulation.csv', ims=['pga', 'pgv', 'cav', 'sa'], periods=periods)   
-
-   # %% Save time and acceleration arrays to a text\csv file using numpy
-   output_path = "output_gm.csv"
-
-   data = np.column_stack((sm.t, sm.ac.T))
-   np.savetxt(output_path, data, fmt="%.6e", delimiter=',', header="use your header here")

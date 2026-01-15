@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sgsim"
-version = "1.2.5"
+version = "1.2.6"
 authors = [{name = "Sajad Hussaini", email = "hussaini.smsajad@gmail.com"}]
 description = "Python Package for Simulation and Analysis of Ground Motions"
 readme = "README.md"
@@ -20,7 +20,6 @@ classifiers = [
 dependencies = [
     "numpy",
     "scipy",
-    "matplotlib",
     "numba",]
 
 [project.optional-dependencies]
@@ -30,7 +29,9 @@ docs = [
     "sphinx-copybutton",
     "myst-parser",
     "nbsphinx",
-    "pygments"]
+    "pygments",
+    "pydata-sphinx-theme",
+    ]
 
 [project.urls]
 Homepage = "https://github.com/Sajad-Hussaini/sgsim"

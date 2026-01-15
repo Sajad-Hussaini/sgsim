@@ -5,4 +5,3 @@ StochasticModel
 
 .. autoclass:: sgsim.StochasticModel
    :members:
-   :undoc-members:
