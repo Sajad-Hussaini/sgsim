@@ -12,9 +12,11 @@ Import necessary `sgsim` classes along with NumPy.
 
 .. code-block:: python
 
+   # %% import libraries
    import numpy as np
    import matplotlib.pyplot as plt
-   from sgsim import GroundMotion, StochasticModel, Functions, ModelPlot
+   from sgsim import GroundMotion, StochasticModel
+   from sgsim.Function
 
 Step 2: Load the Target Ground Motion
 -------------------------------------
@@ -23,13 +25,11 @@ Load an existing accelerogram record to serve as the target for the simulation.
 
 .. code-block:: python
 
-   # Path to your accelerogram file
-   file_path = 'path/to/your/motion.AT2'
-
-   # Load the target ground motion (gm)
-   gm = GroundMotion.load_from(source='nga', file=file_path)
-   # If necessary trim and filter to ensure clean data for fitting
-   gm = gm.trim_by_energy((0.001, 0.999)).butterworth_filter((0.01, 100.0))
+   # %% Prepare the target ground motion
+   # Change the path to the file
+   gm = GroundMotion.load_from(source='nga', file='RSN123_Example.AT2')
+   # If necessary , preprocess the ground motion (e.g., trimming, baseline correction, tapering and filtering)
+   gm = gm.trim_by_energy((0.001, 0.999)).taper(0.05).butterworth_filter((0.05, 100.0))
 
 Step 3: Define and Fit the Stochastic Model
 -------------------------------------------
@@ -38,7 +38,7 @@ Define the functional forms for the model parameters (amplitude, frequency, and 
 
 .. code-block:: python
 
-   # Initialize specific functions for model components:
+   # %% Define and fit the stochastic model
    # 1. Modulating function (Envelope) -> Beta Function
    # 2. Frequency/Damping evolution -> Linear Functions
    model = StochasticModel(
@@ -48,8 +48,14 @@ Define the functional forms for the model parameters (amplitude, frequency, and 
        lower_frequency=Functions.Linear(), 
        lower_damping=Functions.Linear())
 
-   # Fit the model to the target ground motion
+   # Fit the model to the target ground motion with default settings
    model.fit(gm)
+
+   # Alternatively, fit specific components with custom initial guesses and bounds
+   #model.fit(gm, ['modulating'])  # default is used if no bounds/initial_guess provided
+   #model.fit(gm, component=["frequency"],
+   #      initial_guess=[8.0, 0.1, np.sqrt(0.5), np.sqrt(0.5)],
+   #      bounds=[(0.1, 40.0), (0.01, 0.99), (np.sqrt(0.5), np.sqrt(0.5)), (np.sqrt(0.5), np.sqrt(0.5))])
 
    # Print a summary of the fitted parameters
    model.summary()
@@ -61,10 +67,11 @@ Generate synthetic ground motions based on the fitted model parameters.
 
 .. code-block:: python
 
+   # %% Generate simulated ground motions object
    # Generate 10 simulated ground motions (sm)
    sm = model.simulate(n=10)
 
-   # View simple scalar stats
+   # View available IMs
    sm.list_IMs()
 
 Step 5: Visualize the Results
@@ -74,7 +81,7 @@ Use the ``ModelPlot`` class to compare the simulations against the target.
 
 .. code-block:: python
 
-   # Initialize the plotter with the Model, Simulations, and Target
+   # %% Visualize results using default ModelPlot but it is recommended to use custom plots
    mp = ModelPlot(model, sm, gm)
 
    # Define the period range for spectral plots (0.1s to 10s)
@@ -105,5 +112,11 @@ Export the Intensity Measures (IMs) and spectral data of the synthetics to CSV.
 
 .. code-block:: python
 
-   # Export formatted results
-   sm.to_csv('output_simulation.csv', ims=['pga', 'pgv', 'sa', 'fas'], periods=periods)
+   # %% Export to CSV including specific IMs and arbitrary spectral ordinates
+   sm.to_csv('output_simulation.csv', ims=['pga', 'pgv', 'cav', 'sa'], periods=periods)   
+
+   # %% Save time and acceleration arrays to a text\csv file using numpy
+   output_path = "output_gm.csv"
+
+   data = np.column_stack((sm.t, sm.ac.T))
+   np.savetxt(output_path, data, fmt="%.6e", delimiter=',', header="use your header here")

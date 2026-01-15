@@ -90,10 +90,15 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
             return np.sum(np.square((model_output - target) / target_max))
 
     elif component == 'fas':
-        # Pre-smooth target FAS once
-        target = np.concatenate((motion.fas, motion.fas_vel, motion.fas_disp))
-        target_max = target.max()
+        fas_max = motion.fas.max() if motion.fas.max() > 0 else 1.0
+        fas_vel_max = motion.fas_vel.max() if motion.fas_vel.max() > 0 else 1.0
+        fas_disp_max = motion.fas_disp.max() if motion.fas_disp.max() > 0 else 1.0
         
+        # Pre-compute normalized target once
+        target = np.concatenate((motion.fas / fas_max,
+                                 motion.fas_vel / fas_vel_max,
+                                 motion.fas_disp / fas_disp_max))
+
         # Cache model type names
         upper_freq_type = type(model.upper_frequency).__name__
         lower_freq_type = type(model.lower_frequency).__name__
@@ -105,8 +110,9 @@ def get_objective_function(component: str, model: StochasticModel, motion: Groun
         
         def objective(params):
             model_output = update_fas(params, model, motion, fitables, param_slices, 
-                                     upper_freq_type, lower_freq_type)
-            return np.sum(np.square((model_output - target) / target_max))
+                                     upper_freq_type, lower_freq_type,
+                                     fas_max, fas_vel_max, fas_disp_max)
+            return np.sum(np.square(model_output - target))
             
     else:
         raise ValueError(f"Unknown component: {component}")
@@ -155,7 +161,8 @@ def update_frequency(params, model: StochasticModel, motion: GroundMotion, scale
                            model.fas * scale))
 
 def update_fas(params, model: StochasticModel, motion: GroundMotion, 
-              fitables, param_slices, upper_freq_type: str, lower_freq_type: str):
+              fitables, param_slices, upper_freq_type: str, lower_freq_type: str,
+              fas_max: float, fas_vel_max: float, fas_disp_max: float):
     """Update damping functions and return statistics."""
     fitable_params = [params[param_slices[i]:param_slices[i+1]] for i in range(len(fitables))]
 
@@ -171,7 +178,10 @@ def update_fas(params, model: StochasticModel, motion: GroundMotion,
     for freq_model, model_params in zip(fitables, fitable_params):
         freq_model(motion.t, *model_params)
     model._stats
-    return np.concatenate((model.fas, model.fas_vel, model.fas_disp))
+    # Normalize using pre-computed denominators
+    return np.concatenate((model.fas / fas_max,
+                           model.fas_vel / fas_vel_max,
+                           model.fas_disp / fas_disp_max))
 
 def get_default_parameters(component: str, model: StochasticModel):
     """Get default initial guess and bounds for parameters."""

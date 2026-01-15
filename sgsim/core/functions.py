@@ -62,10 +62,10 @@ class BetaBasic(ParametricFunction):
     """
     _pnames = ['peak', 'concentration', 'energy', 'duration']
     def __call__(self, t, peak, concentration, energy, duration):
-        self.values = self.compute(t, peak, concentration, energy, duration)
+        self.value = self.compute(t, peak, concentration, energy, duration)
         self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, peak, concentration, energy, duration):
@@ -98,10 +98,10 @@ class BetaSingle(ParametricFunction):
     """
     _pnames = ['peak', 'concentration', 'energy', 'duration']
     def __call__(self, t, peak, concentration, energy, duration):
-        self.values = self.compute(t, peak, concentration, energy, duration)
+        self.value = self.compute(t, peak, concentration, energy, duration)
         self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, peak, concentration, energy, duration):
@@ -141,12 +141,12 @@ class BetaDual(ParametricFunction):
     """
     _pnames = ['peak', 'concentration', 'peak_2', 'concentration_2', 'energy_ratio', 'energy', 'duration']
     def __call__(self, t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):
-        self.values = self.compute(t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration)
+        self.value = self.compute(t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration)
         self.params = dict(peak=peak, concentration=concentration,
                            peak_2=peak_2, concentration_2=concentration_2,
                            energy_ratio=energy_ratio, energy=energy, duration=duration)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):
@@ -182,10 +182,10 @@ class Gamma(ParametricFunction):
     """
     _pnames = ['scale', 'shape', 'decay']
     def __call__(self, t, scale, shape, decay):
-        self.values = self.compute(t, scale, shape, decay)
+        self.value = self.compute(t, scale, shape, decay)
         self.params = dict(scale=scale, shape=shape, decay=decay)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, scale, shape, decay):
@@ -210,10 +210,10 @@ class Housner(ParametricFunction):
     """
     _pnames = ['amplitude', 'decay', 'shape', 'tp', 'td']
     def __call__(self, t, amplitude, decay, shape, tp, td):
-        self.values = self.compute(t, amplitude, decay, shape, tp, td)
+        self.value = self.compute(t, amplitude, decay, shape, tp, td)
         self.params = dict(amplitude=amplitude, decay=decay, shape=shape, tp=tp, td=td)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, amplitude, decay, shape, tp, td):
@@ -234,10 +234,10 @@ class Linear(ParametricFunction):
     """
     _pnames = ['start', 'end']
     def __call__(self, t, start, end):
-        self.values = self.compute(t, start, end)
+        self.value = self.compute(t, start, end)
         self.params = dict(start=start, end=end)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, start, end):
@@ -260,10 +260,10 @@ class Bilinear(ParametricFunction):
     """
     _pnames = ['start', 'mid', 'end', 't_mid']
     def __call__(self, t, start, mid, end, t_mid):
-        self.values = self.compute(t, start, mid, end, t_mid)
+        self.value = self.compute(t, start, mid, end, t_mid)
         self.params = dict(start=start, mid=mid, end=end, t_mid=t_mid)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, start, mid, end, t_mid):
@@ -284,10 +284,10 @@ class Exponential(ParametricFunction):
     """
     _pnames = ['start', 'end']
     def __call__(self, t, start, end):
-        self.values = self.compute(t, start, end)
+        self.value = self.compute(t, start, end)
         self.params = dict(start=start, end=end)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, start, end):
@@ -304,10 +304,10 @@ class Constant(ParametricFunction):
     """
     _pnames = ['value']
     def __call__(self, t, value):
-        self.values = self.compute(t, value)
+        self.value = self.compute(t, value)
         self.params = dict(value=value)
         self._trigger_callback()
-        return self.values
+        return self.value
     
     @staticmethod
     def compute(t, value):

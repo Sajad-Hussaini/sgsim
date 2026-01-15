@@ -45,8 +45,8 @@ class ModelConfig(DomainConfig):
         """Compute and store the variances for internal use."""
         if not hasattr(self, '_variance'):
             self._variance, self._variance_dot, self._variance_2dot, self._variance_bar, self._variance_2bar = model_engine.get_stats(
-                self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
-                self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
+                self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
+                self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                 self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.dw)
 
     @property
@@ -60,9 +60,9 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas'):
-            self._fas = model_engine.get_fas(self.modulating.values,
-                                             self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
-                                             self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
+            self._fas = model_engine.get_fas(self.modulating.value,
+                                             self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
+                                             self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                                              self.freq_p2, self.freq_p4, self._variance, self.dt)
         return self._fas
     
@@ -77,9 +77,9 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas_vel'):
-            self._fas_vel = model_engine.get_fas_vel(self.modulating.values,
-                                             self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
-                                             self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
+            self._fas_vel = model_engine.get_fas_vel(self.modulating.value,
+                                             self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
+                                             self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                                              self.freq_p2, self.freq_p4, self._variance, self.dt)
         return self._fas_vel
     
@@ -94,9 +94,9 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas_disp'):
-            self._fas_disp = model_engine.get_fas_disp(self.modulating.values,
-                                             self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
-                                             self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
+            self._fas_disp = model_engine.get_fas_disp(self.modulating.value,
+                                             self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
+                                             self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                                              self.freq_p2, self.freq_p4, self._variance, self.dt)
         return self._fas_disp
     
@@ -110,7 +110,7 @@ class ModelConfig(DomainConfig):
         ndarray
             Cumulative energy time history.
         """
-        return signal_tools.ce(self.dt, self.modulating.values)
+        return signal_tools.ce(self.dt, self.modulating.value)
 
     @property
     def le_ac(self):

@@ -829,6 +829,30 @@ class GroundMotionMultiComponent:
         return np.sqrt(np.sum([gm.fas ** 2 for gm in self.components], axis=0))
     
     @property
+    def fas_vel(self):
+        """
+        Fourier amplitude spectrum of the velocity of the combined components.
+
+        Returns
+        -------
+        ndarray
+            Combined Fourier amplitude spectrum.
+        """
+        return np.sqrt(np.sum([gm.fas_vel ** 2 for gm in self.components], axis=0))
+    
+    @property
+    def fas_disp(self):
+        """
+        Fourier amplitude spectrum of the displacement of the combined components.
+
+        Returns
+        -------
+        ndarray
+            Combined Fourier amplitude spectrum.
+        """
+        return np.sqrt(np.sum([gm.fas_disp ** 2 for gm in self.components], axis=0))
+    
+    @property
     def pga(self):
         """Peak ground acceleration (resultant)."""
         return signal_tools.peak_abs_value(self.ac)

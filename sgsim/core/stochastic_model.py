@@ -153,9 +153,9 @@ class StochasticModel(ModelConfig):
         self._stats
         n = int(n)
         white_noise = np.random.default_rng(seed).standard_normal((n, self.npts))
-        fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2, self.modulating.values,
-                                                       self.upper_frequency.values * 2 * np.pi, self.upper_damping.values,
-                                                       self.lower_frequency.values * 2 * np.pi, self.lower_damping.values,
+        fourier = model_engine.simulate_fourier_series(n, self.npts, self.t, self.freq_sim, self.freq_sim_p2, self.modulating.value,
+                                                       self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
+                                                       self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                                                        self._variance, white_noise, self.dt)
         # Default backward 1/N scaling is correct here
         ac = irfft(fourier, workers=-1)[..., :self.npts]  # anti-aliasing
