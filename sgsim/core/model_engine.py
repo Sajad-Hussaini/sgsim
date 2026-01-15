@@ -99,19 +99,6 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, dw):
 def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     """
     The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
-    """
-    fas = np.zeros_like(freq_p2, dtype=np.float64)
-    for i in range(len(wu)):
-        psd_i = get_psd(wu[i], zu[i], wl[i], zl[i], freq_p2, freq_p4)
-        scale = mdl[i] ** 2 / variance[i]
-        fas += scale * psd_i
-    # To Convert Density to Magnitude
-    return np.sqrt(fas * dt * 2 * np.pi)
-
-@njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
-def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
-    """
-    The Fourier amplitude spectrum (FAS) of the stochastic model using PSD
     Optimized with Kernel Fusion to eliminate temporary array allocations inside the loop.
     """
     fas = np.zeros_like(freq_p2, dtype=np.float64)
@@ -143,26 +130,6 @@ def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     for j in range(len(fas)):
         fas[j] = np.sqrt(fas[j] * final_scale)
     return fas
-
-@njit('complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :], float64)', parallel=True, fastmath=True, cache=True)
-def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise, dt):
-    """
-    The Fourier series of n number of simulations
-    """
-    fourier = np.zeros((n, len(freq_sim)), dtype=np.complex128)
-    _j_freq_sim = -1j * freq_sim
-    # Converts Continuous Target to Discrete Amplitudes
-    discrete_correction = np.sqrt(2 * np.pi / dt)
-    scales = (mdl / np.sqrt(variance)) * discrete_correction
-    for i in range(npts):
-        frf_i = get_frf(wu[i], zu[i], wl[i], zl[i], freq_sim, freq_sim_p2)
-        exp_i = np.exp(_j_freq_sim * t[i])
-        expected_vector_i = frf_i * exp_i * scales[i]
-
-        for sim in prange(n):
-            fourier[sim, :] += expected_vector_i * white_noise[sim, i]
-
-    return fourier
 
 @njit('complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :], float64)', parallel=True, fastmath=True, cache=True)
 def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise, dt):
