@@ -49,6 +49,21 @@ class ModelConfig(DomainConfig):
                 self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
                 self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.dw)
 
+    def _compute_fas(self):
+        """
+        Fourier amplitude spectrum (FAS) of the stochastic model (acceleration, velocity, displacement).
+
+        Returns
+        -------
+        self
+            The ModelConfig instance with computed FAS attributes.
+        """
+        self._fas, self._fas_vel, self._fas_disp = engine.get_fas(
+            self.modulating.value, self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
+            self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
+            self.freq_p2, self.freq_p4, self._variance, self.dt)
+        return self
+    
     @property
     def fas(self):
         """
@@ -60,10 +75,7 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas'):
-            self._fas = engine.get_fas(self.modulating.value,
-                                             self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
-                                             self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
-                                             self.freq_p2, self.freq_p4, self._variance, self.dt)
+            self._compute_fas()
         return self._fas
     
     @property
@@ -77,10 +89,7 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas_vel'):
-            self._fas_vel = engine.get_fas_vel(self.modulating.value,
-                                             self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
-                                             self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
-                                             self.freq_p2, self.freq_p4, self._variance, self.dt)
+            self._compute_fas()
         return self._fas_vel
     
     @property
@@ -94,10 +103,7 @@ class ModelConfig(DomainConfig):
             FAS computed using the model's PSD.
         """
         if not hasattr(self, '_fas_disp'):
-            self._fas_disp = engine.get_fas_disp(self.modulating.value,
-                                             self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
-                                             self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
-                                             self.freq_p2, self.freq_p4, self._variance, self.dt)
+            self._compute_fas()
         return self._fas_disp
     
     @property

@@ -155,159 +155,23 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, dw):
         variance_2bar[i] = var_2bar * scale
     return variance, variance_dot, variance_2dot, variance_bar, variance_2bar
 
-@njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
+@njit('Tuple((float64[:], float64[:], float64[:]))(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
 def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     """
-    Compute Fourier amplitude spectrum.
-
-    Parameters
-    ----------
-    mdl : ndarray
-        Modulating function values.
-    wu : ndarray
-        Upper angular frequencies.
-    zu : ndarray
-        Upper damping ratios.
-    wl : ndarray
-        Lower angular frequencies.
-    zl : ndarray
-        Lower damping ratios.
-    freq_p2 : ndarray
-        Squared frequencies.
-    freq_p4 : ndarray
-        Fourth power frequencies.
-    variance : ndarray
-        Variance array.
-    dt : float
-        Time step.
+    Compute Fourier amplitude spectra for acceleration, velocity, and displacement.
 
     Returns
     -------
-    ndarray
-        Fourier amplitude spectrum.
-    """
-    fas = np.zeros_like(freq_p2, dtype=np.float64)
-    final_scale = dt * 2 * np.pi
-    for i in range(len(wu)):
-        wui = wu[i]
-        zui = zu[i]
-        wli = wl[i]
-        zli = zl[i]
-        wu2 = wui * wui
-        wu4 = wu2 * wu2
-        wl2 = wli * wli
-        wl4 = wl2 * wl2
-        scalar_l = 2 * wl2 * (2 * zli * zli - 1)
-        scalar_u = 2 * wu2 * (2 * zui * zui - 1)
-        # Calculate the amplitude scaling factor for this time step
-        scale = (mdl[i] * mdl[i]) / variance[i]
-        # 2. Inner Loop: Compute PSD scalar and add directly to FAS
-        for j in range(len(freq_p2)):
-            val_p2 = freq_p2[j]
-            val_p4 = freq_p4[j]
-            denom = (wl4 + val_p4 + scalar_l * val_p2) * \
-                    (wu4 + val_p4 + scalar_u * val_p2)
-            psd_val = val_p4 / denom
-            # Accumulate directly
-            fas[j] += scale * psd_val
-    
-    # Final conversion to magnitude
-    for j in range(len(fas)):
-        fas[j] = np.sqrt(fas[j] * final_scale)
-    return fas
-
-@njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
-def get_fas_vel(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
-    """
-    Compute Fourier amplitude spectrum of velocity.
-
-    Parameters
-    ----------
-    mdl : ndarray
-        Modulating function values.
-    wu : ndarray
-        Upper angular frequencies.
-    zu : ndarray
-        Upper damping ratios.
-    wl : ndarray
-        Lower angular frequencies.
-    zl : ndarray
-        Lower damping ratios.
-    freq_p2 : ndarray
-        Squared frequencies.
-    freq_p4 : ndarray
-        Fourth power frequencies.
-    variance : ndarray
-        Variance array.
-    dt : float
-        Time step.
-
-    Returns
-    -------
-    ndarray
+    fas_ac : ndarray
+        Acceleration Fourier amplitude spectrum.
+    fas_vel : ndarray
         Velocity Fourier amplitude spectrum.
-    """
-    fas = np.zeros_like(freq_p2, dtype=np.float64)
-    final_scale = dt * 2 * np.pi
-    for i in range(len(wu)):
-        wui = wu[i]
-        zui = zu[i]
-        wli = wl[i]
-        zli = zl[i]
-        wu2 = wui * wui
-        wu4 = wu2 * wu2
-        wl2 = wli * wli
-        wl4 = wl2 * wl2
-        scalar_l = 2 * wl2 * (2 * zli * zli - 1)
-        scalar_u = 2 * wu2 * (2 * zui * zui - 1)
-        
-        scale = (mdl[i] * mdl[i]) / variance[i]
-        
-        for j in range(len(freq_p2)):
-            val_p2 = freq_p2[j]
-            val_p4 = freq_p4[j]
-            denom = (wl4 + val_p4 + scalar_l * val_p2) * \
-                    (wu4 + val_p4 + scalar_u * val_p2)
-            # Velocity depends on omega^2, not omega^4
-            psd_val = val_p2 / denom
-            fas[j] += scale * psd_val
-    
-    for j in range(len(fas)):
-        fas[j] = np.sqrt(fas[j] * final_scale)
-    return fas
-
-@njit('float64[:](float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
-def get_fas_disp(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
-    """
-    Compute Fourier amplitude spectrum of displacement.
-
-    Parameters
-    ----------
-    mdl : ndarray
-        Modulating function values.
-    wu : ndarray
-        Upper angular frequencies.
-    zu : ndarray
-        Upper damping ratios.
-    wl : ndarray
-        Lower angular frequencies.
-    zl : ndarray
-        Lower damping ratios.
-    freq_p2 : ndarray
-        Squared frequencies.
-    freq_p4 : ndarray
-        Fourth power frequencies.
-    variance : ndarray
-        Variance array.
-    dt : float
-        Time step.
-
-    Returns
-    -------
-    ndarray
+    fas_disp : ndarray
         Displacement Fourier amplitude spectrum.
     """
-    fas = np.zeros_like(freq_p2, dtype=np.float64)
+    fas_ac = np.zeros_like(freq_p2, dtype=np.float64)
+    fas_vel = np.zeros_like(freq_p2, dtype=np.float64)
+    fas_disp = np.zeros_like(freq_p2, dtype=np.float64)
     final_scale = dt * 2 * np.pi
     for i in range(len(wu)):
         wui = wu[i]
@@ -320,21 +184,20 @@ def get_fas_disp(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
         wl4 = wl2 * wl2
         scalar_l = 2 * wl2 * (2 * zli * zli - 1)
         scalar_u = 2 * wu2 * (2 * zui * zui - 1)
-        
         scale = (mdl[i] * mdl[i]) / variance[i]
-        
         for j in range(len(freq_p2)):
             val_p2 = freq_p2[j]
             val_p4 = freq_p4[j]
             denom = (wl4 + val_p4 + scalar_l * val_p2) * \
                     (wu4 + val_p4 + scalar_u * val_p2)
-            # Displacement numerator is 1 (divided acc by omega^4)
-            psd_val = 1.0 / denom
-            fas[j] += scale * psd_val
-    
-    for j in range(len(fas)):
-        fas[j] = np.sqrt(fas[j] * final_scale)
-    return fas
+            fas_ac[j] += scale * (val_p4 / denom)
+            fas_vel[j] += scale * (val_p2 / denom)
+            fas_disp[j] += scale * (1.0 / denom)
+    for j in range(len(freq_p2)):
+        fas_ac[j] = np.sqrt(fas_ac[j] * final_scale)
+        fas_vel[j] = np.sqrt(fas_vel[j] * final_scale)
+        fas_disp[j] = np.sqrt(fas_disp[j] * final_scale)
+    return fas_ac, fas_vel, fas_disp
 
 @njit('complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :], float64)', parallel=True, fastmath=True, cache=True)
 def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise, dt):
