@@ -78,25 +78,6 @@ class DomainConfig:
         npts_sim = int(2 ** np.ceil(np.log2(2 * self.npts)))
         return signal_tools.frequency(npts_sim, self.dt) * 2 * np.pi
 
-    @property
-    def freq_slicer(self):
-        """
-        slice: Slice object corresponding to the specified frequency range.
-        """
-        return self._freq_slicer
-
-    @freq_slicer.setter
-    def freq_slicer(self, freq_range: tuple[float, float]):
-        """
-        Set the frequency slice range.
-
-        Parameters
-        ----------
-        freq_range : tuple of float
-            (start_freq, end_freq) for frequency range.
-        """
-        self._freq_slicer = signal_tools.slice_freq(self.freq, freq_range)
-
     @cached_property
     def freq_sim_p2(self):
         """
