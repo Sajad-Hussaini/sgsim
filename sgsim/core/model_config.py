@@ -1,112 +1,165 @@
+from functools import cached_property
+from typing import Callable
 import numpy as np
 from .domain_config import DomainConfig
-from .functions import ParametricFunction
 from . import engine
 from ..motion import signal_tools
 
+
 class ModelConfig(DomainConfig):
     """
-    Base class for stochastic model configuration and dependent attribute management.
+    Stochastic model configuration with cached derived properties.
 
     Parameters
     ----------
     npts : int
-        Number of time points in the simulation.
+        Number of time points.
     dt : float
-        Time step of the simulation.
-    modulating : ParametricFunction
-        Time-varying modulating function.
-    upper_frequency : ParametricFunction
-        Upper frequency parameter function.
-    upper_damping : ParametricFunction
-        Upper damping parameter function.
-    lower_frequency : ParametricFunction
-        Lower frequency parameter function.
-    lower_damping : ParametricFunction
-        Lower damping parameter function.
-    """
-    _CORE_ATTRS = DomainConfig._CORE_ATTRS | frozenset(['modulating', 'upper_frequency', 'upper_damping', 'lower_frequency', 'lower_damping'])
+        Time step.
+    modulating : Callable
+        Time-varying modulating function (use functools.partial to bind params).
+    upper_frequency : Callable
+        Upper frequency function.
+    upper_damping : Callable
+        Upper damping function.
+    lower_frequency : Callable
+        Lower frequency function.
+    lower_damping : Callable
+        Lower damping function.
 
-    def __init__(self, modulating: ParametricFunction,
-                 upper_frequency: ParametricFunction, upper_damping: ParametricFunction,
-                 lower_frequency: ParametricFunction, lower_damping: ParametricFunction):
+    Examples
+    --------
+    >>> from functools import partial
+    >>> from sgsim.core.functions import beta_single, linear, constant
+    >>> config = ModelConfig(
+    ...     npts=4000, dt=0.01,
+    ...     modulating=partial(beta_single, peak=0.3, concentration=5.0, energy=100.0, duration=40.0),
+    ...     upper_frequency=partial(linear, start=10.0, end=5.0),
+    ...     upper_damping=partial(constant, c=0.3),
+    ...     lower_frequency=partial(constant, c=0.1),
+    ...     lower_damping=partial(constant, c=0.5))
+    """
+    def __init__(self, npts: int, dt: float, modulating: Callable,
+                 upper_frequency: Callable, upper_damping: Callable,
+                 lower_frequency: Callable, lower_damping: Callable):
+        super().__init__(npts, dt)
         self.modulating = modulating
         self.upper_frequency = upper_frequency
         self.upper_damping = upper_damping
         self.lower_frequency = lower_frequency
         self.lower_damping = lower_damping
 
-        for func in [self.modulating, self.upper_frequency, self.upper_damping, 
-                     self.lower_frequency, self.lower_damping]:
-            func.callback = self._clear_cache
+    # =========================================================================
+    # Computed Function Values (deferred, cached)
+    # =========================================================================
+
+    @cached_property
+    def mdl(self) -> np.ndarray:
+        """Computed modulating function values."""
+        return self.modulating(self.t)
+
+    @cached_property
+    def wu(self) -> np.ndarray:
+        """Computed upper frequency values."""
+        return self.upper_frequency(self.t)
+
+    @cached_property
+    def zu(self) -> np.ndarray:
+        """Computed upper damping values."""
+        return self.upper_damping(self.t)
+
+    @cached_property
+    def wl(self) -> np.ndarray:
+        """Computed lower frequency values."""
+        return self.lower_frequency(self.t)
+
+    @cached_property
+    def zl(self) -> np.ndarray:
+        """Computed lower damping values."""
+        return self.lower_damping(self.t)
+
+
+    # =========================================================================
+    # Core Statistics (cached tuple unpacking)
+    # =========================================================================
+
+    @cached_property
+    def _stats(self):
+        """Variance statistics for acceleration, velocity, and displacement."""
+        return engine.get_stats(self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
+                                self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.df)
 
     @property
-    def _stats(self):
-        """Compute and store the variances for internal use."""
-        if not hasattr(self, '_variance'):
-            self._variance, self._variance_dot, self._variance_2dot, self._variance_bar, self._variance_2bar = engine.get_stats(
-                self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
-                self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
-                self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.dw)
+    def _variance(self):
+        return self._stats[0]
 
-    def _compute_fas(self):
-        """
-        Fourier amplitude spectrum (FAS) of the stochastic model (acceleration, velocity, displacement).
+    @property
+    def _variance_dot(self):
+        return self._stats[1]
 
-        Returns
-        -------
-        self
-            The ModelConfig instance with computed FAS attributes.
-        """
-        self._fas, self._fas_vel, self._fas_disp = engine.get_fas(
-            self.modulating.value, self.upper_frequency.value * 2 * np.pi, self.upper_damping.value,
-            self.lower_frequency.value * 2 * np.pi, self.lower_damping.value,
-            self.freq_p2, self.freq_p4, self._variance, self.dt)
-        return self
-    
+    @property
+    def _variance_2dot(self):
+        return self._stats[2]
+
+    @property
+    def _variance_bar(self):
+        return self._stats[3]
+
+    @property
+    def _variance_2bar(self):
+        return self._stats[4]
+
+    # =========================================================================
+    # Fourier Amplitude Spectra (cached tuple unpacking)
+    # =========================================================================
+
+    @cached_property
+    def _fas_all(self):
+        """FAS for acceleration, velocity, and displacement."""
+        return engine.get_fas(self.mdl, self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
+                              self.freq_p2, self.freq_p4, self._variance, self.dt)
+
     @property
     def fas(self):
         """
-        Fourier amplitude spectrum (FAS) of the stochastic model (acceleration).
+        Fourier amplitude spectrum (FAS) of acceleration.
 
         Returns
         -------
         ndarray
             FAS computed using the model's PSD.
         """
-        if not hasattr(self, '_fas'):
-            self._compute_fas()
-        return self._fas
-    
+        return self._fas_all[0]
+
     @property
     def fas_vel(self):
         """
-        Fourier amplitude spectrum (FAS) of the velocity of the stochastic model.
+        Fourier amplitude spectrum (FAS) of velocity.
 
         Returns
         -------
         ndarray
             FAS computed using the model's PSD.
         """
-        if not hasattr(self, '_fas_vel'):
-            self._compute_fas()
-        return self._fas_vel
-    
+        return self._fas_all[1]
+
     @property
     def fas_disp(self):
         """
-        Fourier amplitude spectrum (FAS) of the displacement of the stochastic model.
+        Fourier amplitude spectrum (FAS) of displacement.
 
         Returns
         -------
         ndarray
             FAS computed using the model's PSD.
         """
-        if not hasattr(self, '_fas_disp'):
-            self._compute_fas()
-        return self._fas_disp
-    
-    @property
+        return self._fas_all[2]
+
+    # =========================================================================
+    # Cumulative Energy
+    # =========================================================================
+
+    @cached_property
     def ce(self):
         """
         Cumulative energy of the stochastic model.
@@ -116,121 +169,124 @@ class ModelConfig(DomainConfig):
         ndarray
             Cumulative energy time history.
         """
-        return signal_tools.ce(self.dt, self.modulating.value)
+        return signal_tools.ce(self.dt, self.mdl)
 
-    @property
+    # =========================================================================
+    # Local Extrema Counts
+    # =========================================================================
+
+    @cached_property
     def le_ac(self):
         """
-        Mean cumulative number of local extrema (peaks and valleys) of acceleration.
+        Mean cumulative local extrema count of acceleration.
 
         Returns
         -------
         ndarray
             Cumulative count of acceleration local extrema.
         """
-        self._stats
         return engine.cumulative_rate(self.dt, self._variance_2dot, self._variance_dot)
 
-    @property
+    @cached_property
     def le_vel(self):
         """
-        Mean cumulative number of local extrema (peaks and valleys) of velocity.
+        Mean cumulative local extrema count of velocity.
 
         Returns
         -------
         ndarray
             Cumulative count of velocity local extrema.
         """
-        self._stats
         return engine.cumulative_rate(self.dt, self._variance_dot, self._variance)
 
-    @property
+    @cached_property
     def le_disp(self):
         """
-        Mean cumulative number of local extrema (peaks and valleys) of displacement.
+        Mean cumulative local extrema count of displacement.
 
         Returns
         -------
         ndarray
             Cumulative count of displacement local extrema.
         """
-        self._stats
         return engine.cumulative_rate(self.dt, self._variance, self._variance_bar)
 
-    @property
+    # =========================================================================
+    # Zero Crossing Counts
+    # =========================================================================
+
+    @cached_property
     def zc_ac(self):
         """
-        Mean cumulative number of zero crossings (up and down) of acceleration.
+        Mean cumulative zero crossing count of acceleration.
 
         Returns
         -------
         ndarray
             Cumulative count of acceleration zero crossings.
         """
-        self._stats
         return engine.cumulative_rate(self.dt, self._variance_dot, self._variance)
 
-    @property
+    @cached_property
     def zc_vel(self):
         """
-        Mean cumulative number of zero crossings (up and down) of velocity.
+        Mean cumulative zero crossing count of velocity.
 
         Returns
         -------
         ndarray
             Cumulative count of velocity zero crossings.
-        """            
-        self._stats
+        """
         return engine.cumulative_rate(self.dt, self._variance, self._variance_bar)
 
-    @property
+    @cached_property
     def zc_disp(self):
         """
-        Mean cumulative number of zero crossings (up and down) of displacement.
+        Mean cumulative zero crossing count of displacement.
 
         Returns
         -------
         ndarray
             Cumulative count of displacement zero crossings.
         """
-        self._stats
         return engine.cumulative_rate(self.dt, self._variance_bar, self._variance_2bar)
 
-    @property
+    # =========================================================================
+    # Positive-Minima / Negative-Maxima Counts
+    # =========================================================================
+
+    @cached_property
     def pmnm_ac(self):
         """
-        Mean cumulative number of positive-minima and negative maxima of acceleration.
+        Mean cumulative PMNM count of acceleration.
 
         Returns
         -------
         ndarray
-            Cumulative count of acceleration positive-minima and negative maxima.
+            Cumulative count of acceleration positive-minima and negative-maxima.
         """
-        self._stats
         return engine.pmnm_rate(self.dt, self._variance_2dot, self._variance_dot, self._variance)
 
-    @property
+    @cached_property
     def pmnm_vel(self):
         """
-        Mean cumulative number of positive-minima and negative maxima of velocity.
+        Mean cumulative PMNM count of velocity.
 
         Returns
         -------
         ndarray
-            Cumulative count of velocity positive-minima and negative maxima.
+            Cumulative count of velocity positive-minima and negative-maxima.
         """
-        self._stats
         return engine.pmnm_rate(self.dt, self._variance_dot, self._variance, self._variance_bar)
 
-    @property
+    @cached_property
     def pmnm_disp(self):
         """
-        Mean cumulative number of positive-minima and negative maxima of displacement.
+        Mean cumulative PMNM count of displacement.
 
         Returns
         -------
         ndarray
-            Cumulative count of displacement positive-minima and negative maxima.
+            Cumulative count of displacement positive-minima and negative-maxima.
         """
-        self._stats
         return engine.pmnm_rate(self.dt, self._variance, self._variance_bar, self._variance_2bar)

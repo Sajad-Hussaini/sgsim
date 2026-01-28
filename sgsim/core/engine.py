@@ -74,7 +74,7 @@ def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
     return out
 
 @njit('Tuple((float64[:], float64[:], float64[:], float64[:], float64[:]))(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', parallel=True, fastmath=True, cache=True)
-def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, dw):
+def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, df):
     """
     Compute evolutionary statistics from PSD.
 
@@ -96,8 +96,8 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, dw):
         Negative squared frequencies.
     freq_n4 : ndarray
         Negative fourth power frequencies.
-    dw : float
-        Frequency increment.
+    df : float
+        Angular frequency increment.
 
     Returns
     -------
@@ -118,7 +118,7 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, dw):
     variance_2dot = np.empty(n)
     variance_bar = np.empty(n)
     variance_2bar = np.empty(n)
-    scale = 2 * dw
+    scale = 2 * df
     
     for i in prange(n):
         wui = wu[i]

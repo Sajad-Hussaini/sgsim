@@ -1,56 +1,46 @@
+"""
+Parametric functions for stochastic ground motion simulation.
+
+This module provides pure functions for time-varying parametric models.
+Use `functools.partial` to bind parameters before passing to ModelConfig.
+
+Examples
+--------
+>>> from functools import partial
+>>> from sgsim.core.functions import beta_single, linear, constant
+>>> from sgsim.core.model_config import ModelConfig
+>>>
+>>> config = ModelConfig(
+...     npts=4000,
+...     dt=0.01,
+...     modulating=partial(beta_single, peak=0.3, concentration=5.0, energy=100.0, duration=40.0),
+...     upper_frequency=partial(linear, start=10.0, end=5.0),
+...     upper_damping=partial(constant, c=0.3),
+...     lower_frequency=partial(constant, c=0.1),
+...     lower_damping=partial(constant, c=0.5),
+... )
+"""
 import numpy as np
 from scipy.special import betaln
-from abc import ABC, abstractmethod
 
 __all__ = [
-    "BetaBasic",
-    "BetaSingle",
-    "BetaDual",
-    "Gamma",
-    "Housner",
-    "Linear",
-    "Bilinear",
-    "Exponential",
-    "Constant"
-    ]
+    "beta_basic",
+    "beta_single",
+    "beta_dual",
+    "gamma",
+    "housner",
+    "linear",
+    "bilinear",
+    "exponential",
+    "constant",]
 
-class ParametricFunction(ABC):
-    """
-    Abstract base class for parametric functions.
-    
-    Provides interface for time-varying parametric functions used in
-    stochastic ground motion simulation.
-    
-    Attributes
-    ----------
-    params : dict
-        Dictionary of function parameters.
-    value : ndarray
-        Last computed function values.
-    """
-    def __init__(self):
-        self.params = {k: None for k in self._pnames}
 
-    def _trigger_callback(self):
-        """Trigger callback if it exists."""
-        if hasattr(self, 'callback'):
-            self.callback()
+# =============================================================================
+# Modulating Functions (Envelope shapes for ground motion)
+# =============================================================================
 
-    @abstractmethod
-    def __call__(self, *args, **kwargs):
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def compute(*args, **kwargs):
-        pass
-
-    def __repr__(self):
-        p = getattr(self, "params", {})
-        param_str = ', '.join(f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}" for k, v in p.items())
-        return f"{self.__class__.__name__}({param_str})"
-
-class BetaBasic(ParametricFunction):
+def beta_basic(t: np.ndarray, peak: float, concentration: float,
+               energy: float, duration: float) -> np.ndarray:
     """
     Basic Beta modulating function for earthquake ground motion simulation.
     
@@ -59,6 +49,8 @@ class BetaBasic(ParametricFunction):
 
     Parameters
     ----------
+    t : ndarray
+        Time array.
     peak : float
         Peak location as fraction of duration (0 < peak < 1).
     concentration : float
@@ -68,10 +60,15 @@ class BetaBasic(ParametricFunction):
     duration : float
         Total duration of the function (> 0).
     
+    Returns
+    -------
+    ndarray
+        Modulating function values at each time point.
+
     See Also
     --------
-    BetaSingle : Beta function with weak motion baseline.
-    BetaDual : Beta function with two strong phases.
+    beta_single : Beta function with weak motion baseline.
+    beta_dual : Beta function with two strong phases.
 
     References
     ----------  
@@ -79,23 +76,15 @@ class BetaBasic(ParametricFunction):
     simulation of earthquake ground motions with multiple strong phases.
     Earthquake Spectra. 2025;41(3):2399-2435.
     """
-    _pnames = ['peak', 'concentration', 'energy', 'duration']
-    def __call__(self, t, peak, concentration, energy, duration):
-        self.value = self.compute(t, peak, concentration, energy, duration)
-        self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, peak, concentration, energy, duration):
-        mdl = np.zeros(len(t))
-        mdl[1:-1] = np.exp((concentration * peak) * np.log(t[1:-1]) +
-                             (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                             betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
-                             (1 + concentration) * np.log(duration))
-        return np.sqrt(energy * mdl)
+    mdl = np.zeros(len(t))
+    mdl[1:-1] = np.exp((concentration * peak) * np.log(t[1:-1]) +
+                       (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
+                       betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
+                       (1 + concentration) * np.log(duration))
+    return np.sqrt(energy * mdl)
 
-class BetaSingle(ParametricFunction):
+def beta_single(t: np.ndarray, peak: float, concentration: float,
+                energy: float, duration: float) -> np.ndarray:
     """
     Beta modulating function with weak motion baseline.
     
@@ -105,6 +94,8 @@ class BetaSingle(ParametricFunction):
 
     Parameters
     ----------
+    t : ndarray
+        Time array.
     peak : float
         Peak location as fraction of duration (0 < peak < 1).
     concentration : float
@@ -114,10 +105,15 @@ class BetaSingle(ParametricFunction):
     duration : float
         Total duration of the function (> 0).
     
+    Returns
+    -------
+    ndarray
+        Modulating function values at each time point.
+
     See Also
     --------
-    BetaBasic : Pure Beta function without weak motion.
-    BetaDual : Beta function with two strong phases.
+    beta_basic : Pure Beta function without weak motion.
+    beta_dual : Beta function with two strong phases.
 
     References
     ----------  
@@ -125,24 +121,17 @@ class BetaSingle(ParametricFunction):
     simulation of earthquake ground motions with multiple strong phases.
     Earthquake Spectra. 2025;41(3):2399-2435.
     """
-    _pnames = ['peak', 'concentration', 'energy', 'duration']
-    def __call__(self, t, peak, concentration, energy, duration):
-        self.value = self.compute(t, peak, concentration, energy, duration)
-        self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, peak, concentration, energy, duration):
-        mdl = np.zeros(len(t))
-        mdl[1:-1] += 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
-        mdl[1:-1] += 0.95 * np.exp((concentration * peak) * np.log(t[1:-1]) +
-                             (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                             betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
-                             (1 + concentration) * np.log(duration))
-        return np.sqrt(energy * mdl)
+    mdl = np.zeros(len(t))
+    mdl[1:-1] += 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
+    mdl[1:-1] += 0.95 * np.exp((concentration * peak) * np.log(t[1:-1]) +
+                               (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
+                               betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
+                               (1 + concentration) * np.log(duration))
+    return np.sqrt(energy * mdl)
 
-class BetaDual(ParametricFunction):
+def beta_dual(t: np.ndarray, peak: float, concentration: float,
+              peak_2: float, concentration_2: float, energy_ratio: float,
+              energy: float, duration: float) -> np.ndarray:
     """
     Beta modulating function with two distinct strong phases.
     
@@ -152,6 +141,8 @@ class BetaDual(ParametricFunction):
 
     Parameters
     ----------
+    t : ndarray
+        Time array.
     peak : float
         Peak location of first strong phase as fraction of duration (0 < peak < 1).
     concentration : float
@@ -167,10 +158,15 @@ class BetaDual(ParametricFunction):
     duration : float
         Total duration of the function (> 0).
     
+    Returns
+    -------
+    ndarray
+        Modulating function values at each time point.
+
     See Also
     --------
-    BetaBasic : Single Beta function without weak motion.
-    BetaSingle : Single strong phase with weak motion.
+    beta_basic : Single Beta function without weak motion.
+    beta_single : Single strong phase with weak motion.
 
     References
     ----------  
@@ -178,35 +174,19 @@ class BetaDual(ParametricFunction):
     simulation of earthquake ground motions with multiple strong phases.
     Earthquake Spectra. 2025;41(3):2399-2435.
     """
-    _pnames = ['peak', 'concentration', 'peak_2', 'concentration_2', 'energy_ratio', 'energy', 'duration']
-    def __call__(self, t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):
-        self.value = self.compute(t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration)
-        self.params = dict(peak=peak, concentration=concentration,
-                           peak_2=peak_2, concentration_2=concentration_2,
-                           energy_ratio=energy_ratio, energy=energy, duration=duration)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):
-        # Original formula:
-        # mdl1 = 0.05 * (6 * (t * (duration - t)) / (duration ** 3))
-        # mdl2 = energy_ratio * ((t ** (concentration * peak) * (duration - t) ** (concentration * (1 - peak))) / (beta(1 + concentration * peak, 1 + concentration * (1 - peak)) * duration ** (1 + concentration)))
-        # mdl3 = (1 - 0.05 - energy_ratio) * ((t ** (concentration_2 * peak_2) * (duration - t) ** (concentration_2 * (1 - peak_2))) / (beta(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2)) * duration ** (1 + concentration_2)))
-        # multi_mdl = mdl1 + mdl2 + mdl3
-        mdl = np.zeros(len(t))
-        mdl[1:-1] += 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
-        mdl[1:-1] += energy_ratio * np.exp((concentration * peak) * np.log(t[1:-1]) +
-                                     (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                                     betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
-                                     (1 + concentration) * np.log(duration))
-        mdl[1:-1] += (0.95 - energy_ratio) * np.exp((concentration_2 * peak_2) * np.log(t[1:-1]) +
-                                              (concentration_2 * (1 - peak_2)) * np.log(duration - t[1:-1]) -
-                                              betaln(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2)) -
-                                              (1 + concentration_2) * np.log(duration))
-        return np.sqrt(energy * mdl)
+    mdl = np.zeros(len(t))
+    mdl[1:-1] += 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
+    mdl[1:-1] += energy_ratio * np.exp((concentration * peak) * np.log(t[1:-1]) +
+                                       (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
+                                       betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
+                                       (1 + concentration) * np.log(duration))
+    mdl[1:-1] += (0.95 - energy_ratio) * np.exp((concentration_2 * peak_2) * np.log(t[1:-1]) +
+                                                 (concentration_2 * (1 - peak_2)) * np.log(duration - t[1:-1]) -
+                                                 betaln(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2)) -
+                                                 (1 + concentration_2) * np.log(duration))
+    return np.sqrt(energy * mdl)
 
-class Gamma(ParametricFunction):
+def gamma(t: np.ndarray, scale: float, shape: float, decay: float) -> np.ndarray:
     """
     Gamma distribution modulating function.
     
@@ -215,6 +195,8 @@ class Gamma(ParametricFunction):
 
     Parameters
     ----------
+    t : ndarray
+        Time array.
     scale : float
         Amplitude scaling factor (> 0).
     shape : float
@@ -222,23 +204,20 @@ class Gamma(ParametricFunction):
     decay : float
         Decay rate parameter (> 0).
     
+    Returns
+    -------
+    ndarray
+        Modulating function values at each time point.
+
     See Also
     --------
-    BetaSingle : Alternative Beta-based envelope.
-    Housner : Piecewise envelope function.
+    beta_single : Alternative Beta-based envelope.
+    housner : Piecewise envelope function.
     """
-    _pnames = ['scale', 'shape', 'decay']
-    def __call__(self, t, scale, shape, decay):
-        self.value = self.compute(t, scale, shape, decay)
-        self.params = dict(scale=scale, shape=shape, decay=decay)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, scale, shape, decay):
-        return scale * t ** shape * np.exp(-decay * t)
+    return scale * t ** shape * np.exp(-decay * t)
 
-class Housner(ParametricFunction):
+def housner(t: np.ndarray, amplitude: float, decay: float, shape: float, 
+            tp: float, td: float) -> np.ndarray:
     """
     Housner piecewise modulating function.
     
@@ -247,6 +226,8 @@ class Housner(ParametricFunction):
 
     Parameters
     ----------
+    t : ndarray
+        Time array.
     amplitude : float
         Constant amplitude during plateau phase (> 0).
     decay : float
@@ -258,25 +239,25 @@ class Housner(ParametricFunction):
     td : float
         Time to start decay phase (td > tp).
     
+    Returns
+    -------
+    ndarray
+        Modulating function values at each time point.
+
     See Also
     --------
-    Gamma : Alternative smooth envelope.
-    BetaSingle : Beta-based envelope function.
+    gamma : Alternative smooth envelope.
+    beta_single : Beta-based envelope function.
     """
-    _pnames = ['amplitude', 'decay', 'shape', 'tp', 'td']
-    def __call__(self, t, amplitude, decay, shape, tp, td):
-        self.value = self.compute(t, amplitude, decay, shape, tp, td)
-        self.params = dict(amplitude=amplitude, decay=decay, shape=shape, tp=tp, td=td)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, amplitude, decay, shape, tp, td):
-        return np.piecewise(t, [(t >= 0) & (t < tp), (t >= tp) & (t <= td), t > td],
-                            [lambda t_val: amplitude * (t_val / tp) ** 2, amplitude,
-                             lambda t_val: amplitude * np.exp(-decay * ((t_val - td) ** shape))])
+    return np.piecewise(t, [(t >= 0) & (t < tp), (t >= tp) & (t <= td), t > td],
+                        [lambda t_val: amplitude * (t_val / tp) ** 2, amplitude,
+                        lambda t_val: amplitude * np.exp(-decay * ((t_val - td) ** shape))])
 
-class Linear(ParametricFunction):
+# =============================================================================
+# Interpolation Functions (Time-varying filter parameters)
+# =============================================================================
+
+def linear(t: np.ndarray, start: float, end: float) -> np.ndarray:
     """
     Linear interpolation function.
     
@@ -285,28 +266,27 @@ class Linear(ParametricFunction):
 
     Parameters
     ----------
+    t : ndarray
+        Time array.
     start : float
         Starting value at t=0.
     end : float
         Ending value at t=max(t).
     
+    Returns
+    -------
+    ndarray
+        Linearly interpolated values at each time point.
+
     See Also
     --------
-    Bilinear : Piecewise linear with midpoint.
-    Exponential : Exponential interpolation.
+    bilinear : Piecewise linear with midpoint.
+    exponential : Exponential interpolation.
     """
-    _pnames = ['start', 'end']
-    def __call__(self, t, start, end):
-        self.value = self.compute(t, start, end)
-        self.params = dict(start=start, end=end)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, start, end):
-        return start + (end - start) * (t / t.max())
+    return start + (end - start) * (t / t.max())
 
-class Bilinear(ParametricFunction):
+
+def bilinear(t: np.ndarray, start: float, mid: float, end: float, t_mid: float) -> np.ndarray:
     """
     Piecewise linear interpolation function.
     
@@ -315,6 +295,8 @@ class Bilinear(ParametricFunction):
 
     Parameters
     ----------
+    t : ndarray
+        Time array.
     start : float
         Starting value at t=0.
     mid : float
@@ -324,25 +306,22 @@ class Bilinear(ParametricFunction):
     t_mid : float
         Time at midpoint (0 < t_mid < max(t)).
     
+    Returns
+    -------
+    ndarray
+        Piecewise linearly interpolated values at each time point.
+
     See Also
     --------
-    Linear : Simple linear interpolation.
-    Exponential : Smooth exponential transition.
+    linear : Simple linear interpolation.
+    exponential : Smooth exponential transition.
     """
-    _pnames = ['start', 'mid', 'end', 't_mid']
-    def __call__(self, t, start, mid, end, t_mid):
-        self.value = self.compute(t, start, mid, end, t_mid)
-        self.params = dict(start=start, mid=mid, end=end, t_mid=t_mid)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, start, mid, end, t_mid):
-        return np.piecewise(t, [t <= t_mid, t > t_mid],
-                            [lambda t_val: start - (start - mid) * t_val / t_mid,
-                             lambda t_val: mid - (mid - end) * (t_val - t_mid) / (t.max() - t_mid)])
+    t_max = t.max()
+    return np.piecewise(t, [t <= t_mid, t > t_mid],
+                        [lambda t_val: start - (start - mid) * t_val / t_mid,
+                        lambda t_val: mid - (mid - end) * (t_val - t_mid) / (t_max - t_mid)])
 
-class Exponential(ParametricFunction):
+def exponential(t: np.ndarray, start: float, end: float) -> np.ndarray:
     """
     Exponential interpolation function.
     
@@ -351,28 +330,26 @@ class Exponential(ParametricFunction):
 
     Parameters
     ----------
+    t : ndarray
+        Time array.
     start : float
         Starting value at t=0 (> 0).
     end : float
         Ending value at t=max(t) (> 0).
     
+    Returns
+    -------
+    ndarray
+        Exponentially interpolated values at each time point.
+
     See Also
     --------
-    Linear : Linear interpolation.
-    Bilinear : Piecewise linear with midpoint.
+    linear : Linear interpolation.
+    bilinear : Piecewise linear with midpoint.
     """
-    _pnames = ['start', 'end']
-    def __call__(self, t, start, end):
-        self.value = self.compute(t, start, end)
-        self.params = dict(start=start, end=end)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, start, end):
-        return start * np.exp(np.log(end / start) * (t / t.max()))
+    return start * np.exp(np.log(end / start) * (t / t.max()))
 
-class Constant(ParametricFunction):
+def constant(t: np.ndarray, c: float) -> np.ndarray:
     """
     Constant value function.
     
@@ -380,20 +357,18 @@ class Constant(ParametricFunction):
 
     Parameters
     ----------
-    value : float
+    t : ndarray
+        Time array.
+    c : float
         Constant value for all time points.
     
+    Returns
+    -------
+    ndarray
+        Array of constant values with same length as t.
+
     See Also
     --------
-    Linear : Time-varying linear function.
+    linear : Time-varying linear function.
     """
-    _pnames = ['value']
-    def __call__(self, t, value):
-        self.value = self.compute(t, value)
-        self.params = dict(value=value)
-        self._trigger_callback()
-        return self.value
-    
-    @staticmethod
-    def compute(t, value):
-        return np.full(len(t), value)
+    return np.full(len(t), c)
