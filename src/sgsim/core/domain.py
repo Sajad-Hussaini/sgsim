@@ -3,7 +3,7 @@ from functools import cached_property
 
 import numpy as np
 
-from ..motion import signal_tools
+from ..motion import signal
 
 
 class Domain:
@@ -30,14 +30,14 @@ class Domain:
         """
         ndarray: Time array for the configured number of points and time step.
         """
-        return signal_tools.time(self.npts, self.dt)
+        return signal.time(self.npts, self.dt)
 
     @cached_property
     def freq(self):
         """
         ndarray: Angular frequency array for the configured number of points and time step.
         """
-        return signal_tools.frequency(self.npts, self.dt) * 2 * np.pi
+        return signal.frequency(self.npts, self.dt) * 2 * np.pi
     
     @cached_property
     def df(self):
@@ -53,7 +53,7 @@ class Domain:
         Uses Nyquist frequency to avoid aliasing in simulations.
         """
         npts_sim = int(2 ** np.ceil(np.log2(2 * self.npts)))
-        return signal_tools.frequency(npts_sim, self.dt) * 2 * np.pi
+        return signal.frequency(npts_sim, self.dt) * 2 * np.pi
 
     @cached_property
     def freq_sim_p2(self):

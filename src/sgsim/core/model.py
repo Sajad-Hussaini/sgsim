@@ -3,18 +3,19 @@ from functools import cached_property
 from typing import Callable
 
 import numpy as np
+from scipy.fft import irfft
 
 from . import engine
 from .domain import Domain
-from ..motion import signal_tools
+from ..motion import signal
+from ..motion.ground_motion import GroundMotion
+from ..optimization.fit_eval import goodness_of_fit
 
 
-class Model(Domain):
+class StochasticModel(Domain):
     """
-    Stochastic ground motion model with cached derived properties.
+    Stochastic ground motion model.
 
-    Extends Domain with model-specific parameters and computes spectral
-    characteristics including FAS, cumulative energy, and extrema counts.
 
     Parameters
     ----------
@@ -37,7 +38,7 @@ class Model(Domain):
     --------
     >>> from functools import partial
     >>> from sgsim.functions import beta_single, linear, constant
-    >>> model = Model(
+    >>> model = StochasticModel(
     ...     npts=4000, dt=0.01,
     ...     modulating=partial(beta_single, peak=0.3, concentration=5.0, energy=100.0, duration=40.0),
     ...     upper_frequency=partial(linear, start=10.0, end=5.0),
@@ -180,7 +181,7 @@ class Model(Domain):
         ndarray
             Cumulative energy time history.
         """
-        return signal_tools.ce(self.dt, self.q)
+        return signal.ce(self.dt, self.q)
 
     # =========================================================================
     # Local Extrema Counts
@@ -301,3 +302,130 @@ class Model(Domain):
             Cumulative count of displacement positive-minima and negative-maxima.
         """
         return engine.pmnm_rate(self.dt, self._variance, self._variance_bar, self._variance_2bar)
+
+    # =========================================================================
+    # Simulation Methods
+    # =========================================================================
+
+    def simulate(self, n: int, tag=None, seed: int = None) -> GroundMotion:
+        """
+        Simulate ground motions using the stochastic model.
+
+        Parameters
+        ----------
+        n : int
+            Number of simulations to generate.
+        tag : any, optional
+            Identifier for the simulation batch.
+        seed : int, optional
+            Random seed for reproducibility.
+
+        Returns
+        -------
+        GroundMotion
+            Simulated ground motions with acceleration, velocity, and displacement.
+        """
+        n = int(n)
+        rng = np.random.default_rng(seed)
+        white_noise = rng.standard_normal((n, self.npts))
+        fourier = engine.fourier_series(
+            n, self.npts, self.t,
+            self.freq_sim, self.freq_sim_p2,
+            self.q,
+            self.wu * 2 * np.pi, self.zu,
+            self.wl * 2 * np.pi, self.zl,
+            self._variance, white_noise, self.dt,
+        )
+        # Using default backward 1/N scaling and manual anti-aliasing
+        ac = irfft(fourier, workers=-1)[..., :self.npts]
+        # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
+        fourier[..., 1:] /= (1j * self.freq_sim[1:])
+        vel = irfft(fourier, workers=-1)[..., :self.npts]
+        fourier[..., 1:] /= (1j * self.freq_sim[1:])
+        disp = irfft(fourier, workers=-1)[..., :self.npts]
+        return GroundMotion(self.npts, self.dt, ac, vel, disp, tag=tag)
+
+    def simulate_conditional(
+        self,
+        n: int,
+        target: GroundMotion,
+        metrics: dict,
+        max_iter: int = 100,
+    ) -> GroundMotion:
+        """
+        Conditionally simulate ground motions until GoF metrics are met.
+
+        Parameters
+        ----------
+        n : int
+            Number of simulations to generate.
+        target : GroundMotion
+            Target ground motion to compare against.
+        metrics : dict
+            Conditioning metrics with GoF thresholds, e.g., {'sa': 0.9}.
+        max_iter : int, optional
+            Maximum attempts per required simulation.
+
+        Returns
+        -------
+        GroundMotion
+            Simulated ground motions meeting all GoF thresholds.
+
+        Raises
+        ------
+        RuntimeError
+            If not enough simulations meet thresholds within max_iter * n attempts.
+        """
+        successful: list[GroundMotion] = []
+        attempts = 0
+        while len(successful) < n and attempts < max_iter * n:
+            simulated = self.simulate(1, tag=attempts)
+            gof_scores = {
+                metric: goodness_of_fit(
+                    getattr(simulated, metric),
+                    getattr(target, metric),
+                )
+                for metric in metrics
+            }
+            if all(gof_scores[m] >= metrics[m] for m in metrics):
+                successful.append(simulated)
+            attempts += 1
+
+        if len(successful) < n:
+            raise RuntimeError(
+                f"Only {len(successful)} simulations met thresholds after {attempts} attempts."
+            )
+
+        ac = np.concatenate([gm.ac for gm in successful], axis=0)
+        vel = np.concatenate([gm.vel for gm in successful], axis=0)
+        disp = np.concatenate([gm.disp for gm in successful], axis=0)
+        return GroundMotion(self.npts, self.dt, ac, vel, disp, tag=len(successful))
+
+    def summary(self):
+        """
+        Print model parameters.
+
+        Returns
+        -------
+        Model
+            Self for method chaining.
+        """
+        def _format_fn(fn):
+            params = ', '.join(
+                f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}"
+                for k, v in fn.keywords.items()
+            )
+            return f"{fn.func.__name__}({params})"
+
+        title = "Model Summary " + "=" * 40
+        print(title)
+        print(f"{'Time Step (dt)':<25} : {self.dt}")
+        print(f"{'Number of Points (npts)':<25} : {self.npts}")
+        print("-" * len(title))
+        print(f"{'Modulating':<25} : {_format_fn(self.modulating)}")
+        print(f"{'Upper Frequency':<25} : {_format_fn(self.upper_frequency)}")
+        print(f"{'Lower Frequency':<25} : {_format_fn(self.lower_frequency)}")
+        print(f"{'Upper Damping':<25} : {_format_fn(self.upper_damping)}")
+        print(f"{'Lower Damping':<25} : {_format_fn(self.lower_damping)}")
+        print("-" * len(title))
+        return self

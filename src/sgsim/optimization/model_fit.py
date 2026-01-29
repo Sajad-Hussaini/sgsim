@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 from ..core.stochastic_model import StochasticModel
 from ..motion.ground_motion import GroundMotion
-from ..motion import signal_tools
+from ..motion import signal
 
 def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.99),
         initial_guess=None, bounds=None):

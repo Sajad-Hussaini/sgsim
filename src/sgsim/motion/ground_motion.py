@@ -1,9 +1,12 @@
+"""Ground motion container with signal processing and intensity measures."""
 from functools import cached_property
-import numpy as np
 import csv
-from . import signal_tools
-from ..file_reading.record_reader import RecordReader
-from ..optimization.fit_eval import relative_error, goodness_of_fit
+
+import numpy as np
+
+from . import signal
+from ..io.record_reader import Record
+from ..optimization.fit_eval import goodness_of_fit, relative_error
 
 class GroundMotion:
     """
@@ -28,11 +31,6 @@ class GroundMotion:
     tag : str, optional
         Identifier for the ground motion record (default is None).
     
-    See Also
-    --------
-    GroundMotionMultiComponent : Multi-component ground motion container.
-    RecordReader : File reading utilities for ground motion records.
-    
     Notes
     -----
     Ground motion instances should be treated as immutable. Direct modification
@@ -51,8 +49,9 @@ class GroundMotion:
     >>> import numpy as np
     >>> ac = np.random.randn(1000)
     >>> gm = GroundMotion.load_from(source='array', dt=0.01, ac=ac)
-    >>> gm.trim_by_energy((0.05, 0.95))
-    <GroundMotion object>
+    >>> gm_trimmed = gm.trim_by_energy((0.05, 0.95))
+    >>> gm_trimmed.npts
+    900
     """
 
     def __init__(self, npts, dt, ac, vel, disp, tag=None):
@@ -86,9 +85,7 @@ class GroundMotion:
         tag : str, optional
             Record identifier for tracking (default is None).
         **kwargs : dict
-            Source-specific arguments:
-            - For file sources: file, scale_factor, etc.
-            - For 'array' source: dt, ac (required)
+            Source-specific arguments.
 
         Returns
         -------
@@ -104,11 +101,11 @@ class GroundMotion:
         
         Notes
         -----
-        For kwargs details, refer to RecordReader documentation.
+        For kwargs details, refer to Record documentation.
 
         See Also
         --------
-        RecordReader : Underlying file reading implementation.
+        Record : Underlying file reading implementation.
         
         Examples
         --------
@@ -126,7 +123,7 @@ class GroundMotion:
         >>> gm.npts
         1000
         """
-        record = RecordReader(**kwargs)
+        record = Record(**kwargs)
         return cls(npts=record.npts, dt=record.dt, ac=record.ac, vel=record.vel, disp=record.disp, tag=tag)
 
     @classmethod
@@ -187,10 +184,10 @@ class GroundMotion:
             'disp': 'Displacement time series',
             
             # Frequency domain
-            'fas': 'Fourier Amplitude Spectrum',
+            'fas': 'Fourier Amplitude Spectrum of acceleration',
             'fas_vel': 'FAS of Velocity',
             'fas_disp': 'FAS of Displacement',
-            'fps': 'Fourier Phase Spectrum',
+            'fps': 'Fourier Phase Spectrum of acceleration',
             'ce': 'Cumulative Energy',
             
             # Domain attributes
@@ -339,7 +336,7 @@ class GroundMotion:
         >>> gm_trimmed.npts < gm.npts
         True
         """
-        slicer = signal_tools.slice_energy(self.ce, energy_range)
+        slicer = signal.slice_energy(self.ce, energy_range)
         return self.load_from(source="array", dt=self.dt, ac=self.ac[slicer], tag=self.tag)
 
     def trim_by_amplitude(self, threshold: float):
@@ -375,7 +372,7 @@ class GroundMotion:
         >>> threshold = 0.05 * gm.pga
         >>> gm_trimmed = gm.trim_by_amplitude(threshold)
         """
-        slicer = signal_tools.slice_amplitude(self.ac, threshold)
+        slicer = signal.slice_amplitude(self.ac, threshold)
         return self.load_from(source="array", dt=self.dt, ac=self.ac[slicer], tag=self.tag)
     
     def taper(self, alpha: float = 0.05):
@@ -419,7 +416,7 @@ class GroundMotion:
         
         >>> gm_tapered = gm.taper(alpha=0.10)
         """
-        new_ac = signal_tools.taper(self.ac, alpha)
+        new_ac = signal.taper(self.ac, alpha)
         return self.load_from(source="array", dt=self.dt, ac=new_ac, tag=self.tag)
     
     def butterworth_filter(self, bandpass_freqs: tuple[float, float], order: int = 4):
@@ -475,7 +472,7 @@ class GroundMotion:
         
         >>> gm_highpass = gm.butterworth_filter((0.5, 50.0))
         """
-        new_ac = signal_tools.butterworth_filter(self.dt, self.ac, *bandpass_freqs, order)
+        new_ac = signal.butterworth_filter(self.dt, self.ac, *bandpass_freqs, order)
         return self.load_from(source="array", dt=self.dt, ac=new_ac, tag=self.tag)
     
     def baseline_correction(self, degree: int = 1):
@@ -520,7 +517,7 @@ class GroundMotion:
         
         >>> gm_demeaned = gm.baseline_correction(degree=0)
         """
-        new_ac = signal_tools.baseline_correction(self.ac, degree)
+        new_ac = signal.baseline_correction(self.ac, degree)
         return self.load_from(source="array", dt=self.dt, ac=new_ac, tag=self.tag)
     
     def resample(self, dt: float):
@@ -560,7 +557,7 @@ class GroundMotion:
         >>> gm_resampled.dt
         0.01
         """
-        _, dt_new, ac_new = signal_tools.resample(self.dt, dt, self.ac)
+        _, dt_new, ac_new = signal.resample(self.dt, dt, self.ac)
         return self.load_from(source="array", dt=dt_new, ac=ac_new, tag=self.tag)
     
     def response_spectra(self, periods: np.ndarray, damping: float = 0.05):
@@ -604,7 +601,7 @@ class GroundMotion:
         >>> sd, sv, sa = gm.response_spectra(periods, damping=0.05)
         >>> sa_at_1s = sa[np.argmin(np.abs(periods - 1.0))]
         """
-        return signal_tools.response_spectra(self.dt, self.ac, period=periods, zeta=damping)
+        return signal.response_spectra(self.dt, self.ac, period=periods, zeta=damping)
     
     def compute_intensity_measures(self, ims: list[str], periods: np.ndarray = None) -> dict:
         """
@@ -906,7 +903,7 @@ class GroundMotion:
             Time values from 0 to (npts-1)*dt.
         
         """
-        return signal_tools.time(self.npts, self.dt)
+        return signal.time(self.npts, self.dt)
 
     @cached_property
     def freq(self):
@@ -923,7 +920,7 @@ class GroundMotion:
         fas : Fourier amplitude spectrum.
         
         """
-        return signal_tools.frequency(self.npts, self.dt)
+        return signal.frequency(self.npts, self.dt)
     
     @cached_property
     def fas(self):
@@ -945,7 +942,7 @@ class GroundMotion:
         -----
         Single-sided spectrum (positive frequencies only).
         """
-        return signal_tools.fas(self.dt, self.ac)
+        return signal.fas(self.dt, self.ac)
     
     @cached_property
     def fas_vel(self):
@@ -962,7 +959,7 @@ class GroundMotion:
         fas : FAS of acceleration.
         fas_disp : FAS of displacement.
         """
-        return signal_tools.fas(self.dt, self.vel)
+        return signal.fas(self.dt, self.vel)
 
     @cached_property
     def fas_disp(self):
@@ -979,7 +976,7 @@ class GroundMotion:
         fas : FAS of acceleration.
         fas_vel : FAS of velocity.
         """
-        return signal_tools.fas(self.dt, self.disp)
+        return signal.fas(self.dt, self.disp)
     
     @cached_property
     def fps(self):
@@ -1003,7 +1000,7 @@ class GroundMotion:
         Phase unwrapping removes 2π discontinuities using numpy.unwrap,
         essential for phase velocity analysis and signal reconstruction.
         """
-        return signal_tools.fps(self.ac)
+        return signal.fps(self.ac)
 
     @cached_property
     def ce(self):
@@ -1024,7 +1021,7 @@ class GroundMotion:
         cav : Cumulative absolute velocity.
         
         """
-        return signal_tools.ce(self.dt, self.ac)
+        return signal.ce(self.dt, self.ac)
     
     @cached_property
     def le_ac(self):
@@ -1044,7 +1041,7 @@ class GroundMotion:
         le_disp : Local extrema of displacement.
         pga : Peak ground acceleration.
         """
-        return signal_tools.le(self.ac)
+        return signal.le(self.ac)
 
     @cached_property
     def le_vel(self):
@@ -1061,7 +1058,7 @@ class GroundMotion:
         le_ac : Local extrema of acceleration.
         pgv : Peak ground velocity.
         """
-        return signal_tools.le(self.vel)
+        return signal.le(self.vel)
 
     @cached_property
     def le_disp(self):
@@ -1078,7 +1075,7 @@ class GroundMotion:
         le_vel : Local extrema of velocity.
         pgd : Peak ground displacement.
         """
-        return signal_tools.le(self.disp)
+        return signal.le(self.disp)
 
     @cached_property
     def zc_ac(self):
@@ -1097,7 +1094,7 @@ class GroundMotion:
         zc_vel : Zero-crossing rate of velocity.
         le_ac : Local extrema measure.
         """
-        return signal_tools.zc(self.ac)
+        return signal.zc(self.ac)
 
     @cached_property
     def zc_vel(self):
@@ -1113,7 +1110,7 @@ class GroundMotion:
         --------
         zc_ac : Zero-crossing rate of acceleration.
         """
-        return signal_tools.zc(self.vel)
+        return signal.zc(self.vel)
 
     @cached_property
     def zc_disp(self):
@@ -1129,7 +1126,7 @@ class GroundMotion:
         --------
         zc_vel : Zero-crossing rate of velocity.
         """
-        return signal_tools.zc(self.disp)
+        return signal.zc(self.disp)
 
     @cached_property
     def pmnm_ac(self):
@@ -1148,7 +1145,7 @@ class GroundMotion:
         Values close to 1.0 indicate symmetric motion.
         Values > 1 indicate larger positive accelerations.
         """
-        return signal_tools.pmnm(self.ac)
+        return signal.pmnm(self.ac)
 
     @cached_property
     def pmnm_vel(self):
@@ -1160,7 +1157,7 @@ class GroundMotion:
         float
             Ratio value (dimensionless).
         """
-        return signal_tools.pmnm(self.vel)
+        return signal.pmnm(self.vel)
 
     @cached_property
     def pmnm_disp(self):
@@ -1172,7 +1169,7 @@ class GroundMotion:
         float
             Ratio value (dimensionless).
         """
-        return signal_tools.pmnm(self.disp)
+        return signal.pmnm(self.disp)
 
     @cached_property
     def pga(self):
@@ -1196,7 +1193,7 @@ class GroundMotion:
         >>> gm.pga
         0.521
         """
-        return signal_tools.peak_abs_value(self.ac)
+        return signal.peak_abs_value(self.ac)
 
     @cached_property
     def pgv(self):
@@ -1215,7 +1212,7 @@ class GroundMotion:
         pga : Peak ground acceleration.
         pgd : Peak ground displacement.
         """
-        return signal_tools.peak_abs_value(self.vel)
+        return signal.peak_abs_value(self.vel)
 
     @cached_property
     def pgd(self):
@@ -1234,7 +1231,7 @@ class GroundMotion:
         pga : Peak ground acceleration.
         pgv : Peak ground velocity.
         """
-        return signal_tools.peak_abs_value(self.disp)
+        return signal.peak_abs_value(self.disp)
     
     @cached_property
     def cav(self):
@@ -1259,7 +1256,7 @@ class GroundMotion:
         .. math:: CAV = \\int_0^T |a(t)| dt
         
         """
-        return signal_tools.cav(self.dt, self.ac)
+        return signal.cav(self.dt, self.ac)
     
     @cached_property
     def spectrum_intensity(self):
@@ -1285,7 +1282,7 @@ class GroundMotion:
         Uses 0.05s period increment for numerical integration.
         """
         vsi_tp = np.arange(0.1, 2.5, 0.05)
-        sd, sv, sa = signal_tools.response_spectra(self.dt, self.ac, period=vsi_tp, zeta=0.05)
+        sd, sv, sa = signal.response_spectra(self.dt, self.ac, period=vsi_tp, zeta=0.05)
         dsi = np.sum(sd, axis=-1) * 0.05
         vsi = np.sum(sv, axis=-1) * 0.05
         asi = np.sum(sa, axis=-1) * 0.05
@@ -1476,7 +1473,7 @@ class GroundMotionMultiComponent:
         float
             Resultant PGA.
         """
-        return signal_tools.peak_abs_value(self.ac)
+        return signal.peak_abs_value(self.ac)
     
     @cached_property
     def pgv(self):
@@ -1488,7 +1485,7 @@ class GroundMotionMultiComponent:
         float
             Resultant PGV.
         """
-        return signal_tools.peak_abs_value(self.vel)
+        return signal.peak_abs_value(self.vel)
     
     @cached_property
     def pgd(self):
@@ -1500,4 +1497,4 @@ class GroundMotionMultiComponent:
         float
             Resultant PGD.
         """
-        return signal_tools.peak_abs_value(self.disp)
+        return signal.peak_abs_value(self.disp)

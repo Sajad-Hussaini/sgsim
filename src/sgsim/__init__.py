@@ -1,14 +1,14 @@
-from .core.stochastic_model import StochasticModel
+from .core.model import StochasticModel as Model
+from .core import functions
+from .motion import signal
 from .motion.ground_motion import GroundMotion, GroundMotionMultiComponent
-from .core import functions as Functions
-from .motion import signal_tools as SignalTools
 
 __version__ = '1.2.6'
 
 __all__ = [
-    'StochasticModel', 
-    'GroundMotion', 
+    'Model',
+    'GroundMotion',
     'GroundMotionMultiComponent',
-    'Functions',
-    'SignalTools',
-    ]
+    'functions',
+    'signal',
+]

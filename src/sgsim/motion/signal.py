@@ -1,40 +1,43 @@
+"""Signal processing and spectral analysis tools for ground motion data."""
 import numpy as np
-from scipy.signal import butter, sosfilt, resample as sp_resample
-from scipy.signal.windows import tukey
-from scipy.fft import rfft, rfftfreq
 from numba import njit, prange
+from scipy.fft import rfft, rfftfreq
 from scipy.ndimage import uniform_filter1d
+from scipy.signal import butter, resample as sp_resample, sosfilt
+from scipy.signal.windows import tukey
 
 
 __all__ = [
     "butterworth_filter",
     "baseline_correction",
-    "smooth",
     "taper",
     "resample",
-    "zc",
-    "pmnm",
-    "le",
-    "sdof_response",
+    "smooth",
+    
     "response_spectra",
-    "slice_energy",
-    "slice_amplitude",
-    "slice_freq",
-    "ce",
-    "integrate",
-    "integrate_detrend",
-    "peak_abs_value",
-    "cav",
+    "sdof_response",
     "fas",
     "fps",
     "frequency",
     "time",
-    "magnitude",
-    "angle",
-    "turning_rate",
+
+    "principal_angle",
     "rotate",
-    "correlation",
-    ]
+
+    "slice_energy",
+    "slice_amplitude",
+    "slice_freq",
+    
+    "integrate",
+    "integrate_detrend",
+    "ce",
+    "cav",
+    "le",
+    "zc",
+    "pmnm",
+    "peak_abs_value",
+]
+
 
 # Signal Processing =============================================================
 
@@ -586,6 +589,11 @@ def fas(dt: float, rec: np.ndarray):
     -------
     ndarray
         Fourier amplitude spectrum.
+
+    Notes
+    -----
+    Scaled by dt for seismological convention. Units are input units × time
+    (e.g., g·s for acceleration in g, or m/s for acceleration in m/s²).
     """
     return np.abs(rfft(rec)) * dt
 
@@ -601,12 +609,13 @@ def fps(rec: np.ndarray):
     Returns
     -------
     ndarray
-        Unwrapped phase.
+        Unwrapped phase in radians.
+
+    Notes
+    -----
+    Unlike fas(), phase spectrum is independent of time step.
     """
-    # 1. Get complex coefficients
     complex_coeffs = rfft(rec)
-    # 2. Get angle and unwrap it
-    # unwrap removes the artificial discontinuities at pi/-pi
     return np.unwrap(np.angle(complex_coeffs))
 
 def frequency(npts, dt):
@@ -798,66 +807,6 @@ def cav(dt: float, rec: np.ndarray):
     """
     return np.sum(np.abs(rec), axis=-1) * dt
 
-def magnitude(rec1, rec2):
-    """
-    Calculate vector magnitude.
-
-    Parameters
-    ----------
-    rec1 : ndarray
-        First component.
-    rec2 : ndarray
-        Second component.
-
-    Returns
-    -------
-    ndarray
-        Magnitude array.
-    """
-    return np.sqrt(np.abs(rec1) ** 2 + np.abs(rec2) ** 2)
-
-def angle(rec1, rec2):
-    """
-    Calculate vector angle (unwrapped).
-
-    Parameters
-    ----------
-    rec1 : ndarray
-        First component.
-    rec2 : ndarray
-        Second component.
-
-    Returns
-    -------
-    ndarray
-        Angle array.
-    """
-    return np.unwrap(np.arctan2(rec2, rec1))
-
-def turning_rate(dt, rec1, rec2):
-    """
-    Calculate vector turning rate.
-
-    Parameters
-    ----------
-    dt : float
-        Time step.
-    rec1 : ndarray
-        First component.
-    rec2 : ndarray
-        Second component.
-
-    Returns
-    -------
-    ndarray
-        Turning rate array.
-    """
-    anlges = angle(rec1, rec2)
-    if len(anlges.shape) == 1:
-        return np.diff(anlges, prepend=anlges[0]) / dt
-    else:
-        return np.diff(anlges, prepend=anlges[..., 0][:, None]) / dt
-
 def rotate(rec1, rec2, angle):
     """
     Rotate two-component signal.
@@ -882,20 +831,32 @@ def rotate(rec1, rec2, angle):
     yr = rec1 * np.sin(angle) + rec2 * np.cos(angle)
     return xr, yr
 
-def correlation(rec1, rec2):
+
+def principal_angle(rec1: np.ndarray, rec2: np.ndarray) -> float:
     """
-    Calculate correlation coefficient.
+    Find rotation angle for principal axes (max/min energy).
+
+    Computes the angle that rotates two orthogonal components to their
+    principal directions, where one component has maximum energy and
+    the other has minimum energy.
 
     Parameters
     ----------
     rec1 : ndarray
-        First signal.
+        First orthogonal component.
     rec2 : ndarray
-        Second signal.
+        Second orthogonal component.
 
     Returns
     -------
     float
-        Correlation coefficient.
+        Rotation angle in radians.
+
+    Examples
+    --------
+    >>> theta = principal_angle(rec_ns, rec_ew)
+    >>> rec_major, rec_minor = rotate(rec_ns, rec_ew, theta)
     """
-    return np.sum(rec1 * rec2) / np.sqrt(np.sum(rec1 ** 2) * np.sum(rec2 ** 2))
+    cross = 2 * np.sum(rec1 * rec2)
+    diff = np.sum(rec1**2) - np.sum(rec2**2)
+    return 0.5 * np.arctan2(cross, diff)
