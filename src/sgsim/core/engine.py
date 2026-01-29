@@ -30,8 +30,8 @@ def frf(wu, zu, wl, zl, freq, freq_p2):
     """
     out = np.empty_like(freq, dtype=np.complex128)
     for i in range(len(freq)):
-        denom = ((wl ** 2 - freq_p2[i]) + (2j * zl * wl * freq[i])) *
-                ((wu ** 2 - freq_p2[i]) + (2j * zu * wu * freq[i]))
+        denom = (((wl ** 2 - freq_p2[i]) + (2j * zl * wl * freq[i])) *
+                ((wu ** 2 - freq_p2[i]) + (2j * zu * wu * freq[i])))
         out[i] = -freq_p2[i] / denom
     return out
 
@@ -71,8 +71,8 @@ def psd(wu, zu, wl, zl, freq_p2, freq_p4):
     for i in range(len(freq_p2)):
         val_p2 = freq_p2[i]
         val_p4 = freq_p4[i]
-        denom = (wl4 + val_p4 + scalar_l * val_p2) * \
-                (wu4 + val_p4 + scalar_u * val_p2)
+        denom = ((wl4 + val_p4 + scalar_l * val_p2) *
+                (wu4 + val_p4 + scalar_u * val_p2))
         out[i] = val_p4 / denom
     return out
 
@@ -142,8 +142,8 @@ def stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, df):
             val_p2 = freq_p2[j]
             val_p4 = freq_p4[j]
             # Inline PSD Calculation
-            denom = (wl4 + val_p4 + scalar_l * val_p2) * \
-                    (wu4 + val_p4 + scalar_u * val_p2)   
+            denom = ((wl4 + val_p4 + scalar_l * val_p2) *
+                    (wu4 + val_p4 + scalar_u * val_p2))
             psd_val = val_p4 / denom
             # Accumulate
             var += psd_val
@@ -214,8 +214,8 @@ def fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
         for j in range(len(freq_p2)):
             val_p2 = freq_p2[j]
             val_p4 = freq_p4[j]
-            denom = (wl4 + val_p4 + scalar_l * val_p2) * \
-                    (wu4 + val_p4 + scalar_u * val_p2)
+            denom = ((wl4 + val_p4 + scalar_l * val_p2) *
+                    (wu4 + val_p4 + scalar_u * val_p2))
             fas_ac[j] += scale * (val_p4 / denom)
             fas_vel[j] += scale * (val_p2 / denom)
             fas_disp[j] += scale * (1.0 / denom)
@@ -279,8 +279,8 @@ def fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, varia
         for k in range(n_freq):
             w = freq_sim[k]
             w2 = freq_sim_p2[k]
-            denom = ((wl2 - w2) + (2j * zli * wli * w)) * \
-                    ((wu2 - w2) + (2j * zui * wui * w))
+            denom = (((wl2 - w2) + (2j * zli * wli * w)) *
+                    ((wu2 - w2) + (2j * zui * wui * w)))
             frf_val = -w2 / denom            
             # Inline Exp Math: exp(-j * w * t)
             # cos/sin is often slightly faster/cleaner for purely imaginary exp
