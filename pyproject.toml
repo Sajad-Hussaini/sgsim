@@ -8,19 +8,22 @@ version = "1.2.6"
 authors = [{name = "Sajad Hussaini", email = "hussaini.smsajad@gmail.com"}]
 description = "Python Package for Simulation and Analysis of Ground Motions"
 readme = "README.md"
-license = "MIT"
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
-keywords = ['sgsim', 'stochastic ground motion simulation', 'ground motion analysis', 'earthquake engineering']
+keywords = ["sgsim", "stochastic ground motion simulation", "ground motion analysis", "earthquake engineering"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering",]
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: MIT License",
+]
 
 dependencies = [
     "numpy",
     "scipy",
-    "numba",]
+    "numba",
+]
 
 [project.optional-dependencies]
 docs = [
@@ -31,9 +34,12 @@ docs = [
     "nbsphinx",
     "pygments",
     "pydata-sphinx-theme",
-    ]
+]
 
 [project.urls]
 Homepage = "https://github.com/Sajad-Hussaini/sgsim"
 Repository = "https://github.com/Sajad-Hussaini/sgsim"
 Issues = "https://github.com/Sajad-Hussaini/sgsim/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
