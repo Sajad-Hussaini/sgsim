@@ -1,10 +1,17 @@
+"""Time and frequency domain discretization for ground motion simulation."""
 from functools import cached_property
+
 import numpy as np
+
 from ..motion import signal_tools
 
-class DomainConfig:
+
+class Domain:
     """
-    Time and frequency domain configuration.
+    Time and frequency domain discretization.
+
+    Provides time array, angular frequency arrays, and precomputed
+    frequency powers for efficient spectral computations.
 
     Parameters
     ----------
@@ -13,6 +20,7 @@ class DomainConfig:
     dt : float
         Time step between points.
     """
+
     def __init__(self, npts: int, dt: float):
         self.npts = npts
         self.dt = dt

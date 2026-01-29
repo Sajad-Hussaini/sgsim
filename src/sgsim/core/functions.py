@@ -1,14 +1,14 @@
 """
 Parametric functions for stochastic ground motion simulation.
 
-This module provides pure functions for time-varying parametric models.
+This module provides pure functions for time-varying parametric functions.
 Use `functools.partial` to bind parameters before passing to ModelConfig.
 
 Examples
 --------
 >>> from functools import partial
->>> from sgsim.core.functions import beta_single, linear, constant
->>> from sgsim.core.model_config import ModelConfig
+>>> from sgsim.functions import beta_single, linear, constant
+>>> from sgsim import ModelConfig
 >>>
 >>> config = ModelConfig(
 ...     npts=4000,
@@ -32,7 +32,8 @@ __all__ = [
     "linear",
     "bilinear",
     "exponential",
-    "constant",]
+    "constant",
+]
 
 
 # =============================================================================
@@ -83,6 +84,7 @@ def beta_basic(t: np.ndarray, peak: float, concentration: float,
                        (1 + concentration) * np.log(duration))
     return np.sqrt(energy * mdl)
 
+
 def beta_single(t: np.ndarray, peak: float, concentration: float,
                 energy: float, duration: float) -> np.ndarray:
     """
@@ -128,6 +130,7 @@ def beta_single(t: np.ndarray, peak: float, concentration: float,
                                betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
                                (1 + concentration) * np.log(duration))
     return np.sqrt(energy * mdl)
+
 
 def beta_dual(t: np.ndarray, peak: float, concentration: float,
               peak_2: float, concentration_2: float, energy_ratio: float,
@@ -186,6 +189,7 @@ def beta_dual(t: np.ndarray, peak: float, concentration: float,
                                                  (1 + concentration_2) * np.log(duration))
     return np.sqrt(energy * mdl)
 
+
 def gamma(t: np.ndarray, scale: float, shape: float, decay: float) -> np.ndarray:
     """
     Gamma distribution modulating function.
@@ -215,6 +219,7 @@ def gamma(t: np.ndarray, scale: float, shape: float, decay: float) -> np.ndarray
     housner : Piecewise envelope function.
     """
     return scale * t ** shape * np.exp(-decay * t)
+
 
 def housner(t: np.ndarray, amplitude: float, decay: float, shape: float, 
             tp: float, td: float) -> np.ndarray:
@@ -321,6 +326,7 @@ def bilinear(t: np.ndarray, start: float, mid: float, end: float, t_mid: float) 
                         [lambda t_val: start - (start - mid) * t_val / t_mid,
                         lambda t_val: mid - (mid - end) * (t_val - t_mid) / (t_max - t_mid)])
 
+
 def exponential(t: np.ndarray, start: float, end: float) -> np.ndarray:
     """
     Exponential interpolation function.
@@ -348,6 +354,7 @@ def exponential(t: np.ndarray, start: float, end: float) -> np.ndarray:
     bilinear : Piecewise linear with midpoint.
     """
     return start * np.exp(np.log(end / start) * (t / t.max()))
+
 
 def constant(t: np.ndarray, c: float) -> np.ndarray:
     """

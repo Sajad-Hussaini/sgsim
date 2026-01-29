@@ -1,14 +1,20 @@
+"""Stochastic ground motion model with cached spectral properties."""
 from functools import cached_property
 from typing import Callable
+
 import numpy as np
-from .domain_config import DomainConfig
+
 from . import engine
+from .domain import Domain
 from ..motion import signal_tools
 
 
-class ModelConfig(DomainConfig):
+class Model(Domain):
     """
-    Stochastic model configuration with cached derived properties.
+    Stochastic ground motion model with cached derived properties.
+
+    Extends Domain with model-specific parameters and computes spectral
+    characteristics including FAS, cumulative energy, and extrema counts.
 
     Parameters
     ----------
@@ -17,7 +23,7 @@ class ModelConfig(DomainConfig):
     dt : float
         Time step.
     modulating : Callable
-        Time-varying modulating function (use functools.partial to bind params).
+        Time-varying modulating function.
     upper_frequency : Callable
         Upper frequency function.
     upper_damping : Callable
@@ -30,15 +36,17 @@ class ModelConfig(DomainConfig):
     Examples
     --------
     >>> from functools import partial
-    >>> from sgsim.core.functions import beta_single, linear, constant
-    >>> config = ModelConfig(
+    >>> from sgsim.functions import beta_single, linear, constant
+    >>> model = Model(
     ...     npts=4000, dt=0.01,
     ...     modulating=partial(beta_single, peak=0.3, concentration=5.0, energy=100.0, duration=40.0),
     ...     upper_frequency=partial(linear, start=10.0, end=5.0),
     ...     upper_damping=partial(constant, c=0.3),
     ...     lower_frequency=partial(constant, c=0.1),
-    ...     lower_damping=partial(constant, c=0.5))
+    ...     lower_damping=partial(constant, c=0.5),
+    ... )
     """
+
     def __init__(self, npts: int, dt: float, modulating: Callable,
                  upper_frequency: Callable, upper_damping: Callable,
                  lower_frequency: Callable, lower_damping: Callable):
@@ -54,7 +62,7 @@ class ModelConfig(DomainConfig):
     # =========================================================================
 
     @cached_property
-    def mdl(self) -> np.ndarray:
+    def q(self) -> np.ndarray:
         """Computed modulating function values."""
         return self.modulating(self.t)
 
@@ -78,16 +86,17 @@ class ModelConfig(DomainConfig):
         """Computed lower damping values."""
         return self.lower_damping(self.t)
 
-
     # =========================================================================
     # Core Statistics (cached tuple unpacking)
     # =========================================================================
 
     @cached_property
     def _stats(self):
-        """Variance statistics for acceleration, velocity, and displacement."""
-        return engine.get_stats(self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
-                                self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.df)
+        """Variance statistics."""
+        return engine.stats(
+            self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
+            self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.df,
+        )
 
     @property
     def _variance(self):
@@ -116,8 +125,10 @@ class ModelConfig(DomainConfig):
     @cached_property
     def _fas_all(self):
         """FAS for acceleration, velocity, and displacement."""
-        return engine.get_fas(self.mdl, self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
-                              self.freq_p2, self.freq_p4, self._variance, self.dt)
+        return engine.fas(
+            self.q, self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
+            self.freq_p2, self.freq_p4, self._variance, self.dt,
+        )
 
     @property
     def fas(self):
@@ -169,7 +180,7 @@ class ModelConfig(DomainConfig):
         ndarray
             Cumulative energy time history.
         """
-        return signal_tools.ce(self.dt, self.mdl)
+        return signal_tools.ce(self.dt, self.q)
 
     # =========================================================================
     # Local Extrema Counts

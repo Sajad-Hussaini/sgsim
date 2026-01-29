@@ -1,10 +1,12 @@
+"""Numba-optimized computational kernels for stochastic ground motion simulation."""
 import numpy as np
 from numba import njit, prange
 
+
 @njit('complex128[:](float64, float64, float64, float64, float64[:], float64[:])', fastmath=True, cache=True)
-def get_frf(wu, zu, wl, zl, freq, freq_p2):
+def frf(wu, zu, wl, zl, freq, freq_p2):
     """
-    Compute frequency response function.
+    Compute frequency response function (FRF).
 
     Parameters
     ----------
@@ -28,15 +30,16 @@ def get_frf(wu, zu, wl, zl, freq, freq_p2):
     """
     out = np.empty_like(freq, dtype=np.complex128)
     for i in range(len(freq)):
-        denom = ((wl ** 2 - freq_p2[i]) + (2j * zl * wl * freq[i])) * \
+        denom = ((wl ** 2 - freq_p2[i]) + (2j * zl * wl * freq[i])) *
                 ((wu ** 2 - freq_p2[i]) + (2j * zu * wu * freq[i]))
         out[i] = -freq_p2[i] / denom
     return out
 
+
 @njit('float64[:](float64, float64, float64, float64, float64[:], float64[:])', fastmath=True, cache=True)
-def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
+def psd(wu, zu, wl, zl, freq_p2, freq_p4):
     """
-    Compute power spectral density.
+    Compute power spectral density (PSD).
 
     Parameters
     ----------
@@ -73,10 +76,11 @@ def get_psd(wu, zu, wl, zl, freq_p2, freq_p4):
         out[i] = val_p4 / denom
     return out
 
+
 @njit('Tuple((float64[:], float64[:], float64[:], float64[:], float64[:]))(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', parallel=True, fastmath=True, cache=True)
-def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, df):
+def stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, df):
     """
-    Compute evolutionary statistics from PSD.
+    Compute evolutionary statistics using PSD.
 
     Parameters
     ----------
@@ -133,7 +137,7 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, df):
         scalar_u = 2 * wu2 * (2 * zui * zui - 1)
         # Accumulators
         var, var_dot, var_2dot, var_bar, var_2bar = 0.0, 0.0, 0.0, 0.0, 0.0
-        # 2. Single pass loop: Calculate PSD value and stats simultaneously
+        # Single pass: PSD and stats computed simultaneously
         for j in range(len(freq_p2)):
             val_p2 = freq_p2[j]
             val_p4 = freq_p4[j]
@@ -155,10 +159,32 @@ def get_stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, df):
         variance_2bar[i] = var_2bar * scale
     return variance, variance_dot, variance_2dot, variance_bar, variance_2bar
 
+
 @njit('Tuple((float64[:], float64[:], float64[:]))(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
-def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
+def fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     """
     Compute Fourier amplitude spectra for acceleration, velocity, and displacement.
+
+    Parameters
+    ----------
+    mdl : ndarray
+        Modulating function values.
+    wu : ndarray
+        Upper angular frequencies.
+    zu : ndarray
+        Upper damping ratios.
+    wl : ndarray
+        Lower angular frequencies.
+    zl : ndarray
+        Lower damping ratios.
+    freq_p2 : ndarray
+        Squared angular frequencies.
+    freq_p4 : ndarray
+        Fourth power angular frequencies.
+    variance : ndarray
+        Variance array.
+    dt : float
+        Time step.
 
     Returns
     -------
@@ -199,10 +225,11 @@ def get_fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
         fas_disp[j] = np.sqrt(fas_disp[j] * final_scale)
     return fas_ac, fas_vel, fas_disp
 
+
 @njit('complex128[:, :](int64, int64, float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:, :], float64)', parallel=True, fastmath=True, cache=True)
-def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise, dt):
+def fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, variance, white_noise, dt):
     """
-    Generate Fourier series for simulations.
+    Simulate Fourier series.
 
     Parameters
     ----------
@@ -213,9 +240,9 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
     t : ndarray
         Time array.
     freq_sim : ndarray
-        Simulation frequencies.
+        Simulation angular frequencies.
     freq_sim_p2 : ndarray
-        Squared simulation frequencies.
+        Squared simulation angular frequencies.
     mdl : ndarray
         Modulating function values.
     wu : ndarray
@@ -229,14 +256,14 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
     variance : ndarray
         Variance array.
     white_noise : ndarray
-        White noise matrix (n x npts).
+        White noise matrix (n, npts).
     dt : float
         Time step.
 
     Returns
     -------
     ndarray
-        Complex Fourier coefficients (n x n_freq).
+        Complex Fourier series (n, n_freq).
     """
     n_freq = len(freq_sim)
     fourier = np.zeros((n, n_freq), dtype=np.complex128)
@@ -272,6 +299,7 @@ def simulate_fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, 
 
     return fourier
 
+
 @njit('float64[:](float64, float64[:], float64[:])', fastmath=True, cache=True)
 def cumulative_rate(dt, numerator, denominator):
     """
@@ -298,6 +326,7 @@ def cumulative_rate(dt, numerator, denominator):
         cumsum += np.sqrt(numerator[i] / denominator[i]) * scale
         out[i] = cumsum
     return out
+
 
 @njit('float64[:](float64, float64[:], float64[:], float64[:])', fastmath=True, cache=True)
 def pmnm_rate(dt, first, middle, last):
