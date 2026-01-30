@@ -81,8 +81,8 @@ class ModelInverter:
             
             offset = 0
             param_slices = []
-            for f in [self.wu, self.zu, self.wl, self.zl]:
-                end = offset + f.n_params
+            for fn in [self.wu, self.zu, self.wl, self.zl]:
+                end = offset + fn.n_params
                 param_slices.append(slice(offset, end))
                 offset = end
 
@@ -90,12 +90,12 @@ class ModelInverter:
             
             def objective(params):
                 m_zc_ac, m_zc_vel, m_zc_disp, m_pmnm_vel, m_pmnm_disp, m_fas = self.update_frequency(params, slicer, param_slices, wu_type, wl_type, q_array)
-                return np.sum([np.mean(np.square(m_zc_ac - target_zc_ac)) / np.var(target_zc_ac),
-                       np.mean(np.square(m_zc_vel - target_zc_vel)) / np.var(target_zc_vel),
-                       np.mean(np.square(m_zc_disp - target_zc_disp)) / np.var(target_zc_disp),
-                       np.mean(np.square(m_pmnm_vel - target_pmnm_vel)) / np.var(target_pmnm_vel),
-                       np.mean(np.square(m_pmnm_disp - target_pmnm_disp)) / np.var(target_pmnm_disp),
-                       np.mean(np.square(m_fas - target_fas)) / np.var(target_fas)])
+                return np.sum([np.mean(np.square(m_zc_ac - target_zc_ac)) / np.max(target_zc_ac),
+                       np.mean(np.square(m_zc_vel - target_zc_vel)) / np.max(target_zc_vel),
+                       np.mean(np.square(m_zc_disp - target_zc_disp)) / np.max(target_zc_disp),
+                       np.mean(np.square(m_pmnm_vel - target_pmnm_vel)) / np.max(target_pmnm_vel),
+                       np.mean(np.square(m_pmnm_disp - target_pmnm_disp)) / np.max(target_pmnm_disp),
+                       np.mean(np.square(m_fas - target_fas)) / np.max(target_fas)])
 
         else:
             raise ValueError(f"Unknown criteria: {criteria}")
