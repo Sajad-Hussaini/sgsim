@@ -54,13 +54,15 @@ class StochasticModel(Domain):
     """
     def __init__(self, npts: int, dt: float, modulating: np.ndarray,
                  upper_frequency: np.ndarray, upper_damping: np.ndarray,
-                 lower_frequency: np.ndarray, lower_damping: np.ndarray):
+                 lower_frequency: np.ndarray, lower_damping: np.ndarray,
+                 params: dict = None):
         super().__init__(npts, dt)
         self.q = modulating
         self.wu = upper_frequency
         self.zu = upper_damping
         self.wl = lower_frequency
         self.zl = lower_damping
+        self.params = params
 
     @classmethod
     def load_from(cls, params: dict, npts: int, dt: float):
@@ -90,7 +92,7 @@ class StochasticModel(Domain):
             fn_class = functions.REGISTRY.get(name)
             if fn_class is None:
                 raise ValueError(f"Unknown function type: '{name}'. Available: {list(functions.REGISTRY.keys())}")
-            return fn_class()(t, *param_group['params'])
+            return fn_class.compute(t, **param_group['params'])
 
         modulating = compute_array(params['modulating'])
         upper_frequency = compute_array(params['upper_frequency'])
@@ -98,7 +100,7 @@ class StochasticModel(Domain):
         lower_frequency = compute_array(params['lower_frequency'])
         lower_damping = compute_array(params['lower_damping'])
 
-        return cls(npts, dt, modulating, upper_frequency, upper_damping, lower_frequency, lower_damping)
+        return cls(npts, dt, modulating, upper_frequency, upper_damping, lower_frequency, lower_damping, params)
 
     # =========================================================================
     # Core Statistics (cached tuple unpacking)
@@ -404,18 +406,18 @@ class StochasticModel(Domain):
             Self for method chaining.
         """
         def _format_fn(fn):
-            params = ', '.join(f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}" for k, v in fn.keywords.items())
-            return f"{fn.__name__}({params})"
+            params = ', '.join(f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}" for k, v in fn['params'].items())
+            return f"{fn['type']}({params})"
 
         title = "Model Summary " + "=" * 40
         print(title)
         print(f"{'Time Step (dt)':<25} : {self.dt}")
         print(f"{'Number of Points (npts)':<25} : {self.npts}")
         print("-" * len(title))
-        print(f"{'Modulating':<25} : {_format_fn(self.modulating)}")
-        print(f"{'Upper Frequency':<25} : {_format_fn(self.upper_frequency)}")
-        print(f"{'Lower Frequency':<25} : {_format_fn(self.lower_frequency)}")
-        print(f"{'Upper Damping':<25} : {_format_fn(self.upper_damping)}")
-        print(f"{'Lower Damping':<25} : {_format_fn(self.lower_damping)}")
+        print(f"{'Modulating':<25} : {_format_fn(self.params['modulating'])}")
+        print(f"{'Upper Frequency':<25} : {_format_fn(self.params['upper_frequency'])}")
+        print(f"{'Lower Frequency':<25} : {_format_fn(self.params['lower_frequency'])}")
+        print(f"{'Upper Damping':<25} : {_format_fn(self.params['upper_damping'])}")
+        print(f"{'Lower Damping':<25} : {_format_fn(self.params['lower_damping'])}")
         print("-" * len(title))
         return self

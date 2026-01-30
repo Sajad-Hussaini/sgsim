@@ -36,7 +36,8 @@ class ModelInverter:
             et, tn = self.gm.ce.max(), self.gm.t.max()
             opt_q = np.append(opt_q, [et, tn])
 
-        self.results['modulating'] = {'type': modulating_type, 'params': opt_q.tolist()}
+        param_dict = dict(zip(self.q.param_names, opt_q))
+        self.results['modulating'] = {'type': modulating_type, 'params': param_dict}
 
         objective_fn = self._objective_function(criteria, fit_range)
         opt_fn = minimize(objective_fn, gs[criteria], bounds=bs[criteria], method='L-BFGS-B', jac="3-point").x
@@ -44,10 +45,11 @@ class ModelInverter:
         offset = 0
         for context, func in [('upper_frequency', self.wu), ('upper_damping', self.zu), ('lower_frequency', self.wl), ('lower_damping', self.zl)]:
             n_params = func.n_params
-            self.results[context] = {'type': type(func).__name__, 'params': opt_fn[offset:offset+n_params].tolist()}
+            param_dict = dict(zip(func.param_names, opt_fn[offset:offset+n_params]))
+            self.results[context] = {'type': type(func).__name__, 'params': param_dict}
             offset += n_params
 
-        return self.results
+        return StochasticModel.load_from(self.results, self.gm.npts, self.gm.dt)
 
     def _objective_modulating(self, fit_range: tuple):
         """Create objective function for the specified scheme."""
@@ -84,7 +86,7 @@ class ModelInverter:
                 param_slices.append(slice(offset, end))
                 offset = end
 
-            q_array = self.q(self.gm.t, *self.results['modulating']['params'])
+            q_array = self.q(self.gm.t, **self.results['modulating']['params'])
             
             def objective(params):
                 m_zc_ac, m_zc_vel, m_zc_disp, m_pmnm_vel, m_pmnm_disp, m_fas = self.update_frequency(params, slicer, param_slices, wu_type, wl_type, q_array)
