@@ -1,6 +1,5 @@
 """Stochastic ground motion model with cached spectral properties."""
 from functools import cached_property
-from typing import Callable
 
 import numpy as np
 from scipy.fft import irfft
@@ -23,69 +22,39 @@ class StochasticModel(Domain):
         Number of time points.
     dt : float
         Time step.
-    modulating : Callable
+    modulating : np.ndarray
         Time-varying modulating function.
-    upper_frequency : Callable
+    upper_frequency : np.ndarray
         Upper frequency function.
-    upper_damping : Callable
+    upper_damping : np.ndarray
         Upper damping function.
-    lower_frequency : Callable
+    lower_frequency : np.ndarray
         Lower frequency function.
-    lower_damping : Callable
+    lower_damping : np.ndarray
         Lower damping function.
 
     Examples
     --------
-    >>> from functools import partial
     >>> from sgsim.functions import beta_single, linear, constant
     >>> model = StochasticModel(
     ...     npts=4000, dt=0.01,
-    ...     modulating=partial(beta_single, peak=0.3, concentration=5.0, energy=100.0, duration=40.0),
-    ...     upper_frequency=partial(linear, start=10.0, end=5.0),
-    ...     upper_damping=partial(constant, c=0.3),
-    ...     lower_frequency=partial(constant, c=0.1),
-    ...     lower_damping=partial(constant, c=0.5),
+    ...     modulating=
+    ...     upper_frequency=
+    ...     upper_damping=
+    ...     lower_frequency=
+    ...     lower_damping=
     ... )
     """
 
-    def __init__(self, npts: int, dt: float, modulating: Callable,
-                 upper_frequency: Callable, upper_damping: Callable,
-                 lower_frequency: Callable, lower_damping: Callable):
+    def __init__(self, npts: int, dt: float, modulating: np.ndarray,
+                 upper_frequency: np.ndarray, upper_damping: np.ndarray,
+                 lower_frequency: np.ndarray, lower_damping: np.ndarray):
         super().__init__(npts, dt)
-        self.modulating = modulating
-        self.upper_frequency = upper_frequency
-        self.upper_damping = upper_damping
-        self.lower_frequency = lower_frequency
-        self.lower_damping = lower_damping
-
-    # =========================================================================
-    # Computed Function Values (deferred, cached)
-    # =========================================================================
-
-    @cached_property
-    def q(self) -> np.ndarray:
-        """Computed modulating function values."""
-        return self.modulating(self.t)
-
-    @cached_property
-    def wu(self) -> np.ndarray:
-        """Computed upper frequency values."""
-        return self.upper_frequency(self.t)
-
-    @cached_property
-    def zu(self) -> np.ndarray:
-        """Computed upper damping values."""
-        return self.upper_damping(self.t)
-
-    @cached_property
-    def wl(self) -> np.ndarray:
-        """Computed lower frequency values."""
-        return self.lower_frequency(self.t)
-
-    @cached_property
-    def zl(self) -> np.ndarray:
-        """Computed lower damping values."""
-        return self.lower_damping(self.t)
+        self.q = modulating
+        self.wu = upper_frequency
+        self.zu = upper_damping
+        self.wl = lower_frequency
+        self.zl = lower_damping
 
     # =========================================================================
     # Core Statistics (cached tuple unpacking)
@@ -94,10 +63,8 @@ class StochasticModel(Domain):
     @cached_property
     def _stats(self):
         """Variance statistics."""
-        return engine.stats(
-            self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
-            self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.df,
-        )
+        return engine.stats(self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
+                            self.freq_p2, self.freq_p4, self.freq_n2, self.freq_n4, self.df)
 
     @property
     def _variance(self):
@@ -126,10 +93,8 @@ class StochasticModel(Domain):
     @cached_property
     def _fas_all(self):
         """FAS for acceleration, velocity, and displacement."""
-        return engine.fas(
-            self.q, self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
-            self.freq_p2, self.freq_p4, self._variance, self.dt,
-        )
+        return engine.fas(self.q, self.wu * 2 * np.pi, self.zu, self.wl * 2 * np.pi, self.zl,
+                          self.freq_p2, self.freq_p4, self._variance, self.dt)
 
     @property
     def fas(self):
@@ -328,14 +293,12 @@ class StochasticModel(Domain):
         n = int(n)
         rng = np.random.default_rng(seed)
         white_noise = rng.standard_normal((n, self.npts))
-        fourier = engine.fourier_series(
-            n, self.npts, self.t,
-            self.freq_sim, self.freq_sim_p2,
-            self.q,
-            self.wu * 2 * np.pi, self.zu,
-            self.wl * 2 * np.pi, self.zl,
-            self._variance, white_noise, self.dt,
-        )
+        fourier = engine.fourier_series(n, self.npts, self.t,
+                                        self.freq_sim, self.freq_sim_p2,
+                                        self.q,
+                                        self.wu * 2 * np.pi, self.zu,
+                                        self.wl * 2 * np.pi, self.zl,
+                                        self._variance, white_noise, self.dt)
         # Using default backward 1/N scaling and manual anti-aliasing
         ac = irfft(fourier, workers=-1)[..., :self.npts]
         # FT(w)/jw + pi*delta(w)*FT(0)  integration in freq domain
@@ -345,13 +308,7 @@ class StochasticModel(Domain):
         disp = irfft(fourier, workers=-1)[..., :self.npts]
         return GroundMotion(self.npts, self.dt, ac, vel, disp, tag=tag)
 
-    def simulate_conditional(
-        self,
-        n: int,
-        target: GroundMotion,
-        metrics: dict,
-        max_iter: int = 100,
-    ) -> GroundMotion:
+    def simulate_conditional(self, n: int, target: GroundMotion, metrics: dict, max_iter: int = 100) -> GroundMotion:
         """
         Conditionally simulate ground motions until GoF metrics are met.
 
@@ -380,21 +337,13 @@ class StochasticModel(Domain):
         attempts = 0
         while len(successful) < n and attempts < max_iter * n:
             simulated = self.simulate(1, tag=attempts)
-            gof_scores = {
-                metric: goodness_of_fit(
-                    getattr(simulated, metric),
-                    getattr(target, metric),
-                )
-                for metric in metrics
-            }
+            gof_scores = {metric: goodness_of_fit(getattr(simulated, metric), getattr(target, metric)) for metric in metrics}
             if all(gof_scores[m] >= metrics[m] for m in metrics):
                 successful.append(simulated)
             attempts += 1
 
         if len(successful) < n:
-            raise RuntimeError(
-                f"Only {len(successful)} simulations met thresholds after {attempts} attempts."
-            )
+            raise RuntimeError(f"Only {len(successful)} simulations met thresholds after {attempts} attempts.")
 
         ac = np.concatenate([gm.ac for gm in successful], axis=0)
         vel = np.concatenate([gm.vel for gm in successful], axis=0)
@@ -411,11 +360,8 @@ class StochasticModel(Domain):
             Self for method chaining.
         """
         def _format_fn(fn):
-            params = ', '.join(
-                f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}"
-                for k, v in fn.keywords.items()
-            )
-            return f"{fn.func.__name__}({params})"
+            params = ', '.join(f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}" for k, v in fn.keywords.items())
+            return f"{fn.__name__}({params})"
 
         title = "Model Summary " + "=" * 40
         print(title)
