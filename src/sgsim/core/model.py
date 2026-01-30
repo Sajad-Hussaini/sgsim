@@ -9,6 +9,7 @@ from .domain import Domain
 from ..motion import signal
 from ..motion.ground_motion import GroundMotion
 from ..optimization.fit_eval import goodness_of_fit
+from . import functions
 
 
 class StochasticModel(Domain):
@@ -45,7 +46,6 @@ class StochasticModel(Domain):
     ...     lower_damping=
     ... )
     """
-
     def __init__(self, npts: int, dt: float, modulating: np.ndarray,
                  upper_frequency: np.ndarray, upper_damping: np.ndarray,
                  lower_frequency: np.ndarray, lower_damping: np.ndarray):
@@ -55,6 +55,44 @@ class StochasticModel(Domain):
         self.zu = upper_damping
         self.wl = lower_frequency
         self.zl = lower_damping
+
+    @classmethod
+    def load_from(cls, params: dict, npts: int, dt: float):
+        """
+        Create StochasticModel from a parameters dictionary.
+
+        Parameters
+        ----------
+        params : dict
+            Dictionary containing model parameters (usually from ModelFitter.fit()).
+        npts : int
+            Number of time points.
+        dt : float
+            Time step.
+        functions : dict, optional
+            Dictionary mapping function names (str) to ParametricFunction classes.
+            Use this to support user-defined functions not in the core library.
+
+        Returns
+        -------
+        StochasticModel
+            Initialized stochastic model.
+        """
+        t = signal.time(npts, dt)
+        def compute_array(param_group: dict):
+            name = param_group['type']
+            fn = getattr(functions, name)
+            if fn is None:
+                raise ValueError(f"Unknown function type: '{name}'.")
+            return fn.compute(t, *param_group['params'])
+
+        modulating = compute_array(params['modulating'])
+        upper_frequency = compute_array(params['upper_frequency'])
+        upper_damping = compute_array(params['upper_damping'])
+        lower_frequency = compute_array(params['lower_frequency'])
+        lower_damping = compute_array(params['lower_damping'])
+
+        return cls(npts, dt, modulating, upper_frequency, upper_damping, lower_frequency, lower_damping)
 
     # =========================================================================
     # Core Statistics (cached tuple unpacking)

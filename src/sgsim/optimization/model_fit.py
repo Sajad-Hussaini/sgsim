@@ -29,7 +29,7 @@ class ModelFitter:
         self.results = {}
         objective_q = self._objective_modulating(fit_range)
         opt_q = minimize(objective_q, gs['modulating'], bounds=bs['modulating'], method='L-BFGS-B', jac="3-point").x
-        self.results['modulating'] = {'type': type(self.q).__name__, 'params': opt_q}
+        self.results['modulating'] = {'type': type(self.q).__name__, 'params': opt_q.tolist()}
 
         objective_fn = self._objective_function(criteria, fit_range)
         opt_fn = minimize(objective_fn, gs[criteria], bounds=bs[criteria], method='L-BFGS-B', jac="3-point").x
@@ -37,7 +37,7 @@ class ModelFitter:
         offset = 0
         for context, func in [('upper_frequency', self.wu), ('upper_damping', self.zu), ('lower_frequency', self.wl), ('lower_damping', self.zl)]:
             n_params = func.n_params
-            self.results[context] = {'type': type(func).__name__, 'params': opt_fn[offset:offset+n_params]}
+            self.results[context] = {'type': type(func).__name__, 'params': opt_fn[offset:offset+n_params].tolist()}
             offset += n_params
 
         return self.results
