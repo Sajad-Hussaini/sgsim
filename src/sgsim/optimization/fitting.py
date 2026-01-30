@@ -17,49 +17,94 @@ class ModelInverter:
         self.zl = lower_damping
         self.gm = ground_motion
 
+        self._wu_type = type(self.wu).__name__
+        self._wl_type = type(self.wl).__name__
+        self._q_type = type(self.q).__name__
+
     def fit(self, criteria: str = 'full', fit_range: tuple = (0.01, 0.99), initial_guess: dict = None, bounds: dict = None):
         if initial_guess is None or bounds is None:
             default_guess, default_bounds = self._default_parameters()
             gs = initial_guess or default_guess
             bs = bounds or default_bounds
-        
-        gs[criteria] = (gs['upper_frequency'] + gs['upper_damping'] + gs['lower_frequency'] + gs['lower_damping'])
-        bs[criteria] = (bs['upper_frequency'] + bs['upper_damping'] + bs['lower_frequency'] + bs['lower_damping'])
 
         self.results = {}
+        # ========== Fit modulating function ==========
         objective_q = self._objective_modulating(fit_range)
         opt_q = minimize(objective_q, gs['modulating'], bounds=bs['modulating'], method='L-BFGS-B', jac="3-point").x
 
-        modulating_type = type(self.q).__name__
         # For BetaSingle, BetaBasic, BetaDual: append et and tn to params
-        if modulating_type in ('BetaDual', 'BetaSingle', 'BetaBasic'):
-            et, tn = self.gm.ce.max(), self.gm.t.max()
-            opt_q = np.append(opt_q, [et, tn])
+        if self._q_type in ('BetaDual', 'BetaSingle', 'BetaBasic'):
+            opt_q = np.append(opt_q, [self.gm.ce.max(), self.gm.t.max()])
 
-        param_dict = dict(zip(self.q.param_names, opt_q))
-        self.results['modulating'] = {'type': modulating_type, 'params': param_dict}
+        self.results['modulating'] = {'type': self._q_type, 'params': dict(zip(self.q.param_names, opt_q))}
 
+        # ========== Fit frequency and damping functions ==========
+        gs_fn = gs['upper_frequency'] + gs['upper_damping'] + gs['lower_frequency'] + gs['lower_damping']
+        bs_fn = bs['upper_frequency'] + bs['upper_damping'] + bs['lower_frequency'] + bs['lower_damping']
         objective_fn = self._objective_function(criteria, fit_range)
-        opt_fn = minimize(objective_fn, gs[criteria], bounds=bs[criteria], method='L-BFGS-B', jac="3-point").x
+        opt_fn = minimize(objective_fn, gs_fn, bounds=bs_fn, method='L-BFGS-B', jac="3-point").x
 
-        offset = 0
-        for context, func in [('upper_frequency', self.wu), ('upper_damping', self.zu), ('lower_frequency', self.wl), ('lower_damping', self.zl)]:
-            n_params = func.n_params
-            param_dict = dict(zip(func.param_names, opt_fn[offset:offset+n_params]))
-            self.results[context] = {'type': type(func).__name__, 'params': param_dict}
-            offset += n_params
+        raw_groups = self._slice_parameters(opt_fn)
+        resolved_groups = self._resolve_parameters(raw_groups)
+        funcs = [self.wu, self.zu, self.wl, self.zl]
+        names = ['upper_frequency', 'upper_damping', 'lower_frequency', 'lower_damping']
+        
+        for name, func, vals in zip(names, funcs, resolved_groups):
+            self.results[name] = {'type': type(func).__name__, 'params': dict(zip(func.param_names, vals))}
 
         return StochasticModel.load_from(self.results, self.gm.npts, self.gm.dt)
+    
+    def _slice_parameters(self, flat_params):
+        """Helper to slice flat parameter array into [wu, zu, wl, zl] arrays."""
+        groups = []
+        offset = 0
+        for func in [self.wu, self.zu, self.wl, self.zl]:
+            groups.append(flat_params[offset : offset + func.n_params])
+            offset += func.n_params
+        return groups
+
+    def _resolve_parameters(self, groups):
+        """
+        Convert optimization parameters (ratios) to physical parameters (Hz).
+        Input: list of [p_wu, p_zu, p_wl, p_zl]
+        Output: list of same structure but with corrected wl parameters.
+        """
+        p_wu, p_zu, p_wl, p_zl = groups
+        
+        # Copy to avoid side-effects
+        final_wl = p_wl.copy()
+
+        # The Ratio Logic
+        is_wu_dynamic = self._wu_type in ("Linear", "Exponential")
+        is_wl_dynamic = self._wl_type in ("Linear", "Exponential")
+        is_wu_const = self._wu_type == "Constant"
+        is_wl_const = self._wl_type == "Constant"
+
+        if is_wu_dynamic and is_wl_dynamic:
+            final_wl[0] = p_wu[0] * p_wl[0]
+            final_wl[1] = p_wu[1] * p_wl[1]
+        elif is_wu_const and is_wl_const:
+            final_wl[0] = p_wu[0] * p_wl[0]
+        elif is_wu_dynamic and is_wl_const:
+            final_wl[0] = min(p_wu[0], p_wu[1]) * p_wl[0]
+            
+        return [p_wu, p_zu, final_wl, p_zl]
 
     def _objective_modulating(self, fit_range: tuple):
         """Create objective function for the specified scheme."""
-        slicer = signal.slice_energy(self.gm.ce, fit_range)
         target_ce = self.gm.ce
-        modulating_type = type(self.q).__name__
         et, tn = self.gm.ce.max(), self.gm.t.max()
         
         def objective(params):
-            model_ce = self.update_modulating(params, modulating_type, et, tn)
+            if self._q_type == 'BetaDual':
+                p = (params[0], params[1], params[0] + params[2], params[3], params[4], et, tn)
+            elif self._q_type in ('BetaSingle', 'BetaBasic'):
+                p = (params[0], params[1], et, tn)
+            else:
+                p = params
+            
+            q_array = self.q.compute(self.gm.t, *p)
+            model_ce = signal.ce(self.gm.dt, q_array)
             return np.mean(np.square(model_ce - target_ce))
 
         return objective
@@ -69,75 +114,36 @@ class ModelInverter:
         slicer = signal.slice_energy(self.gm.ce, fit_range)
 
         if criteria == 'full':
-            wu_type = type(self.wu).__name__
-            wl_type = type(self.wl).__name__
-            
-            target_zc_ac = self.gm.zc_ac[slicer]
-            target_zc_vel = self.gm.zc_vel[slicer]
-            target_zc_disp = self.gm.zc_disp[slicer]
-            target_pmnm_vel = self.gm.pmnm_vel[slicer]
-            target_pmnm_disp = self.gm.pmnm_disp[slicer]
-            target_fas = self.gm.fas
-            
-            offset = 0
-            param_slices = []
-            for fn in [self.wu, self.zu, self.wl, self.zl]:
-                param_slices.append(slice(offset, offset + fn.n_params))
-                offset += fn.n_params
+            targets = [self.gm.zc_ac[slicer], self.gm.zc_vel[slicer], self.gm.zc_disp[slicer],
+                       self.gm.pmnm_vel[slicer], self.gm.pmnm_disp[slicer], self.gm.fas]
+            variances = [np.var(t) if np.var(t) > 1e-9 else 1.0 for t in targets]
 
-            q_array = self.q(self.gm.t, **self.results['modulating']['params'])
+            q_params = self.results['modulating']['params']
+            q_array = self.q.compute(self.gm.t, **q_params)
             
             def objective(params):
-                m_zc_ac, m_zc_vel, m_zc_disp, m_pmnm_vel, m_pmnm_disp, m_fas = self.update_frequency(params, slicer, param_slices, wu_type, wl_type, q_array)
-                return np.sum([np.mean(np.square(m_zc_ac - target_zc_ac)) / np.max(target_zc_ac),
-                       np.mean(np.square(m_zc_vel - target_zc_vel)) / np.max(target_zc_vel),
-                       np.mean(np.square(m_zc_disp - target_zc_disp)) / np.max(target_zc_disp),
-                       np.mean(np.square(m_pmnm_vel - target_pmnm_vel)) / np.max(target_pmnm_vel),
-                       np.mean(np.square(m_pmnm_disp - target_pmnm_disp)) / np.max(target_pmnm_disp),
-                       np.mean(np.square(m_fas - target_fas)) / np.max(target_fas)])
+                raw_groups = self._slice_parameters(params)
+                resolved_groups = self._resolve_parameters(raw_groups)
+                wu_arr = self.wu.compute(self.gm.t, *resolved_groups[0])
+                zu_arr = self.zu.compute(self.gm.t, *resolved_groups[1])
+                wl_arr = self.wl.compute(self.gm.t, *resolved_groups[2])
+                zl_arr = self.zl.compute(self.gm.t, *resolved_groups[3])
+
+                model = StochasticModel(self.gm.npts, self.gm.dt, q_array, wu_arr, zu_arr, wl_arr, zl_arr)
+
+                preds = [model.zc_ac[slicer], model.zc_vel[slicer], model.zc_disp[slicer],
+                         model.pmnm_vel[slicer], model.pmnm_disp[slicer], model.fas]
+                
+                error = 0.0
+                for pred, target, var in zip(preds, targets, variances):
+                    error += np.mean(np.square(pred - target)) / var
+                
+                return error
 
         else:
             raise ValueError(f"Unknown criteria: {criteria}")
         
         return objective
-
-    def update_modulating(self, params, modulating_type: str, et: float, tn: float):
-        """Update modulating function and return model cumulative energy."""
-        if modulating_type == 'BetaDual':
-            p1, c1, dp2, c2, a1 = params
-            model_params = (p1, c1, p1 + dp2, c2, a1, et, tn)
-        elif modulating_type in ('BetaSingle', 'BetaBasic'):
-            p1, c1 = params
-            model_params = (p1, c1, et, tn)
-        else:
-            model_params = params
-        
-        q_array = self.q(self.gm.t, *model_params)
-        # dummy values for other parameters
-        model = StochasticModel(self.gm.npts, self.gm.dt, q_array, q_array, q_array, q_array, q_array)
-
-        return model.ce
-
-    def update_frequency(self, params, slicer, param_slices, wu_type: str, wl_type: str, q_array: np.ndarray):
-        """Update damping functions and return statistics."""
-        fitable_params = [params[s] for s in param_slices]
-
-        if wu_type in ("Linear", "Exponential") and wl_type in ("Linear", "Exponential"):
-            fitable_params[2] = [fitable_params[0][0] * fitable_params[2][0], fitable_params[0][1] * fitable_params[2][1]]
-
-        if wu_type == "Constant" and wl_type == "Constant":
-            fitable_params[2] = [fitable_params[0][0] * fitable_params[2][0]]
-        
-        if wu_type in ("Linear", "Exponential") and wl_type == "Constant":
-            fitable_params[2] = [min(fitable_params[0][0], fitable_params[0][1]) * fitable_params[2][0]]
-
-        fn_arrays = []
-        for fn, pms in zip([self.wu, self.zu, self.wl, self.zl], fitable_params):
-            fn_arrays.append(fn(self.gm.t, *pms))
-
-        model = StochasticModel(self.gm.npts, self.gm.dt, q_array, fn_arrays[0], fn_arrays[1], fn_arrays[2], fn_arrays[3])
-
-        return (model.zc_ac[slicer], model.zc_vel[slicer], model.zc_disp[slicer], model.pmnm_vel[slicer], model.pmnm_disp[slicer], model.fas)
 
     def _default_parameters(self):
         """Get default initial guess and bounds for parameters."""
