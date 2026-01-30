@@ -105,7 +105,7 @@ class ModelInverter:
             
             q_array = self.q.compute(self.gm.t, *p)
             model_ce = signal.ce(self.gm.dt, q_array)
-            return np.mean(np.square(model_ce - target_ce))
+            return np.mean(np.square(model_ce - target_ce)) / np.var(target_ce)
 
         return objective
 
@@ -116,7 +116,7 @@ class ModelInverter:
         if criteria == 'full':
             targets = [self.gm.zc_ac[slicer], self.gm.zc_vel[slicer], self.gm.zc_disp[slicer],
                        self.gm.pmnm_vel[slicer], self.gm.pmnm_disp[slicer], self.gm.fas]
-            variances = [np.var(t) if np.var(t) > 1e-9 else 1.0 for t in targets]
+            variances = [np.var(t) for t in targets]
 
             q_params = self.results['modulating']['params']
             q_array = self.q.compute(self.gm.t, **q_params)
@@ -147,9 +147,9 @@ class ModelInverter:
 
     def _default_parameters(self):
         """Get default initial guess and bounds for parameters."""
-        all_defaults = {('modulating', 'BetaDual'): ([0.1, 20.0, 0.2, 10.0, 0.6], [(0.01, 0.5), (2.0, 100.0), (0.0, 0.5), (2.0, 100.0), (0.0, 0.5)]),
-                        ('modulating', 'BetaSingle'): ([0.1, 20.0], [(0.01, 0.5), (2.0, 100.0)]),
-                        ('modulating', 'BetaBasic'): ([0.1, 20.0], [(0.01, 0.5), (2.0, 100.0)]),
+        all_defaults = {('modulating', 'BetaDual'): ([0.1, 20.0, 0.2, 10.0, 0.6], [(0.01, 0.5), (2.0, 1000.0), (0.0, 0.5), (2.0, 1000.0), (0.0, 0.5)]),
+                        ('modulating', 'BetaSingle'): ([0.1, 20.0], [(0.01, 0.5), (2.0, 1000.0)]),
+                        ('modulating', 'BetaBasic'): ([0.1, 20.0], [(0.01, 0.5), (2.0, 1000.0)]),
 
                         ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
                         ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
