@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
-from ..core.stochastic_model import StochasticModel
+from ..core.model import StochasticModel
 from ..motion.ground_motion import GroundMotion
 from ..motion import signal
 
