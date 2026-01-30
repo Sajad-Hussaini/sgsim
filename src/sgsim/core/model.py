@@ -26,11 +26,11 @@ class StochasticModel(Domain):
     modulating : np.ndarray
         Time-varying modulating function.
     upper_frequency : np.ndarray
-        Upper frequency function.
+        Upper frequency function in Hz.
     upper_damping : np.ndarray
         Upper damping function.
     lower_frequency : np.ndarray
-        Lower frequency function.
+        Lower frequency function in Hz.
     lower_damping : np.ndarray
         Lower damping function.
 

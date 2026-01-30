@@ -82,9 +82,8 @@ class ModelInverter:
             offset = 0
             param_slices = []
             for fn in [self.wu, self.zu, self.wl, self.zl]:
-                end = offset + fn.n_params
-                param_slices.append(slice(offset, end))
-                offset = end
+                param_slices.append(slice(offset, offset + fn.n_params))
+                offset += fn.n_params
 
             q_array = self.q(self.gm.t, **self.results['modulating']['params'])
             
