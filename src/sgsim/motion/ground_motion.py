@@ -8,6 +8,14 @@ from . import signal
 from ..io.record_reader import Record
 from ..optimization.fit_eval import goodness_of_fit, relative_error
 
+
+_IM_REGISTRY = {
+    'ac': 'Acceleration time series',
+    'vel': 'Velocity time series',
+    'disp': 'Displacement time series',
+    'response_spectra': 'Acceleration, Velocity, Displacement Response Spectra (requires periods)',
+}
+
 class GroundMotion:
     """
     Container for ground motion data and related operations.
@@ -63,21 +71,6 @@ class GroundMotion:
         self.tag = tag
 
     # Class methods ==================================================================
-
-    _im_registry = {
-        'ac': 'Acceleration time series',
-        'vel': 'Velocity time series',
-        'disp': 'Displacement time series',
-        'response_spectra': 'Acceleration, Velocity, Displacement Response Spectra (requires periods)',
-    }
-
-    @classmethod
-    def register_im(cls, name, description):
-        """Decorator to register an intensity measure."""
-        def decorator(func):
-            cls._im_registry[name] = description
-            return func
-        return decorator
 
     @classmethod
     def load_from(cls, tag=None, **kwargs):
@@ -143,42 +136,14 @@ class GroundMotion:
 
     @classmethod
     def list_IMs(cls):
-        """
-        List all available intensity measures (IMs) and properties.
-        
-        Provides a comprehensive dictionary of all computable intensity measures
-        with human-readable descriptions for documentation and user reference.
-        
-        Returns
-        -------
-        dict
-            Dictionary mapping IM names (str) to descriptions (str).
-            
-        See Also
-        --------
-        compute_intensity_measures : Compute selected IMs.
-        to_csv : Export IMs to CSV file.
-        
-        Notes
-        -----
-        Spectral quantities (sa, sv, sd) require a periods array parameter.
-        Contact developer at Hussaini.smsajad@gmail.com to suggest new IMs.
-        
-        Examples
-        --------
-        List all available IMs:
-        
-        >>> ims_dict = GroundMotion.list_IMs()
-        >>> for name, desc in ims_dict.items():
-        ...     print(f"{name}: {desc}")
-        
-        Get just the names:
-        
-        >>> im_names = list(GroundMotion.list_IMs().keys())
-        >>> 'pga' in im_names
-        True
-        """
-        return cls._im_registry.copy()
+        return _IM_REGISTRY.copy()
+
+    @staticmethod
+    def register_im(name, description):
+        def decorator(func):
+            _IM_REGISTRY[name] = description
+            return func
+        return decorator
 
     # Methods ========================================================
     
@@ -883,7 +848,7 @@ class GroundMotion:
         return signal.time(self.npts, self.dt)
 
     @cached_property
-    @register_im('freq', 'Frequency array (for FAS)')
+    @register_im('freq', 'Frequency array in Hz (for FAS)')
     def freq(self):
         """
         Frequency array for Fourier transform.
@@ -1118,7 +1083,7 @@ class GroundMotion:
         return signal.zc(self.disp)
 
     @cached_property
-    @register_im('pmnm_ac', 'Positive Min / Negative Max Ratio of Acceleration')
+    @register_im('pmnm_ac', 'Positive Min / Negative Max of Acceleration')
     def pmnm_ac(self):
         """
         Positive-minima to negative-maxima of acceleration.
@@ -1131,7 +1096,7 @@ class GroundMotion:
         return signal.pmnm(self.ac)
 
     @cached_property
-    @register_im('pmnm_vel', 'Positive Min / Negative Max Ratio of Velocity')
+    @register_im('pmnm_vel', 'Positive Min / Negative Max of Velocity')
     def pmnm_vel(self):
         """
         Positive-minima to negative-maxima ratio of velocity.
@@ -1144,7 +1109,7 @@ class GroundMotion:
         return signal.pmnm(self.vel)
 
     @cached_property
-    @register_im('pmnm_disp', 'Positive Min / Negative Max Ratio of Displacement')
+    @register_im('pmnm_disp', 'Positive Min / Negative Max of Displacement')
     def pmnm_disp(self):
         """
         Positive-minima to negative-maxima ratio of displacement.

@@ -5,7 +5,7 @@ from ..motion.ground_motion import GroundMotion
 from ..motion import signal
 from ..core.functions import ParametricFunction
 
-class ModelFitter:
+class ModelInverter:
     def __init__(self, modulating: ParametricFunction,
                  upper_frequency: ParametricFunction, upper_damping: ParametricFunction,
                  lower_frequency: ParametricFunction, lower_damping: ParametricFunction,
@@ -29,7 +29,14 @@ class ModelFitter:
         self.results = {}
         objective_q = self._objective_modulating(fit_range)
         opt_q = minimize(objective_q, gs['modulating'], bounds=bs['modulating'], method='L-BFGS-B', jac="3-point").x
-        self.results['modulating'] = {'type': type(self.q).__name__, 'params': opt_q.tolist()}
+
+        modulating_type = type(self.q).__name__
+        # For BetaSingle, BetaBasic, BetaDual: append et and tn to params
+        if modulating_type in ('BetaDual', 'BetaSingle', 'BetaBasic'):
+            et, tn = self.gm.ce.max(), self.gm.t.max()
+            opt_q = np.append(opt_q, [et, tn])
+
+        self.results['modulating'] = {'type': modulating_type, 'params': opt_q.tolist()}
 
         objective_fn = self._objective_function(criteria, fit_range)
         opt_fn = minimize(objective_fn, gs[criteria], bounds=bs[criteria], method='L-BFGS-B', jac="3-point").x
@@ -87,8 +94,6 @@ class ModelFitter:
                        np.mean(np.square(m_pmnm_vel - target_pmnm_vel)) / np.var(target_pmnm_vel),
                        np.mean(np.square(m_pmnm_disp - target_pmnm_disp)) / np.var(target_pmnm_disp),
                        np.mean(np.square(m_fas - target_fas)) / np.var(target_fas)])
-        elif criteria == 'fas-only':
-            continue
 
         else:
             raise ValueError(f"Unknown criteria: {criteria}")

@@ -34,8 +34,6 @@ __all__ = [
     "Constant"
     ]
 
-REGISTRY = {name: globals()[name] for name in __all__}
-
 
 class ParametricFunction(ABC):
     """
@@ -407,3 +405,5 @@ class Constant(ParametricFunction):
     @staticmethod
     def compute(t, value):
         return np.full(len(t), value)
+
+REGISTRY = {name: globals()[name] for name in __all__}
