@@ -36,15 +36,21 @@ class StochasticModel(Domain):
 
     Examples
     --------
-    >>> from sgsim.functions import beta_single, linear, constant
-    >>> model = StochasticModel(
-    ...     npts=4000, dt=0.01,
-    ...     modulating=
-    ...     upper_frequency=
-    ...     upper_damping=
-    ...     lower_frequency=
-    ...     lower_damping=
-    ... )
+    >>> params = {
+    ...     'modulating': {'type': 'BetaBasic', 'params': [0.1, 10.0, 1.0, 25.0]},
+    ...     'upper_frequency': {'type': 'Linear', 'params': [8.0, 1.5]},
+    ...     'upper_damping': {'type': 'Constant', 'params': [0.5]},
+    ...     'lower_frequency': {'type': 'Linear', 'params': [1.0, 0.5]},
+    ...     'lower_damping': {'type': 'Constant', 'params': [0.3]},
+    ... }
+    >>> model = StochasticModel.load_from(params, npts, dt)
+    >>> model.fas.shape
+    (1000,)
+    >>> import matplotlib.pyplot as plt
+    >>> plt.plot(model.t, model.ac)
+    >>> plt.show()
+    >>> plt.plot(model.freq / (2 * np.pi), model.fas)
+    >>> plt.show()
     """
     def __init__(self, npts: int, dt: float, modulating: np.ndarray,
                  upper_frequency: np.ndarray, upper_damping: np.ndarray,
@@ -81,10 +87,10 @@ class StochasticModel(Domain):
         t = signal.time(npts, dt)
         def compute_array(param_group: dict):
             name = param_group['type']
-            fn = getattr(functions, name)
-            if fn is None:
-                raise ValueError(f"Unknown function type: '{name}'.")
-            return fn.compute(t, *param_group['params'])
+            fn_class = functions.REGISTRY.get(name)
+            if fn_class is None:
+                raise ValueError(f"Unknown function type: '{name}'. Available: {list(functions.REGISTRY.keys())}")
+            return fn_class.compute(t, *param_group['params'])
 
         modulating = compute_array(params['modulating'])
         upper_frequency = compute_array(params['upper_frequency'])

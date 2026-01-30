@@ -34,6 +34,9 @@ __all__ = [
     "Constant"
     ]
 
+REGISTRY = {name: globals()[name] for name in __all__}
+
+
 class ParametricFunction(ABC):
     """
     Abstract base class for parametric functions.

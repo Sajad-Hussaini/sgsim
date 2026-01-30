@@ -270,7 +270,6 @@ def fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, varia
     discrete_correction = np.sqrt(2 * np.pi / dt)
     transfer_vec = np.empty(n_freq, dtype=np.complex128)
     for i in range(npts):
-        # --- PHASE 1: COMPUTE PHYSICS FOR TIME STEP i ---
         ti = t[i]
         scalei = (mdl[i] / np.sqrt(variance[i])) * discrete_correction 
         wui, zui = wu[i], zu[i]
@@ -282,18 +281,14 @@ def fourier_series(n, npts, t, freq_sim, freq_sim_p2, mdl, wu, zu, wl, zl, varia
             denom = (((wl2 - w2) + (2j * zli * wli * w)) *
                     ((wu2 - w2) + (2j * zui * wui * w)))
             frf_val = -w2 / denom            
-            # Inline Exp Math: exp(-j * w * t)
-            # cos/sin is often slightly faster/cleaner for purely imaginary exp
+            # cos/sin is often slightly faster/cleaner for purely imaginary exp(-j * w * t)
             arg = w * ti
             exp_val = np.cos(arg) - 1j * np.sin(arg)
-            
             transfer_vec[k] = frf_val * exp_val * scalei
 
-        # --- PHASE 2: DISTRIBUTE TO SIMULATIONS ---
-        # Now apply this vector to all simulations in parallel
+        # Apply this vector to all simulations in parallel
         for sim in prange(n):
             noise = white_noise[sim, i]
-            # Add to the specific simulation row
             for k in range(n_freq):
                 fourier[sim, k] += transfer_vec[k] * noise
 

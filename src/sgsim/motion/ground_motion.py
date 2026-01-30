@@ -64,6 +64,21 @@ class GroundMotion:
 
     # Class methods ==================================================================
 
+    _im_registry = {
+        'ac': 'Acceleration time series',
+        'vel': 'Velocity time series',
+        'disp': 'Displacement time series',
+        'response_spectra': 'Acceleration, Velocity, Displacement Response Spectra (requires periods)',
+    }
+
+    @classmethod
+    def register_im(cls, name, description):
+        """Decorator to register an intensity measure."""
+        def decorator(func):
+            cls._im_registry[name] = description
+            return func
+        return decorator
+
     @classmethod
     def load_from(cls, tag=None, **kwargs):
         """
@@ -163,49 +178,7 @@ class GroundMotion:
         >>> 'pga' in im_names
         True
         """
-        ims = {
-            # Peak parameters
-            'pga': 'Peak Ground Acceleration',
-            'pgv': 'Peak Ground Velocity',
-            'pgd': 'Peak Ground Displacement',
-            
-            # Response spectra (requires periods parameter)
-            'response_spectra': 'Acceleration, Velocity, Displacement Response Spectra (requires periods)',
-            
-            # Intensity integrals
-            'cav': 'Cumulative Absolute Velocity',
-            'vsi': 'Velocity Spectrum Intensity (0.1-2.5s)',
-            'asi': 'Acceleration Spectrum Intensity (0.1-2.5s)',
-            'dsi': 'Displacement Spectrum Intensity (0.1-2.5s)',
-            
-            # Time series data
-            'ac': 'Acceleration time series',
-            'vel': 'Velocity time series',
-            'disp': 'Displacement time series',
-            
-            # Frequency domain
-            'fas': 'Fourier Amplitude Spectrum of acceleration',
-            'fas_vel': 'FAS of Velocity',
-            'fas_disp': 'FAS of Displacement',
-            'fps': 'Fourier Phase Spectrum of acceleration',
-            'ce': 'Cumulative Energy',
-            
-            # Domain attributes
-            't': 'Time array',
-            'freq': 'Frequency array (for FAS)',
-            
-            # Statistical measures
-            'le_ac': 'Mean Local Extrema of Acceleration',
-            'le_vel': 'Mean Local Extrema of Velocity',
-            'le_disp': 'Mean Local Extrema of Displacement',
-            'zc_ac': 'Zero Crossing Rate of Acceleration',
-            'zc_vel': 'Zero Crossing Rate of Velocity',
-            'zc_disp': 'Zero Crossing Rate of Displacement',
-            'pmnm_ac': 'Positive Min / Negative Max Ratio of Acceleration',
-            'pmnm_vel': 'Positive Min / Negative Max Ratio of Velocity',
-            'pmnm_disp': 'Positive Min / Negative Max Ratio of Displacement',
-        }
-        return ims    
+        return cls._im_registry.copy()
 
     # Methods ========================================================
     
@@ -831,6 +804,7 @@ class GroundMotion:
     # Properties ========================================================
 
     @property
+    @register_im('vsi', 'Velocity Spectrum Intensity (0.1-2.5s)')
     def vsi(self):
         """
         Velocity spectrum intensity (0.1-2.5s range).
@@ -853,6 +827,7 @@ class GroundMotion:
         return self.spectrum_intensity[1]
     
     @property
+    @register_im('asi', 'Acceleration Spectrum Intensity (0.1-2.5s)')
     def asi(self):
         """
         Acceleration spectrum intensity (0.1-2.5s range).
@@ -873,6 +848,7 @@ class GroundMotion:
         return self.spectrum_intensity[2]
     
     @property
+    @register_im('dsi', 'Displacement Spectrum Intensity (0.1-2.5s)')
     def dsi(self):
         """
         Displacement spectrum intensity (0.1-2.5s range).
@@ -893,6 +869,7 @@ class GroundMotion:
         return self.spectrum_intensity[0]
     
     @cached_property
+    @register_im('t', 'Time array')
     def t(self):
         """
         Time array corresponding to recorded points.
@@ -906,6 +883,7 @@ class GroundMotion:
         return signal.time(self.npts, self.dt)
 
     @cached_property
+    @register_im('freq', 'Frequency array (for FAS)')
     def freq(self):
         """
         Frequency array for Fourier transform.
@@ -923,6 +901,7 @@ class GroundMotion:
         return signal.frequency(self.npts, self.dt)
     
     @cached_property
+    @register_im('fas', 'Fourier Amplitude Spectrum of acceleration')
     def fas(self):
         """
         Fourier amplitude spectrum of acceleration.
@@ -945,6 +924,7 @@ class GroundMotion:
         return signal.fas(self.dt, self.ac)
     
     @cached_property
+    @register_im('fas_vel', 'FAS of Velocity')
     def fas_vel(self):
         """
         Fourier amplitude spectrum of velocity.
@@ -962,6 +942,7 @@ class GroundMotion:
         return signal.fas(self.dt, self.vel)
 
     @cached_property
+    @register_im('fas_disp', 'FAS of Displacement')
     def fas_disp(self):
         """
         Fourier amplitude spectrum of displacement.
@@ -979,6 +960,7 @@ class GroundMotion:
         return signal.fas(self.dt, self.disp)
     
     @cached_property
+    @register_im('fps', 'Fourier Phase Spectrum of acceleration')
     def fps(self):
         """
         Fourier phase spectrum of acceleration (unwrapped).
@@ -1003,6 +985,7 @@ class GroundMotion:
         return signal.fps(self.ac)
 
     @cached_property
+    @register_im('ce', 'Cumulative Energy')
     def ce(self):
         """
         Cumulative energy of acceleration time series.
@@ -1024,6 +1007,7 @@ class GroundMotion:
         return signal.ce(self.dt, self.ac)
     
     @cached_property
+    @register_im('le_ac', 'Mean Local Extrema of Acceleration')
     def le_ac(self):
         """
         Mean local extrema of acceleration.
@@ -1032,8 +1016,8 @@ class GroundMotion:
 
         Returns
         -------
-        float
-            Mean local extrema value in g.
+        ndarray
+            Cumulative number of local extrema.
         
         See Also
         --------
@@ -1044,14 +1028,15 @@ class GroundMotion:
         return signal.le(self.ac)
 
     @cached_property
+    @register_im('le_vel', 'Mean Local Extrema of Velocity')
     def le_vel(self):
         """
         Mean local extrema of velocity.
 
         Returns
         -------
-        float
-            Mean local extrema value in cm/s.
+        ndarray
+            Cumulative number of local extrema.
         
         See Also
         --------
@@ -1061,14 +1046,15 @@ class GroundMotion:
         return signal.le(self.vel)
 
     @cached_property
+    @register_im('le_disp', 'Mean Local Extrema of Displacement')
     def le_disp(self):
         """
         Mean local extrema of displacement.
 
         Returns
         -------
-        float
-            Mean local extrema value in cm.
+        ndarray
+            Cumulative number of local extrema.
         
         See Also
         --------
@@ -1078,6 +1064,7 @@ class GroundMotion:
         return signal.le(self.disp)
 
     @cached_property
+    @register_im('zc_ac', 'Zero Crossing of Acceleration')
     def zc_ac(self):
         """
         Zero-crossing of acceleration.
@@ -1086,92 +1073,91 @@ class GroundMotion:
 
         Returns
         -------
-        float
-            Zero-crossing rate in Hz.
+        ndarray
+            Cumulative count of zero-crossing.
         
         See Also
         --------
-        zc_vel : Zero-crossing rate of velocity.
+        zc_vel : Zero-crossing of velocity.
         le_ac : Local extrema measure.
         """
         return signal.zc(self.ac)
 
     @cached_property
+    @register_im('zc_vel', 'Zero Crossing of Velocity')
     def zc_vel(self):
         """
         Zero-crossing of velocity.
 
         Returns
         -------
-        float
-            Zero-crossing rate in Hz.
+        ndarray
+            Cumulative count of zero-crossing.
         
         See Also
         --------
-        zc_ac : Zero-crossing rate of acceleration.
+        zc_ac : Zero-crossing of acceleration.
         """
         return signal.zc(self.vel)
 
     @cached_property
+    @register_im('zc_disp', 'Zero Crossing of Displacement')
     def zc_disp(self):
         """
         Zero-crossing of displacement.
 
         Returns
         -------
-        float
-            Zero-crossing rate in Hz.
+        ndarray
+            Cumulative count of zero-crossing.
         
         See Also
         --------
-        zc_vel : Zero-crossing rate of velocity.
+        zc_vel : Zero-crossing of velocity.
         """
         return signal.zc(self.disp)
 
     @cached_property
+    @register_im('pmnm_ac', 'Positive Min / Negative Max Ratio of Acceleration')
     def pmnm_ac(self):
         """
         Positive-minima to negative-maxima of acceleration.
-        
-        Cumulative number of positive valley and negative peaks.
 
         Returns
         -------
-        float
-            Ratio value (dimensionless).
-        
-        Notes
-        -----
-        Values close to 1.0 indicate symmetric motion.
-        Values > 1 indicate larger positive accelerations.
+        ndarray
+            Cumulative number of positive valley and negative peaks.
         """
         return signal.pmnm(self.ac)
 
     @cached_property
+    @register_im('pmnm_vel', 'Positive Min / Negative Max Ratio of Velocity')
     def pmnm_vel(self):
         """
         Positive-minima to negative-maxima ratio of velocity.
 
         Returns
         -------
-        float
-            Ratio value (dimensionless).
+        ndarray
+            Cumulative number of positive valley and negative peaks.
         """
         return signal.pmnm(self.vel)
 
     @cached_property
+    @register_im('pmnm_disp', 'Positive Min / Negative Max Ratio of Displacement')
     def pmnm_disp(self):
         """
         Positive-minima to negative-maxima ratio of displacement.
 
         Returns
         -------
-        float
-            Ratio value (dimensionless).
+        ndarray
+            Cumulative number of positive valley and negative peaks.
         """
         return signal.pmnm(self.disp)
 
     @cached_property
+    @register_im('pga', 'Peak Ground Acceleration')
     def pga(self):
         """
         Peak ground acceleration.
@@ -1196,6 +1182,7 @@ class GroundMotion:
         return signal.peak_abs_value(self.ac)
 
     @cached_property
+    @register_im('pgv', 'Peak Ground Velocity')
     def pgv(self):
         """
         Peak ground velocity.
@@ -1215,6 +1202,7 @@ class GroundMotion:
         return signal.peak_abs_value(self.vel)
 
     @cached_property
+    @register_im('pgd', 'Peak Ground Displacement')
     def pgd(self):
         """
         Peak ground displacement.
@@ -1234,6 +1222,7 @@ class GroundMotion:
         return signal.peak_abs_value(self.disp)
     
     @cached_property
+    @register_im('cav', 'Cumulative Absolute Velocity')
     def cav(self):
         """
         Cumulative absolute velocity.
