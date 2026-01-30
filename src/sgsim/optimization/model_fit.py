@@ -17,20 +17,28 @@ class ModelFitter:
         self.zl = lower_damping
         self.gm = ground_motion
 
-    def fit (self, criteria: str = 'full', fit_range: tuple = (0.01, 0.99), initial_guess: dict = None, bounds: dict = None):
+    def fit(self, criteria: str = 'full', fit_range: tuple = (0.01, 0.99), initial_guess: dict = None, bounds: dict = None):
         if initial_guess is None or bounds is None:
             default_guess, default_bounds = self._default_parameters()
             gs = initial_guess or default_guess
             bs = bounds or default_bounds
+        
+        gs[criteria] = (gs['upper_frequency'] + gs['upper_damping'] + gs['lower_frequency'] + gs['lower_damping'])
+        bs[criteria] = (bs['upper_frequency'] + bs['upper_damping'] + bs['lower_frequency'] + bs['lower_damping'])
 
         self.results = {}
-        objective_func = self._objective_modulating(fit_range)
-        opt_params = minimize(objective_func, gs['modulating'], bounds=bs['modulating'], method='L-BFGS-B', jac="3-point").x
-        self.results['modulating'] = opt_params
-        
-        objective_func = self._objective_function(criteria, fit_range)
-        opt_params = minimize(objective_func, gs[criteria], bounds=bs[criteria], method='L-BFGS-B', jac="3-point").x
-        self.results[criteria] = opt_params
+        objective_q = self._objective_modulating(fit_range)
+        opt_q = minimize(objective_q, gs['modulating'], bounds=bs['modulating'], method='L-BFGS-B', jac="3-point").x
+        self.results['modulating'] = {'type': type(self.q).__name__, 'params': opt_q}
+
+        objective_fn = self._objective_function(criteria, fit_range)
+        opt_fn = minimize(objective_fn, gs[criteria], bounds=bs[criteria], method='L-BFGS-B', jac="3-point").x
+
+        offset = 0
+        for context, func in [('upper_frequency', self.wu), ('upper_damping', self.zu), ('lower_frequency', self.wl), ('lower_damping', self.zl)]:
+            n_params = func.n_params
+            self.results[context] = {'type': type(func).__name__, 'params': opt_fn[offset:offset+n_params]}
+            offset += n_params
 
         return self.results
 
@@ -69,7 +77,7 @@ class ModelFitter:
                 param_slices.append(slice(offset, end))
                 offset = end
 
-            q_array = self.q(self.gm.t, *self.results['modulating'])
+            q_array = self.q(self.gm.t, *self.results['modulating']['params'])
             
             def objective(params):
                 m_zc_ac, m_zc_vel, m_zc_disp, m_pmnm_vel, m_pmnm_disp, m_fas = self.update_frequency(params, slicer, param_slices, wu_type, wl_type, q_array)
