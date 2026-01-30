@@ -3,243 +3,148 @@ from scipy.optimize import minimize
 from ..core.model import StochasticModel
 from ..motion.ground_motion import GroundMotion
 from ..motion import signal
+from ..core.functions import ParametricFunction
 
-def fit(model: StochasticModel, motion: GroundMotion, component: str, fit_range: tuple = (0.01, 0.99),
-        initial_guess=None, bounds=None):
-    """
-    Fit stochastic model parameters to match a target motion.
+class ModelFitter:
+    def __init__(self, modulating: ParametricFunction,
+                 upper_frequency: ParametricFunction, upper_damping: ParametricFunction,
+                 lower_frequency: ParametricFunction, lower_damping: ParametricFunction,
+                 ground_motion: GroundMotion):
+        self.q = modulating
+        self.wu = upper_frequency
+        self.zu = upper_damping
+        self.wl = lower_frequency
+        self.zl = lower_damping
+        self.gm = ground_motion
 
-    Parameters
-    ----------
-    component : str
-        Component to fit ('modulating', 'frequency', or 'fas').
-    model : StochasticModel
-        The stochastic model to fit.
-    motion : GroundMotion
-        The target ground motion.
-    fit_range : tuple, optional
-        Tuple specifying the fractional energy range (start, end) over which to fit the time series characteristics (e.g., zc_ac).
-    initial_guess : array-like, optional
-        Initial parameter values. If None, uses defaults.
-    bounds : list of tuples, optional
-        Parameter bounds as [(min1, max1), (min2, max2), ...]. If None, uses defaults.
+    def fit (self, fit_range: tuple = (0.01, 0.99), initial_guess: dict = None, bounds: dict = None):
+        if initial_guess is None or bounds is None:
+            default_guess, default_bounds = self._default_parameters()
+            gs = initial_guess or default_guess
+            bs = bounds or default_bounds
 
-    Returns
-    -------
-    model : StochasticModel
-        The calibrated model (modified in-place).
-    result : OptimizeResult
-        Optimization result with success status, final parameters, etc.
-    """
-    if initial_guess is None or bounds is None:
-        default_guess, default_bounds = get_default_parameters(component, model)
-        initial_guess = initial_guess or default_guess
-        bounds = bounds or default_bounds
+        results = []
+        schemes = ['modulating', 'frequency']
+        for scheme in schemes:
+            objective_func = self._objective_function(scheme, fit_range)
+            results.append(minimize(objective_func, gs, bounds=bs, method='L-BFGS-B', jac="3-point"))
 
-    objective_func = get_objective_function(component, model, motion, fit_range)
+        return results
 
-    result = minimize(objective_func, initial_guess, bounds=bounds, method='L-BFGS-B', jac="3-point")
-
-    if result.success:
-        objective_func(result.x)
-
-    return model, result
-
-def get_objective_function(component: str, model: StochasticModel, motion: GroundMotion, fit_range: tuple):
-    """Create objective function for the specified component."""
-    energy_slicer = signal_tools.slice_energy(motion.ce, fit_range)
-    
-    if component == 'modulating':
-        target_ce = motion.ce
-        target_max = target_ce.max()
-        modulating_type = type(model.modulating).__name__
+    def _objective_function(self, scheme: str, fit_range: tuple):
+        """Create objective function for the specified scheme."""
+        slicer = signal.slice_energy(self.gm.ce, fit_range)
         
-        def objective(params):
-            model_ce = update_modulating(params, model, motion, modulating_type)
-            return np.sum(np.square((model_ce - target_ce) / target_max))
-
-    elif component == 'frequency':
-        # Cache model type names
-        upper_freq_type = type(model.upper_frequency).__name__
-        lower_freq_type = type(model.lower_frequency).__name__
-        
-        # Pre-slice all target arrays
-        target_zc_ac = motion.zc_ac[energy_slicer]
-        target_zc_vel = motion.zc_vel[energy_slicer]
-        target_zc_disp = motion.zc_disp[energy_slicer]
-        target_pmnm_vel = motion.pmnm_vel[energy_slicer]
-        target_pmnm_disp = motion.pmnm_disp[energy_slicer]
-        target_fas = motion.fas
-        
-        # Pre-compute scale factor
-        scale = target_zc_ac.max() / target_fas.max() if target_fas.max() > 0 else 1.0
-        
-        # Pre-concatenate target vector
-        target = np.concatenate((target_zc_ac, target_zc_vel, target_zc_disp,
-                                 target_pmnm_vel, target_pmnm_disp, target_fas * scale))
-        target_max = target.max()
-        
-        # Pre-compute parameter slicing info
-        fitables = [model.upper_frequency, model.lower_frequency, model.upper_damping, model.lower_damping]
-        param_counts = [len(f.params) for f in fitables]
-        param_slices = np.cumsum([0] + param_counts)
-        
-        def objective(params):
-            model_output = update_frequency(params, model, motion, scale, energy_slicer,
-                                           fitables, param_slices, upper_freq_type, lower_freq_type)
-            return np.sum(np.square((model_output - target) / target_max))
-
-    elif component == 'fas':
-        fas_max = motion.fas.max() if motion.fas.max() > 0 else 1.0
-        fas_vel_max = motion.fas_vel.max() if motion.fas_vel.max() > 0 else 1.0
-        fas_disp_max = motion.fas_disp.max() if motion.fas_disp.max() > 0 else 1.0
-        
-        # Pre-compute normalized target once
-        target = np.concatenate((motion.fas / fas_max,
-                                 motion.fas_vel / fas_vel_max,
-                                 motion.fas_disp / fas_disp_max))
-
-        # Cache model type names
-        upper_freq_type = type(model.upper_frequency).__name__
-        lower_freq_type = type(model.lower_frequency).__name__
-        
-        # Pre-compute parameter slicing info
-        fitables = [model.upper_frequency, model.lower_frequency, model.upper_damping, model.lower_damping]
-        param_counts = [len(f.params) for f in fitables]
-        param_slices = np.cumsum([0] + param_counts)
-        
-        def objective(params):
-            model_output = update_fas(params, model, motion, fitables, param_slices, 
-                                     upper_freq_type, lower_freq_type,
-                                     fas_max, fas_vel_max, fas_disp_max)
-            return np.sum(np.square(model_output - target))
+        if scheme == 'modulating':
+            target_ce = self.gm.ce
+            modulating_type = type(self.q).__name__
             
-    else:
-        raise ValueError(f"Unknown component: {component}")
-    
-    return objective
+            def objective(params):
+                model_ce = self.update_modulating(params, modulating_type)
+                return np.mean(np.square(model_ce - target_ce))
 
-def update_modulating(params, model: StochasticModel, motion: GroundMotion, modulating_type: str):
-    """Update modulating function and return model cumulative energy."""
-    et, tn = motion.ce.max(), motion.t.max()
-    
-    if modulating_type == 'BetaDual':
-        p1, c1, dp2, c2, a1 = params
-        model_params = (p1, c1, p1 + dp2, c2, a1, et, tn)
-    elif modulating_type in ('BetaSingle', 'BetaBasic'):
-        p1, c1 = params
-        model_params = (p1, c1, et, tn)
-    else:
-        model_params = params
-    
-    model.modulating(motion.t, *model_params)
-
-    return model.ce
-
-def update_frequency(params, model: StochasticModel, motion: GroundMotion, scale: float, 
-                    energy_slicer, fitables, param_slices, upper_freq_type: str, lower_freq_type: str):
-    """Update damping functions and return statistics."""
-    fitable_params = [params[param_slices[i]:param_slices[i+1]] for i in range(len(fitables))]
-
-    if upper_freq_type in ("Linear", "Exponential") and lower_freq_type in ("Linear", "Exponential"):
-        fitable_params[1] = [fitable_params[0][0] * fitable_params[1][0], fitable_params[0][1] * fitable_params[1][1]]
-
-    if upper_freq_type == "Constant" and lower_freq_type == "Constant":
-        fitable_params[1] = [fitable_params[0][0] * fitable_params[1][0]]
-    
-    if upper_freq_type in ("Linear", "Exponential") and lower_freq_type == "Constant":
-        fitable_params[1] = [min(fitable_params[0][0], fitable_params[0][1]) * fitable_params[1][0]]
-
-    for freq_model, model_params in zip(fitables, fitable_params):
-        freq_model(motion.t, *model_params)
-
-    return np.concatenate((model.zc_ac[energy_slicer],
-                           model.zc_vel[energy_slicer],
-                           model.zc_disp[energy_slicer],
-                           model.pmnm_vel[energy_slicer],
-                           model.pmnm_disp[energy_slicer],
-                           model.fas * scale))
-
-def update_fas(params, model: StochasticModel, motion: GroundMotion, 
-              fitables, param_slices, upper_freq_type: str, lower_freq_type: str,
-              fas_max: float, fas_vel_max: float, fas_disp_max: float):
-    """Update damping functions and return statistics."""
-    fitable_params = [params[param_slices[i]:param_slices[i+1]] for i in range(len(fitables))]
-
-    if upper_freq_type in ("Linear", "Exponential") and lower_freq_type in ("Linear", "Exponential"):
-        fitable_params[1] = [fitable_params[0][0] * fitable_params[1][0], fitable_params[0][1] * fitable_params[1][1]]
-
-    if upper_freq_type == "Constant" and lower_freq_type == "Constant":
-        fitable_params[1] = [fitable_params[0][0] * fitable_params[1][0]]
-    
-    if upper_freq_type in ("Linear", "Exponential") and lower_freq_type == "Constant":
-        fitable_params[1] = [min(fitable_params[0][0], fitable_params[0][1]) * fitable_params[1][0]]
-
-    for freq_model, model_params in zip(fitables, fitable_params):
-        freq_model(motion.t, *model_params)
-    model._stats
-    # Normalize using pre-computed denominators
-    return np.concatenate((model.fas / fas_max,
-                           model.fas_vel / fas_vel_max,
-                           model.fas_disp / fas_disp_max))
-
-def get_default_parameters(component: str, model: StochasticModel):
-    """Get default initial guess and bounds for parameters."""
-
-    mod_defaults = {
-        ('modulating', 'BetaDual'): ([0.1, 20.0, 0.2, 10.0, 0.6],
-                                     [(0.01, 0.5), (1.0, 1000.0), (0.0, 0.5), (1.0, 1000.0), (0.0, 0.95)]),
-        ('modulating', 'BetaSingle'): ([0.1, 20.0],
-                                       [(0.01, 0.95), (1.0, 1000.0)]),
-        ('modulating', 'BetaBasic'): ([0.1, 20.0],
-                                      [(0.01, 0.95), (1.0, 1000.0)]),}
-
-    freq_damping_defaults = {
-        ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
-        ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
-        ('upper_frequency', 'Constant'): ([5.0], [(0.5, 40.0)]),
-
-        ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
-        ('lower_frequency', 'Exponential'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
-        ('lower_frequency', 'Constant'): ([0.2], [(0.01, 0.99)]),
-
-        ('upper_damping', 'Linear'): ([0.1, 0.3], [(0.1, 0.99), (0.1, 0.99)]),
-        ('upper_damping', 'Exponential'): ([0.1, 0.3], [(0.1, 0.99), (0.1, 0.99)]),
-        ('upper_damping', 'Constant'): ([0.3], [(0.1, 0.99)]),
+        elif scheme == 'frequency':
+            wu_type = type(self.wu).__name__
+            wl_type = type(self.wl).__name__
+            
+            target_zc_ac = self.gm.zc_ac[slicer]
+            target_zc_vel = self.gm.zc_vel[slicer]
+            target_zc_disp = self.gm.zc_disp[slicer]
+            target_pmnm_vel = self.gm.pmnm_vel[slicer]
+            target_pmnm_disp = self.gm.pmnm_disp[slicer]
+            target_fas = self.gm.fas
+            
+            fitables = [self.wu, self.wl, self.zu, self.zl]
+            param_counts = [f.n_params for f in fitables]
+            param_indices = np.cumsum([0] + param_counts)
+            param_slices = [slice(start, end) for start, end in zip(param_indices[:-1], param_indices[1:])]
+            
+            def objective(params):
+                m_zc_ac, m_zc_vel, m_zc_disp, m_pmnm_vel, m_pmnm_disp, m_fas = self.update_frequency(params, slicer, fitables, param_slices, wu_type, wl_type)
+                return np.sum([np.mean(np.square(m_zc_ac - target_zc_ac)) / np.var(target_zc_ac),
+                       np.mean(np.square(m_zc_vel - target_zc_vel)) / np.var(target_zc_vel),
+                       np.mean(np.square(m_zc_disp - target_zc_disp)) / np.var(target_zc_disp),
+                       np.mean(np.square(m_pmnm_vel - target_pmnm_vel)) / np.var(target_pmnm_vel),
+                       np.mean(np.square(m_pmnm_disp - target_pmnm_disp)) / np.var(target_pmnm_disp),
+                       np.mean(np.square(m_fas - target_fas)) / np.var(target_fas)])
+        else:
+            raise ValueError(f"Unknown scheme: {scheme}")
         
-        ('lower_damping', 'Linear'): ([0.1, 0.2], [(0.1, 0.99), (0.1, 0.99)]),
-        ('lower_damping', 'Exponential'): ([0.1, 0.2], [(0.1, 0.99), (0.1, 0.99)]),
-        ('lower_damping', 'Constant'): ([0.2], [(0.1, 0.99)]),}
+        return objective
 
-    if component == 'modulating':
-        model_type = type(model.modulating).__name__
-        key = (component, model_type)
-        if key not in mod_defaults:
-            raise ValueError(f'No default parameters for {key}. Please provide initial_guess and bounds.')
-        return mod_defaults[key]
+    def update_modulating(self, params, modulating_type: str):
+        """Update modulating function and return model cumulative energy."""
+        et, tn = self.gm.ce.max(), self.gm.t.max()
+        
+        if modulating_type == 'BetaDual':
+            p1, c1, dp2, c2, a1 = params
+            model_params = (p1, c1, p1 + dp2, c2, a1, et, tn)
+        elif modulating_type in ('BetaSingle', 'BetaBasic'):
+            p1, c1 = params
+            model_params = (p1, c1, et, tn)
+        else:
+            model_params = params
+        
+        self.q(self.gm.t, *model_params)
+        model = StochasticModel(self.gm.npts, self.gm.dt, self.q, self.wu, self.zu, self.wl, self.zl)
 
-    elif component in ('frequency', 'fas'):
+        return model.ce
+
+    def update_frequency(self, params, slicer, fitables, param_slices, wu_type: str, wl_type: str):
+        """Update damping functions and return statistics."""
+        fitable_params = [params[s] for s in param_slices]
+
+        if wu_type in ("Linear", "Exponential") and wl_type in ("Linear", "Exponential"):
+            fitable_params[1] = [fitable_params[0][0] * fitable_params[1][0], fitable_params[0][1] * fitable_params[1][1]]
+
+        if wu_type == "Constant" and wl_type == "Constant":
+            fitable_params[1] = [fitable_params[0][0] * fitable_params[1][0]]
+        
+        if wu_type in ("Linear", "Exponential") and wl_type == "Constant":
+            fitable_params[1] = [min(fitable_params[0][0], fitable_params[0][1]) * fitable_params[1][0]]
+
+        for fn, pms in zip(fitables, fitable_params):
+            fn(self.gm.t, *pms)
+
+        model = StochasticModel(self.gm.npts, self.gm.dt, self.q, self.wu, self.zu, self.wl, self.zl)
+
+        return (model.zc_ac[slicer], model.zc_vel[slicer], model.zc_disp[slicer], model.pmnm_vel[slicer], model.pmnm_disp[slicer], model.fas)
+
+    def _default_parameters(self):
+        """Get default initial guess and bounds for parameters."""
+        all_defaults = {
+            ('modulating', 'BetaDual'): ([0.1, 20.0, 0.2, 10.0, 0.6], [(0.01, 0.5), (2.0, 100.0), (0.0, 0.5), (2.0, 100.0), (0.0, 0.5)]),
+            ('modulating', 'BetaSingle'): ([0.1, 20.0], [(0.01, 0.5), (2.0, 100.0)]),
+            ('modulating', 'BetaBasic'): ([0.1, 20.0], [(0.01, 0.5), (2.0, 100.0)]),
+            ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
+            ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
+            ('upper_frequency', 'Constant'): ([5.0], [(0.5, 40.0)]),
+            ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
+            ('lower_frequency', 'Exponential'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
+            ('lower_frequency', 'Constant'): ([0.2], [(0.01, 0.99)]),
+            ('upper_damping', 'Linear'): ([0.1, 0.3], [(0.1, 0.99), (0.1, 0.99)]),
+            ('upper_damping', 'Exponential'): ([0.1, 0.3], [(0.1, 0.99), (0.1, 0.99)]),
+            ('upper_damping', 'Constant'): ([0.3], [(0.1, 0.99)]),
+            ('lower_damping', 'Linear'): ([0.1, 0.2], [(0.1, 0.99), (0.1, 0.99)]),
+            ('lower_damping', 'Exponential'): ([0.1, 0.2], [(0.1, 0.99), (0.1, 0.99)]),
+            ('lower_damping', 'Constant'): ([0.2], [(0.1, 0.99)]),}
+
         initial_guess = []
         bounds = []
 
-        roles_and_models = [
-            ('upper_frequency', model.upper_frequency),
-            ('lower_frequency', model.lower_frequency),
-            ('upper_damping', model.upper_damping),
-            ('lower_damping', model.lower_damping)]
+        context_and_type = [
+            ('modulating', type(self.q).__name__),
+            ('upper_frequency', type(self.wu).__name__),
+            ('lower_frequency', type(self.wl).__name__),
+            ('upper_damping', type(self.zu).__name__),
+            ('lower_damping', type(self.zl).__name__)]
 
-        for role, model_obj in roles_and_models:
-            model_type = type(model_obj).__name__
-            key = (role, model_type)
-
-            if key not in freq_damping_defaults:
+        for key in context_and_type:
+            if key not in all_defaults:
                 raise ValueError(f'No default parameters for {key}. Please provide initial_guess and bounds.')
             
-            guess, bnds = freq_damping_defaults[key]
-            initial_guess.extend(guess)
-            bounds.extend(bnds)
+            gs, bs = all_defaults[key]
+            initial_guess.extend(gs)
+            bounds.extend(bs)
         
         return initial_guess, bounds
-
-    else:
-        raise ValueError(f"Unknown component: {component}")
