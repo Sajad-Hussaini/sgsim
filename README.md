@@ -21,6 +21,26 @@
 
 See the [Documentation](https://sgsim.readthedocs.io/en/latest/?badge=latest).
 
+## Installation
+
+**Stable release (recommended):**
+
+Install the latest stable version from [PyPI](https://pypi.org/project/sgsim):
+
+```bash
+pip install sgsim
+```
+
+**Development version:**
+
+To use the latest development version (not guaranteed to be stable), install directly from the [GitHub repository](https://github.com/Sajad-Hussaini/sgsim):
+
+```bash
+pip install git+https://github.com/Sajad-Hussaini/sgsim.git
+```
+
+> **Note:** The PyPI version is recommended for most users. The GitHub version may include experimental or untested changes.
+
 ## User Guide
 
 The full documentation, including examples and the complete API reference, is available at [sgsim.readthedocs.io](https://sgsim.readthedocs.io/en/latest/?badge=latest).
