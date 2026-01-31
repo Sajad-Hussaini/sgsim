@@ -6,16 +6,16 @@ from ..motion import signal
 from ..core.functions import ParametricFunction
 
 class ModelInverter:
-    def __init__(self, modulating: ParametricFunction,
+    def __init__(self, ground_motion: GroundMotion, modulating: ParametricFunction,
                  upper_frequency: ParametricFunction, upper_damping: ParametricFunction,
-                 lower_frequency: ParametricFunction, lower_damping: ParametricFunction,
-                 ground_motion: GroundMotion):
+                 lower_frequency: ParametricFunction, lower_damping: ParametricFunction):
+        self.gm = ground_motion
         self.q = modulating
         self.wu = upper_frequency
         self.zu = upper_damping
         self.wl = lower_frequency
         self.zl = lower_damping
-        self.gm = ground_motion
+        
 
         self._wu_type = type(self.wu).__name__
         self._wl_type = type(self.wl).__name__

@@ -5,10 +5,14 @@ Quick Start: Basic Ground Motion Analysis Example
 
 This guide walks you through the basics of loading, processing, and analyzing ground motion data using ``sgsim``.
 
-Step 1: Import Libraries
-------------------------
+Step 1: Load the GroundMotion and Import Libraries
+---------------------------------------------------
 
 First, import the ``GroundMotion`` class and ``matplotlib`` for plotting.
+You can create a ``GroundMotion`` instance either by loading a record file or from in-memory data arrays.
+
+Option A: Load from a Record File (e.g., NGA, ESM, Col, etc.)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
    
@@ -17,15 +21,6 @@ First, import the ``GroundMotion`` class and ``matplotlib`` for plotting.
    import matplotlib.pyplot as plt
    from sgsim import GroundMotion
 
-Step 2: Load a Ground Motion
-----------------------------
-
-You can create a ``GroundMotion`` instance in two primary ways: loading from a file or creating one from existing data arrays in memory.
-
-Option A: Load from a Record File (e.g., PEER NGA, ESM, etc.)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: python
 
    # %% Loading from a file
    # Example A: Loading an NGA file (.AT2)
@@ -40,18 +35,18 @@ Option B: Load from Memory (NumPy Arrays)
 
 .. code-block:: python
 
-   # %% Create dummy data for demonstration (time step and acceleration array)
-   dt = 0.01  # Time step in seconds
-   ac = np.random.normal(0, 0.1, 1000)  # Simulated acceleration array
+   # %% Example: Create sample data in memory or use your own data
+   dt = 0.01  # Time step (s)
+   ac = np.random.normal(0, 0.1, 1000)  # Acceleration array
 
    # Create instance from array
    gm = GroundMotion.load_from(source='array', dt=dt, ac=ac)
 
-Step 3: Process the Signal
---------------------------
+Step 2: Process the Signal
+---------------------------
 
-Once loaded, you can chain methods to process the ground motion.
-Processing is often essential to remove noise and integration errors.
+Once loaded, you can chain methods to process the ground motion if necessary.
+.. tip:: Most processing methods return a new ``GroundMotion`` instance, so you can chain them together.
 
 The code below performs the following standard workflow:
 
@@ -74,10 +69,10 @@ The code below performs the following standard workflow:
    #                  .taper(alpha=0.05)
    #                  .butterworth_filter(bandpass_freqs=(0.1, 25.0), order=4))  
 
-Step 4: Access Intensity Measures (IMs)
+Step 3: Access Intensity Measures (IMs)
 ---------------------------------------
 
-You can easily access scalar Intensity Measures like PGA (Peak Ground Acceleration).
+You can easily access Intensity Measures like PGA (Peak Ground Acceleration), etc.
 
 .. code-block:: python
 
@@ -88,15 +83,14 @@ You can easily access scalar Intensity Measures like PGA (Peak Ground Accelerati
    print(f"PGA: {gm_processed.pga} g")
    print(f"PGV: {gm_processed.pgv} cm/s")
 
-Step 5: Plot Time Series, Response Spectra, FAS
+Step 4: Plot Time Series, Response Spectra, FAS
 ------------------------------------------------
-
-You can compute spectral displacement (SD), velocity (SV), and acceleration (SA) for any range of periods.
+You can visualize the processed ground motion time series, response spectra, and Fourier Amplitude Spectrum (FAS).
 
 .. code-block:: python
 
    # %% Plot time Series of processed ground motion
-   fig, ax = plt.subplots(3, 1, sharex=True, figsize=(5, 4))
+   fig, ax = plt.subplots(3, 1, sharex=True, figsize=(10, 8))
    # Acceleration
    ax[0].plot(gm_processed.t, gm_processed.ac, color='black')
    ax[0].set_ylabel('Acceleration (g)')
@@ -135,10 +129,10 @@ You can compute spectral displacement (SD), velocity (SV), and acceleration (SA)
    plt.ylabel("Amplitude")
    plt.show()
 
-Step 6: Export Results
-----------------------
+Step 5: Export Results
+-----------------------
 
-Finally, You can save any ground motion attributes (e.g., any IM, SA, FAS, etc.) to CSV file if spreadsheet analysis is needed.
+Finally, You can save any ground motion attributes (e.g., SA, FAS, etc.) to CSV file if spreadsheet analysis is needed.
 You can also use numpy methods to simply save any attributes to txt or npy files.
 
 .. code-block:: python

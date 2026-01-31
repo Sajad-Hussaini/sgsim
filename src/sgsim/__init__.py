@@ -4,7 +4,7 @@ from .optimization.fitting import ModelInverter
 from .core import functions as Functions
 from .motion import signal as Signal
 
-__version__ = '1.2.6'
+__version__ = '1.3.0'
 
 __all__ = [
     'StochasticModel',

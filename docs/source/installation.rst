@@ -19,6 +19,7 @@ Method 1: Using Git
 ~~~~~~~~~~~~~~~~~~~
 
 If you have Git installed, clone the repository:
+Go to https://github.com/Sajad-Hussaini/sgsim and clone it.
 
 .. code-block:: bash
 

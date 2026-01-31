@@ -2,11 +2,12 @@
 Parametric functions for stochastic ground motion simulation.
 
 Each class exposes its required parameter names via the `param_names` property for easy introspection and automation.
+.. tip:: These classes are callable: For exmaple use as stateful `y = BetaBasic()(t, ...)` or as stateless `y = BetaBasic.compute(t, ...)`.
 
 Examples
 --------
 >>> import numpy as np
->>> from sgsim.functions import BetaSingle, Linear, Constant
+>>> from sgsim.Functions import BetaSingle, Linear, Constant
 >>> t = np.linspace(0, 40, 4000)
 >>> # Functional (stateless) usage
 >>> y_env = BetaSingle.compute(t, peak=0.3, concentration=5.0, energy=100.0, duration=40.0)
@@ -79,7 +80,7 @@ class ParametricFunction(ABC):
 class BetaBasic(ParametricFunction):
     """
     Basic Beta modulating function for earthquake ground motion simulation.
-    
+
     Provides a smooth envelope function based on the Beta distribution,
     suitable for modeling single-phase earthquake strong motion.
 
@@ -101,9 +102,10 @@ class BetaBasic(ParametricFunction):
 
     References
     ----------  
-    Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic
-    simulation of earthquake ground motions with multiple strong phases.
-    Earthquake Spectra. 2025;41(3):2399-2435.
+    Broadband stochastic simulation of earthquake ground motions
+    with multiple strong phases with
+    an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake.
+    https://doi.org/10.1177/87552930251331981
     """
     _pnames = ['peak', 'concentration', 'energy', 'duration']
     def __call__(self, t, peak, concentration, energy, duration):
@@ -145,9 +147,10 @@ class BetaSingle(ParametricFunction):
 
     References
     ----------  
-    Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic
-    simulation of earthquake ground motions with multiple strong phases.
-    Earthquake Spectra. 2025;41(3):2399-2435.
+    Broadband stochastic simulation of earthquake ground motions
+    with multiple strong phases with
+    an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake.
+    https://doi.org/10.1177/87552930251331981
     """
     _pnames = ['peak', 'concentration', 'energy', 'duration']
     def __call__(self, t, peak, concentration, energy, duration):
@@ -196,9 +199,10 @@ class BetaDual(ParametricFunction):
 
     References
     ----------  
-    Hussaini SS, Karimzadeh S, Rezaeian S, Lourenço PB. Broadband stochastic
-    simulation of earthquake ground motions with multiple strong phases.
-    Earthquake Spectra. 2025;41(3):2399-2435.
+    Broadband stochastic simulation of earthquake ground motions
+    with multiple strong phases with
+    an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake.
+    https://doi.org/10.1177/87552930251331981
     """
     _pnames = ['peak', 'concentration', 'peak_2', 'concentration_2', 'energy_ratio', 'energy', 'duration']
     def __call__(self, t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):

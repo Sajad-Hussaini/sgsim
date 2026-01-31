@@ -1,4 +1,5 @@
-"""Stochastic ground motion model with cached spectral properties."""
+"""Stochastic ground motion model."""
+import json
 from functools import cached_property
 
 import numpy as np
@@ -33,6 +34,8 @@ class StochasticModel(Domain):
         Lower frequency function in Hz.
     lower_damping : np.ndarray
         Lower damping function.
+    params : dict, optional
+        Original parameters dictionary used to create the model.
 
     Examples
     --------
@@ -77,9 +80,6 @@ class StochasticModel(Domain):
             Number of time points.
         dt : float
             Time step.
-        functions : dict, optional
-            Dictionary mapping function names (str) to ParametricFunction classes.
-            Use this to support user-defined functions not in the core library.
 
         Returns
         -------
@@ -101,6 +101,22 @@ class StochasticModel(Domain):
         lower_damping = compute_array(params['lower_damping'])
 
         return cls(npts, dt, modulating, upper_frequency, upper_damping, lower_frequency, lower_damping, params)
+
+    def save(self, filename):
+        """
+        Save model parameters to a JSON file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output JSON file (Recommeded to use .json extension).
+
+        Examples
+        --------
+        >>> model.save("my_model.json")
+        """
+        with open(filename, "w") as f:
+            json.dump(self.params, f, indent=2)
 
     # =========================================================================
     # Core Statistics (cached tuple unpacking)
