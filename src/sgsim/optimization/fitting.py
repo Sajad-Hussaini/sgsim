@@ -105,7 +105,7 @@ class ModelInverter:
             
             q_array = self.q.compute(self.gm.t, *p)
             model_ce = signal.ce(self.gm.dt, q_array)
-            return np.mean(np.square(model_ce - target_ce)) / np.var(target_ce)
+            return np.mean(np.square(model_ce - target_ce)) / np.mean(np.square(target_ce))
 
         return objective
 
@@ -116,7 +116,7 @@ class ModelInverter:
         if criteria == 'full':
             targets = [self.gm.zc_ac[slicer], self.gm.zc_vel[slicer], self.gm.zc_disp[slicer],
                        self.gm.pmnm_vel[slicer], self.gm.pmnm_disp[slicer], self.gm.fas]
-            variances = [np.var(t) for t in targets]
+            mses = [np.mean(np.square(t)) for t in targets]
 
             q_params = self.results['modulating']['params']
             q_array = self.q.compute(self.gm.t, **q_params)
@@ -135,8 +135,8 @@ class ModelInverter:
                          model.pmnm_vel[slicer], model.pmnm_disp[slicer], model.fas]
                 
                 error = 0.0
-                for pred, target, var in zip(preds, targets, variances):
-                    error += np.mean(np.square(pred - target)) / var
+                for pred, target, mse in zip(preds, targets, mses):
+                    error += np.mean(np.square(pred - target)) / mse
                 
                 return error
 
