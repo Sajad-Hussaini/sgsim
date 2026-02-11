@@ -22,10 +22,12 @@ class ModelInverter:
         self._q_type = type(self.q).__name__
 
     def fit(self, criteria: str = 'full', fit_range: tuple = (0.01, 0.99), initial_guess: dict = None, bounds: dict = None):
-        if initial_guess is None or bounds is None:
-            default_guess, default_bounds = self._default_parameters()
-            gs = initial_guess or default_guess
-            bs = bounds or default_bounds
+        # Always get defaults first
+        default_guess, default_bounds = self._default_parameters()
+        
+        # Merge: user values override defaults, missing keys use defaults
+        gs = {**default_guess, **(initial_guess or {})}
+        bs = {**default_bounds, **(bounds or {})}
 
         self.results = {}
         # ========== Fit modulating function ==========
