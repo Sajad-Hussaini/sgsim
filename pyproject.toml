@@ -37,8 +37,10 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/Sajad-Hussaini/sgsim"
+Documentation = "https://sgsim.readthedocs.io"
 Repository = "https://github.com/Sajad-Hussaini/sgsim"
 Issues = "https://github.com/Sajad-Hussaini/sgsim/issues"
+Changelog = "https://github.com/Sajad-Hussaini/sgsim/releases"
 
 [tool.setuptools.packages.find]
 where = ["src"]
