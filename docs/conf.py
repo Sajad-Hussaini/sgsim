@@ -1,5 +1,5 @@
 project = 'SGSIM'
-copyright = '2025, Sajad Hussaini'
+copyright = '2026, Sajad Hussaini'
 author = 'Sajad Hussaini'
 from sgsim import __version__ as release
 
