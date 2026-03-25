@@ -138,7 +138,8 @@ class ModelInverter:
                 
                 error = 0.0
                 for pred, target, mse in zip(preds, targets, mses):
-                    error += np.mean(np.square(pred - target)) / mse
+                    if mse > np.finfo(float).eps:
+                        error += np.mean(np.square(pred - target)) / mse
                 
                 return error
 
@@ -150,12 +151,12 @@ class ModelInverter:
     def _default_parameters(self):
         """Get default initial guess and bounds for parameters."""
         all_defaults = {('modulating', 'BetaDual'): ([0.1, 20.0, 0.2, 10.0, 0.6], [(0.01, 0.5), (2.0, 1000.0), (0.0, 0.5), (2.0, 1000.0), (0.0, 0.5)]),
-                        ('modulating', 'BetaSingle'): ([0.1, 20.0], [(0.01, 0.5), (2.0, 1000.0)]),
-                        ('modulating', 'BetaBasic'): ([0.1, 20.0], [(0.01, 0.5), (2.0, 1000.0)]),
+                        ('modulating', 'BetaSingle'): ([0.1, 20.0], [(0.01, 0.9), (0.1, 1000.0)]),
+                        ('modulating', 'BetaBasic'): ([0.1, 20.0], [(0.01, 0.9), (0.1, 1000.0)]),
 
-                        ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
-                        ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.5, 40.0), (0.5, 40.0)]),
-                        ('upper_frequency', 'Constant'): ([5.0], [(0.5, 40.0)]),
+                        ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),
+                        ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),
+                        ('upper_frequency', 'Constant'): ([5.0], [(0.1, 40.0)]),
 
                         ('lower_frequency', 'Linear'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
                         ('lower_frequency', 'Exponential'): ([0.2, 0.5], [(0.01, 0.99), (0.01, 0.99)]),
