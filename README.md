@@ -1,4 +1,4 @@
-# SGSIM: Python Package for Simulation and Analysis of Ground Motions
+# SGSIM: Simulation and Analysis of Ground Motions
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -9,61 +9,43 @@
 > 1. **Simulation** of earthquake ground motions using a site-compatible stochastic method [[1]](#references).  
 > 2. **Processing and analysis** of ground motions, including filtering, trimming, and calculating various intensity measures (e.g., PGA, SA, FAS, etc.).
 
-
 ## Table of Contents
-- [Features and Installation](#features-and-installation)
-- [User Guide](#user-guide)
-- [License](#license)
-- [Contact](#contact)
+- [Installation](#installation)
+- [Documentation & License](#documentation--license)
+- [Contact & Support](#contact--support)
 - [References](#references)
 
-## Features and Installation
-
-See the [Documentation](https://sgsim.readthedocs.io/en/latest/?badge=latest).
 
 ## Installation
 
-**Stable release (recommended):**
-
-Install the latest stable version from [PyPI](https://pypi.org/project/sgsim):
+**Stable release (recommended):** Install the latest stable version from [PyPI](https://pypi.org/project/sgsim):
 
 ```bash
 pip install sgsim
 ```
 
-**Development version:**
-
-To use the latest development version (not guaranteed to be stable), install directly from the [GitHub repository](https://github.com/Sajad-Hussaini/sgsim):
+**Development version:**  To use the latest development version (may include experimental or untested changes), install directly from the [GitHub repository](https://github.com/Sajad-Hussaini/sgsim):
 
 ```bash
 pip install git+https://github.com/Sajad-Hussaini/sgsim.git
 ```
 
-> **Note:** The PyPI version is recommended for most users. The GitHub version may include experimental or untested changes.
-
-## User Guide
+## Documentation & License
 
 The full documentation, including examples and the complete API reference, is available at [sgsim.readthedocs.io](https://sgsim.readthedocs.io/en/latest/?badge=latest).
 
 
-## License
+SGSIM is released under the [MIT License](https://opensource.org/licenses/MIT). See the [LICENSE](LICENSE) file for the full text.
 
-SGSIM is released under the [MIT License](https://opensource.org/licenses/MIT).  
-See the [LICENSE](LICENSE) file for the full text.
-
-## Contact
+## Contact & Support
 For any questions, assistance, suggestions, or requests to implement additional Intensity Measures (IMs), please feel free to contact:
 
-**S.M. Sajad Hussaini**  
+**S. M. Sajad Hussaini**  
 📧 [hussaini.smsajad@gmail.com](mailto:hussaini.smsajad@gmail.com)
 
 > Please include "SGSIM" in the subject line for a quicker response.
 
-### Support the Project
-
-If you find this package useful, contributions to help maintain and improve it, are always appreciated.
-
-[![PayPal](https://img.shields.io/badge/PayPal-Donate-blue.svg)](https://www.paypal.com/paypalme/sajadhussaini)
+> If you find this package useful, contributions to help maintain and improve it, are always appreciated. [![PayPal](https://img.shields.io/badge/PayPal-Donate-blue.svg)](https://www.paypal.com/paypalme/sajadhussaini)
 
 ## References
 
@@ -75,5 +57,5 @@ Please cite the following references for any formal study:
 (Journal of Earthquake Spectra)
 
 **[2] SGSIM Package**  
-*SGSIM: Python Package for Simulation and Analysis of Ground Motions*  
+*SGSIM: Simulation and Analysis of Ground Motions*  
 *DOI: https://doi.org/10.5281/zenodo.14565922*
