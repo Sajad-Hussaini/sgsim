@@ -160,7 +160,7 @@ def stats(wu, zu, wl, zl, freq_p2, freq_p4, freq_n2, freq_n4, df):
     return variance, variance_dot, variance_2dot, variance_bar, variance_2bar
 
 
-@njit('Tuple((float64[:], float64[:], float64[:]))(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', fastmath=True, cache=True)
+@njit('Tuple((float64[:], float64[:], float64[:]))(float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64[:], float64)', parallel=True, fastmath=True, cache=True)
 def fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     """
     Compute Fourier amplitude spectra for acceleration, velocity, and displacement.
@@ -195,34 +195,51 @@ def fas(mdl, wu, zu, wl, zl, freq_p2, freq_p4, variance, dt):
     fas_disp : ndarray
         Displacement Fourier amplitude spectrum.
     """
-    fas_ac = np.zeros_like(freq_p2, dtype=np.float64)
-    fas_vel = np.zeros_like(freq_p2, dtype=np.float64)
-    fas_disp = np.zeros_like(freq_p2, dtype=np.float64)
+    n_freq = len(freq_p2)
+    n_time = len(wu)
+    
+    fas_ac = np.empty(n_freq, dtype=np.float64)
+    fas_vel = np.empty(n_freq, dtype=np.float64)
+    fas_disp = np.empty(n_freq, dtype=np.float64)
     final_scale = dt * 2 * np.pi
-    for i in range(len(wu)):
-        wui = wu[i]
-        zui = zu[i]
-        wli = wl[i]
-        zli = zl[i]
-        wu2 = wui * wui
-        wu4 = wu2 * wu2
-        wl2 = wli * wli
-        wl4 = wl2 * wl2
-        scalar_l = 2 * wl2 * (2 * zli * zli - 1)
-        scalar_u = 2 * wu2 * (2 * zui * zui - 1)
-        scale = (mdl[i] * mdl[i]) / variance[i]
-        for j in range(len(freq_p2)):
-            val_p2 = freq_p2[j]
-            val_p4 = freq_p4[j]
-            denom = ((wl4 + val_p4 + scalar_l * val_p2) *
-                    (wu4 + val_p4 + scalar_u * val_p2))
-            fas_ac[j] += scale * (val_p4 / denom)
-            fas_vel[j] += scale * (val_p2 / denom)
-            fas_disp[j] += scale * (1.0 / denom)
-    for j in range(len(freq_p2)):
-        fas_ac[j] = np.sqrt(fas_ac[j] * final_scale)
-        fas_vel[j] = np.sqrt(fas_vel[j] * final_scale)
-        fas_disp[j] = np.sqrt(fas_disp[j] * final_scale)
+    
+    scales = np.empty(n_time, dtype=np.float64)
+    scalar_l_arr = np.empty(n_time, dtype=np.float64)
+    scalar_u_arr = np.empty(n_time, dtype=np.float64)
+    wl4_arr = np.empty(n_time, dtype=np.float64)
+    wu4_arr = np.empty(n_time, dtype=np.float64)
+    
+    for i in range(n_time):
+        scales[i] = (mdl[i] * mdl[i]) / variance[i]
+        
+        wui, zui, wli, zli = wu[i], zu[i], wl[i], zl[i]
+        wu2, wl2 = wui * wui, wli * wli
+        
+        wl4_arr[i] = wl2 * wl2
+        wu4_arr[i] = wu2 * wu2
+        scalar_l_arr[i] = 2 * wl2 * (2 * zli * zli - 1)
+        scalar_u_arr[i] = 2 * wu2 * (2 * zui * zui - 1)
+
+    for j in prange(n_freq):
+        val_p2 = freq_p2[j]
+        val_p4 = freq_p4[j]
+        sum_ac = 0.0
+        sum_vel = 0.0
+        sum_disp = 0.0
+
+        for i in range(n_time):
+            denom = ((wl4_arr[i] + val_p4 + scalar_l_arr[i] * val_p2) *
+                    (wu4_arr[i] + val_p4 + scalar_u_arr[i] * val_p2))
+            
+            term = scales[i] / denom
+            sum_ac += term * val_p4
+            sum_vel += term * val_p2
+            sum_disp += term
+            
+        fas_ac[j] = np.sqrt(sum_ac * final_scale)
+        fas_vel[j] = np.sqrt(sum_vel * final_scale)
+        fas_disp[j] = np.sqrt(sum_disp * final_scale)
+        
     return fas_ac, fas_vel, fas_disp
 
 

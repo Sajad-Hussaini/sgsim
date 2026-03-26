@@ -43,7 +43,7 @@ class ModelInverter:
         # ========== Fit frequency and damping functions ==========
         gs_fn = gs['upper_frequency'] + gs['upper_damping'] + gs['lower_frequency'] + gs['lower_damping']
         bs_fn = bs['upper_frequency'] + bs['upper_damping'] + bs['lower_frequency'] + bs['lower_damping']
-        objective_fn = self._objective_function(criteria, fit_range)
+        objective_fn = self._objective_frequency(criteria, fit_range)
         opt_fn = minimize(objective_fn, gs_fn, bounds=bs_fn, method='L-BFGS-B', jac="3-point").x
 
         raw_groups = self._slice_parameters(opt_fn)
@@ -111,7 +111,7 @@ class ModelInverter:
 
         return objective
 
-    def _objective_function(self, criteria: str, fit_range: tuple):
+    def _objective_frequency(self, criteria: str, fit_range: tuple):
         """Create objective function for the specified scheme."""
         slicer = signal.slice_energy(self.gm.ce, fit_range)
 
