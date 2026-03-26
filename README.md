@@ -52,10 +52,10 @@ For any questions, assistance, suggestions, or requests to implement additional 
 Please cite the following references for any formal study:  
 
 **[1] Primary Reference**  
-*Broadband stochastic simulation of earthquake ground motions with multiple strong phases with an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake*  
+*Broadband Stochastic Simulation of Earthquake Ground Motions with Multiple Strong Phases with an Application to the 2023 Kahramanmaraş, Turkey (Türkiye), Earthquake*  
 *DOI: https://doi.org/10.1177/87552930251331981*  
 (Journal of Earthquake Spectra)
 
 **[2] SGSIM Package**  
-*SGSIM: Simulation and Analysis of Ground Motions*  
+*Simulation and Analysis of Ground Motions*  
 *DOI: https://doi.org/10.5281/zenodo.14565922*
