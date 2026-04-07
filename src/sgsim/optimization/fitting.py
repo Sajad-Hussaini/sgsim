@@ -34,8 +34,8 @@ class ModelInverter:
         objective_q = self._objective_modulating(fit_range)
         opt_q = minimize(objective_q, gs['modulating'], bounds=bs['modulating'], method='L-BFGS-B', jac="3-point").x
 
-        # For BetaSingle, BetaBasic, BetaDual: append et and tn to params
-        if self._q_type in ('BetaDual', 'BetaSingle', 'BetaBasic'):
+        # For BetaSingle, BetaPeakConcentration, BetaDual: append et and tn to params
+        if self._q_type in ('BetaDual', 'BetaSingle', 'BetaPeakConcentration', 'BetaCentroidSpread'):
             opt_q = np.append(opt_q, [self.gm.ce.max(), self.gm.t.max()])
 
         self.results['modulating'] = {'type': self._q_type, 'params': dict(zip(self.q.param_names, opt_q))}
@@ -100,7 +100,7 @@ class ModelInverter:
         def objective(params):
             if self._q_type == 'BetaDual':
                 p = (params[0], params[1], params[0] + params[2], params[3], params[4], et, tn)
-            elif self._q_type in ('BetaSingle', 'BetaBasic'):
+            elif self._q_type in ('BetaSingle', 'BetaPeakConcentration', 'BetaCentroidSpread'):
                 p = (params[0], params[1], et, tn)
             else:
                 p = params
@@ -150,9 +150,10 @@ class ModelInverter:
 
     def _default_parameters(self):
         """Get default initial guess and bounds for parameters."""
-        all_defaults = {('modulating', 'BetaDual'): ([0.1, 20.0, 0.2, 10.0, 0.6], [(0.01, 0.5), (2.0, 1000.0), (0.0, 0.5), (2.0, 1000.0), (0.0, 0.5)]),
-                        ('modulating', 'BetaSingle'): ([0.1, 20.0], [(0.01, 0.9), (0.1, 1000.0)]),
-                        ('modulating', 'BetaBasic'): ([0.1, 20.0], [(0.01, 0.9), (0.1, 1000.0)]),
+        all_defaults = {('modulating', 'BetaDual'): ([0.1, 10.0, 0.2, 10.0, 0.6], [(0.01, 0.5), (2.0, 2000.0), (0.0, 0.5), (2.0, 2000.0), (0.0, 0.5)]),
+                        ('modulating', 'BetaSingle'): ([0.1, 10.0], [(0.01, 0.9), (0.1, 2000.0)]),
+                        ('modulating', 'BetaPeakConcentration'): ([0.1, 10.0], [(0.01, 0.9), (0.1, 2000.0)]),
+                        ('modulating', 'BetaCentroidSpread'): ([2.0, 1.0], [(0.1, 250.), (0.1, 100.0)]),
 
                         ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),
                         ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),

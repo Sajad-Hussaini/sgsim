@@ -2,7 +2,7 @@
 Parametric functions for stochastic ground motion simulation.
 
 Each class exposes its required parameter names via the `param_names` property for easy introspection and automation.
-.. tip:: These classes are callable: For exmaple use as stateful `y = BetaBasic()(t, ...)` or as stateless `y = BetaBasic.compute(t, ...)`.
+.. tip:: These classes are callable: For exmaple use as stateful `y = BetaPeakConcentration()(t, ...)` or as stateless `y = BetaPeakConcentration.compute(t, ...)`.
 
 Examples
 --------
@@ -24,7 +24,8 @@ from scipy.special import betaln
 from abc import ABC, abstractmethod
 
 __all__ = [
-    "BetaBasic",
+    "BetaPeakConcentration",
+    "BetaCentroidSpread",
     "BetaSingle",
     "BetaDual",
     "Gamma",
@@ -32,7 +33,7 @@ __all__ = [
     "Linear",
     "Bilinear",
     "Exponential",
-    "Constant"
+    "Constant",
     ]
 
 
@@ -76,10 +77,31 @@ class ParametricFunction(ABC):
         param_str = ', '.join(f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}" for k, v in p.items())
         return f"{self.__class__.__name__}({param_str})"
 
+def _beta_envelope(t, alpha, beta_shape, duration):
+    mdl = np.zeros_like(t)
+    # Create a mask for strictly valid times: 0 < t < duration
+    # This prevents both log(negative) and log(0) errors
+    valid = (t > 0) & (t < duration)
+    t_valid = t[valid]
 
-class BetaBasic(ParametricFunction):
+    mdl[valid] = np.exp(
+        (alpha - 1) * np.log(t_valid) +
+        (beta_shape - 1) * np.log(duration - t_valid) -
+        betaln(alpha, beta_shape) -
+        (alpha + beta_shape - 1) * np.log(duration)
+    )
+    return mdl
+
+def _weak_baseline(t, duration):
+    mdl = np.zeros_like(t)
+    valid = (t > 0) & (t < duration)
+    t_valid = t[valid]
+    mdl[valid] = 6 * (t_valid * (duration - t_valid)) / (duration ** 3)
+    return mdl
+
+class BetaPeakConcentration(ParametricFunction):
     """
-    Basic Beta modulating function for earthquake ground motion simulation.
+    Beta modulating function for earthquake ground motion simulation parameterized by peak and concentration.
 
     Provides a smooth envelope function based on the Beta distribution,
     suitable for modeling single-phase earthquake strong motion.
@@ -97,6 +119,7 @@ class BetaBasic(ParametricFunction):
     
     See Also
     --------
+    BetaCentroidSpread : Alternative Beta parameterization using centroid and spread.
     BetaSingle : Beta function with weak motion baseline.
     BetaDual : Beta function with two strong phases.
 
@@ -111,19 +134,72 @@ class BetaBasic(ParametricFunction):
     def __call__(self, t, peak, concentration, energy, duration):
         self.params = dict(peak=peak, concentration=concentration, energy=energy, duration=duration)
         return self.compute(t, peak, concentration, energy, duration)
-    
+
     @staticmethod
     def compute(t, peak, concentration, energy, duration):
-        mdl = np.zeros(len(t))
-        mdl[1:-1] = np.exp((concentration * peak) * np.log(t[1:-1]) +
-                             (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                             betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
-                             (1 + concentration) * np.log(duration))
+        alpha = 1 + concentration * peak
+        beta_shape = 1 + concentration * (1 - peak)
+        mdl = _beta_envelope(t, alpha, beta_shape, duration)
+        return np.sqrt(energy * mdl)
+
+class BetaCentroidSpread(ParametricFunction):
+    """
+    Beta modulating function for earthquake ground motion simulation parameterized by physical moments.
+
+    Provides a smooth envelope function based on the Beta distribution,
+    suitable for modeling single-phase earthquake strong motion.
+
+    Parameters
+    ----------
+    centroid : float
+        Absolute time of the energy center of mass (0 < centroid < duration).
+    spread : float
+        Standard deviation of the energy envelope in absolute time (> 0).
+    energy : float
+        Total energy under the envelope (> 0).
+    duration : float
+        Total duration of the function (> 0).
+    
+    See Also
+    --------
+    BetaPeakConcentration : Basic Beta function parameterized by peak and concentration.
+    BetaSingle : Beta function with weak motion baseline.
+    BetaDual : Beta function with two strong phases.
+
+    References
+    ----------  
+    Broadband stochastic simulation of earthquake ground motions
+    with multiple strong phases with
+    an application to the 2023 Kahramanmaraş, Turkey (Türkiye), earthquake.
+    https://doi.org/10.1177/87552930251331981
+    """
+    _pnames = ['centroid', 'spread', 'energy', 'duration']
+    def __call__(self, t, centroid, spread, energy, duration):
+        self.params = dict(centroid=centroid, spread=spread, energy=energy, duration=duration)
+        return self.compute(t, centroid, spread, energy, duration)
+
+    @staticmethod
+    def compute(t, centroid, spread, energy, duration):
+        # Normalize moments to the [0, 1] interval
+        mu_x = centroid / duration
+        var_x = (spread / duration) ** 2
+
+        # Returns array of zeros for invalid parameter combinations
+        if var_x <= 0 or var_x >= (mu_x * (1 - mu_x)):
+            return np.sqrt(energy * np.zeros_like(t))
+
+        v = (mu_x * (1 - mu_x) / var_x) - 1
+
+        # Calculate standard Beta shape parameters
+        alpha = mu_x * v
+        beta_shape = (1 - mu_x) * v
+
+        mdl = _beta_envelope(t, alpha, beta_shape, duration)
         return np.sqrt(energy * mdl)
 
 class BetaSingle(ParametricFunction):
     """
-    Beta modulating function with weak motion baseline.
+    Beta modulating function with a weak motion baseline parameterized by peak and concentration.
     
     Combines a parabolic weak motion component (5% energy) with a Beta
     distribution strong motion component (95% energy) for realistic
@@ -159,17 +235,17 @@ class BetaSingle(ParametricFunction):
     
     @staticmethod
     def compute(t, peak, concentration, energy, duration):
-        mdl = np.zeros(len(t))
-        mdl[1:-1] += 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
-        mdl[1:-1] += 0.95 * np.exp((concentration * peak) * np.log(t[1:-1]) +
-                             (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                             betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
-                             (1 + concentration) * np.log(duration))
+        alpha = 1 + concentration * peak
+        beta_shape = 1 + concentration * (1 - peak)
+
+        mdl = 0.05 * _weak_baseline(t, duration)
+        mdl += 0.95 * _beta_envelope(t, alpha, beta_shape, duration)
+
         return np.sqrt(energy * mdl)
 
 class BetaDual(ParametricFunction):
     """
-    Beta modulating function with two distinct strong phases.
+    Beta modulating function with two distinct strong phases parameterized by peak and concentration.
     
     Models earthquakes with multiple strong motion packets, combining weak
     motion baseline (5% energy) with two independent Beta distributions
@@ -213,21 +289,16 @@ class BetaDual(ParametricFunction):
     
     @staticmethod
     def compute(t, peak, concentration, peak_2, concentration_2, energy_ratio, energy, duration):
-        # Original formula:
-        # mdl1 = 0.05 * (6 * (t * (duration - t)) / (duration ** 3))
-        # mdl2 = energy_ratio * ((t ** (concentration * peak) * (duration - t) ** (concentration * (1 - peak))) / (beta(1 + concentration * peak, 1 + concentration * (1 - peak)) * duration ** (1 + concentration)))
-        # mdl3 = (1 - 0.05 - energy_ratio) * ((t ** (concentration_2 * peak_2) * (duration - t) ** (concentration_2 * (1 - peak_2))) / (beta(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2)) * duration ** (1 + concentration_2)))
-        # multi_mdl = mdl1 + mdl2 + mdl3
-        mdl = np.zeros(len(t))
-        mdl[1:-1] += 0.05 * (6 * (t[1:-1] * (duration - t[1:-1])) / (duration ** 3))
-        mdl[1:-1] += energy_ratio * np.exp((concentration * peak) * np.log(t[1:-1]) +
-                                     (concentration * (1 - peak)) * np.log(duration - t[1:-1]) -
-                                     betaln(1 + concentration * peak, 1 + concentration * (1 - peak)) -
-                                     (1 + concentration) * np.log(duration))
-        mdl[1:-1] += (0.95 - energy_ratio) * np.exp((concentration_2 * peak_2) * np.log(t[1:-1]) +
-                                              (concentration_2 * (1 - peak_2)) * np.log(duration - t[1:-1]) -
-                                              betaln(1 + concentration_2 * peak_2, 1 + concentration_2 * (1 - peak_2)) -
-                                              (1 + concentration_2) * np.log(duration))
+        alpha_1 = 1 + concentration * peak
+        beta_1 = 1 + concentration * (1 - peak)
+
+        alpha_2 = 1 + concentration_2 * peak_2
+        beta_2 = 1 + concentration_2 * (1 - peak_2)
+
+        mdl = 0.05 * _weak_baseline(t, duration)
+        mdl += energy_ratio * _beta_envelope(t, alpha_1, beta_1, duration)
+        mdl += (0.95 - energy_ratio) * _beta_envelope(t, alpha_2, beta_2, duration)
+
         return np.sqrt(energy * mdl)
 
 class Gamma(ParametricFunction):
