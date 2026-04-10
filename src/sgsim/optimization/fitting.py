@@ -40,6 +40,9 @@ class ModelInverter:
 
         self.results['modulating'] = {'type': self._q_type, 'params': dict(zip(self.q.param_names, opt_q))}
 
+        if criteria == 'modulating':
+            return None
+
         # ========== Fit frequency and damping functions ==========
         gs_fn = gs['upper_frequency'] + gs['upper_damping'] + gs['lower_frequency'] + gs['lower_damping']
         bs_fn = bs['upper_frequency'] + bs['upper_damping'] + bs['lower_frequency'] + bs['lower_damping']
@@ -153,7 +156,7 @@ class ModelInverter:
         all_defaults = {('modulating', 'BetaDual'): ([0.1, 10.0, 0.2, 10.0, 0.6], [(0.01, 0.5), (2.0, 2000.0), (0.0, 0.5), (2.0, 2000.0), (0.0, 0.5)]),
                         ('modulating', 'BetaSingle'): ([0.1, 10.0], [(0.01, 0.9), (0.1, 2000.0)]),
                         ('modulating', 'BetaPeakConcentration'): ([0.1, 10.0], [(0.01, 0.9), (0.1, 2000.0)]),
-                        ('modulating', 'BetaCentroidSpread'): ([2.0, 1.0], [(0.1, 250.), (0.1, 100.0)]),
+                        ('modulating', 'BetaCentroidSpread'): ([0.2, 0.1], [(0.01, 0.9), (0.01, 0.49)]),
 
                         ('upper_frequency', 'Linear'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),
                         ('upper_frequency', 'Exponential'): ([3.0, 2.0], [(0.1, 40.0), (0.1, 40.0)]),

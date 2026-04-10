@@ -22,7 +22,7 @@ Load an existing accelerogram record to serve as the target for the simulation.
    # %% Prepare the target ground motion
    # Change the path to the file
    gm = GroundMotion.load_from(source='nga', file='RSN123_Example.AT2')
-   # If necessary , preprocess the ground motion (e.g., trimming, baseline correction, tapering and filtering)
+   # If necessary, preprocess the ground motion (e.g., trimming, baseline correction, tapering and filtering), otherwise skip this step
    gm = gm.trim_by_energy((0.001, 0.999)).taper(0.05).butterworth_filter((0.05, 100.0))
 
 Step 2: Perform Model Inversion
@@ -34,7 +34,8 @@ Use ``Functions`` to define the functional forms for the model parameters (ampli
 .. code-block:: python
 
    # %% Specify the stochastic model functional forms
-   q = Functions.BetaBasic()  # Modulating function as BetaBasic
+   q = Functions.BetaPeakConcentration()  # Modulating function as Beta with Peak and Concentration parameters
+   # q = Functions.BetaCentroidSpread()  # An alternative modulating function as Beta with Centroid and Spread parameters
    wu = Functions.Linear()    # Upper frequency as Linear
    zu = Functions.Constant()  # Upper damping as Constant
    wl = Functions.Constant()  # Lower frequency as Constant

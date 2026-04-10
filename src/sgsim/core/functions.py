@@ -109,7 +109,7 @@ class BetaPeakConcentration(ParametricFunction):
     Parameters
     ----------
     peak : float
-        Peak location as fraction of duration (0 < peak < 1).
+        Ratio of the peak location as fraction of duration (0 < peak < 1).
     concentration : float
         Concentration parameter controlling sharpness (> 0).
     energy : float
@@ -152,9 +152,9 @@ class BetaCentroidSpread(ParametricFunction):
     Parameters
     ----------
     centroid : float
-        Absolute time of the energy center of mass (0 < centroid < duration).
+        Ratio of the energy center of mass (0 < centroid < 1).
     spread : float
-        Standard deviation of the energy envelope in absolute time (> 0).
+        Ratio of the standard deviation of the energy envelope to the duration (0 < spread < 1).
     energy : float
         Total energy under the envelope (> 0).
     duration : float
@@ -180,20 +180,10 @@ class BetaCentroidSpread(ParametricFunction):
 
     @staticmethod
     def compute(t, centroid, spread, energy, duration):
-        # Normalize moments to the [0, 1] interval
-        mu_x = centroid / duration
-        var_x = (spread / duration) ** 2
-
-        # Returns array of zeros for invalid parameter combinations
-        if var_x <= 0 or var_x >= (mu_x * (1 - mu_x)):
-            return np.sqrt(energy * np.zeros_like(t))
-
-        v = (mu_x * (1 - mu_x) / var_x) - 1
-
-        # Calculate standard Beta shape parameters
-        alpha = mu_x * v
-        beta_shape = (1 - mu_x) * v
-
+        var_x = spread ** 2
+        v = (centroid * (1 - centroid) / var_x) - 1
+        alpha = centroid * v
+        beta_shape = (1 - centroid) * v
         mdl = _beta_envelope(t, alpha, beta_shape, duration)
         return np.sqrt(energy * mdl)
 
@@ -208,7 +198,7 @@ class BetaSingle(ParametricFunction):
     Parameters
     ----------
     peak : float
-        Peak location as fraction of duration (0 < peak < 1).
+        Ratio of the peak location as fraction of duration (0 < peak < 1).
     concentration : float
         Concentration parameter controlling sharpness (> 0).
     energy : float
@@ -218,7 +208,8 @@ class BetaSingle(ParametricFunction):
     
     See Also
     --------
-    BetaBasic : Pure Beta function without weak motion.
+    BetaPeakConcentration : Basic Beta function without weak motion.
+    BetaCentroidSpread : Alternative Beta parameterization using centroid and spread.
     BetaDual : Beta function with two strong phases.
 
     References
@@ -270,7 +261,8 @@ class BetaDual(ParametricFunction):
     
     See Also
     --------
-    BetaBasic : Single Beta function without weak motion.
+    BetaPeakConcentration : Basic Beta function without weak motion.
+    BetaCentroidSpread : Alternative Beta parameterization using centroid and spread.
     BetaSingle : Single strong phase with weak motion.
 
     References
