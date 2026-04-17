@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 from ..core.model import StochasticModel
+from ..core import engine
 from ..motion.ground_motion import GroundMotion
 from ..motion import signal
 from ..core.functions import ParametricFunction
@@ -110,7 +111,8 @@ class ModelInverter:
             
             q_array = self.q.compute(self.gm.t, *p)
             model_ce = signal.ce(self.gm.dt, q_array)
-            return np.mean(np.square(model_ce - target_ce)) / np.mean(np.square(target_ce))
+            t_var = np.var(target_ce)
+            return np.mean(np.square(model_ce - target_ce)) / t_var if t_var > np.finfo(float).eps else np.mean(np.square(model_ce - target_ce))
 
         return objective
 
@@ -119,9 +121,13 @@ class ModelInverter:
         slicer = signal.slice_energy(self.gm.ce, fit_range)
 
         if criteria == 'full':
-            targets = [self.gm.zc_ac[slicer], self.gm.zc_vel[slicer], self.gm.zc_disp[slicer],
-                       self.gm.pmnm_vel[slicer], self.gm.pmnm_disp[slicer], self.gm.fas]
-            mses = [np.mean(np.square(t)) for t in targets]
+            targets = [self.gm.zc_ac[slicer] - self.gm.zc_ac[slicer][0],
+                       self.gm.zc_vel[slicer] - self.gm.zc_vel[slicer][0],
+                       self.gm.zc_disp[slicer] - self.gm.zc_disp[slicer][0],
+                       self.gm.pmnm_vel[slicer] - self.gm.pmnm_vel[slicer][0],
+                       self.gm.pmnm_disp[slicer] - self.gm.pmnm_disp[slicer][0],
+                       self.gm.fas]
+            variances = [np.var(t) for t in targets]
 
             q_params = self.results['modulating']['params']
             q_array = self.q.compute(self.gm.t, **q_params)
@@ -136,13 +142,17 @@ class ModelInverter:
 
                 model = StochasticModel(self.gm.npts, self.gm.dt, q_array, wu_arr, zu_arr, wl_arr, zl_arr)
 
-                preds = [model.zc_ac[slicer], model.zc_vel[slicer], model.zc_disp[slicer],
-                         model.pmnm_vel[slicer], model.pmnm_disp[slicer], model.fas]
+                preds = [model.zc_ac[slicer] - model.zc_ac[slicer][0],
+                         model.zc_vel[slicer] - model.zc_vel[slicer][0],
+                         model.zc_disp[slicer] - model.zc_disp[slicer][0],
+                         model.pmnm_vel[slicer] - model.pmnm_vel[slicer][0],
+                         model.pmnm_disp[slicer] - model.pmnm_disp[slicer][0],
+                         model.fas]
                 
                 error = 0.0
-                for pred, target, mse in zip(preds, targets, mses):
-                    if mse > np.finfo(float).eps:
-                        error += np.mean(np.square(pred - target)) / mse
+                for pred, target, var in zip(preds, targets, variances):
+                    if var > np.finfo(float).eps:
+                        error += np.mean(np.square(pred - target)) / var
                 
                 return error
 
