@@ -92,7 +92,9 @@ class StochasticModel(Domain):
             fn_class = functions.REGISTRY.get(name)
             if fn_class is None:
                 raise ValueError(f"Unknown function type: '{name}'. Available: {list(functions.REGISTRY.keys())}")
-            return fn_class.compute(t, **param_group['params'])
+
+            time_shift = param_group.get('time_shift', 0.0)
+            return fn_class.compute(t - time_shift, **param_group['params'])
 
         modulating = compute_array(params['modulating'])
         upper_frequency = compute_array(params['upper_frequency'])
