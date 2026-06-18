@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![PyPI](https://img.shields.io/pypi/v/sgsim.svg)](https://pypi.org/project/sgsim)
 [![Documentation Status](https://readthedocs.org/projects/sgsim/badge/?version=latest)](https://sgsim.readthedocs.io/en/latest/?badge=latest)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14565922.svg)](https://doi.org/10.5281/zenodo.14565922)  
 
 **SGSIM** is a Python package that provides two main capabilities:  
 > 1. **Simulation** of earthquake ground motions using a site-compatible stochastic method [[1]](#references).  
